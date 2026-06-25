@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Money Worker{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<style>
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px; margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  .card .v { font-size: 28px; font-weight: 700; margin-top: 6px; }
+  .next { background: linear-gradient(90deg, #1c2440, #181b24); border: 1px solid var(--accent);
+    border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; }
+  .next .k { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .next .v { font-size: 18px; font-weight: 600; margin-top: 4px; }
+  .funnel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .funnel h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 16px; }
+  .stages { display: flex; align-items: center; gap: 8px; }
+  .stage { flex: 1; text-align: center; background: var(--panel2); border-radius: 10px; padding: 16px 8px; }
+  .stage .n { font-size: 24px; font-weight: 700; }
+  .stage .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .arrow { color: var(--muted); font-size: 18px; }
+  @media (max-width: 820px) {
+    .stages { flex-wrap: wrap; }
+    .stage { flex: 1 1 40%; }
+    .arrow { display: none; }
+  }
+</style>
+
+<h1>Command Center</h1>
+<div class="sub">Faceless AI-tool videos → leads → affiliate sales · Phase 1</div>
+
+<div class="next">
+  <div class="k">👉 The one next action</div>
+  <div class="v">{{ next_action }}</div>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="k">Videos live</div><div class="v">{{ videos_live }}</div></div>
+  <div class="card"><div class="k">Awaiting approval</div><div class="v" style="color:var(--amber)">{{ pending_approval }}</div></div>
+  <div class="card"><div class="k">Leads</div><div class="v">{{ leads_total }}</div></div>
+  <div class="card"><div class="k">Conversions</div><div class="v" style="color:var(--green)">{{ leads_converted }}</div></div>
+</div>
+
+<div class="funnel">
+  <h3>The funnel</h3>
+  <div class="stages">
+    <div class="stage"><div class="n">{{ funnel.videos }}</div><div class="l">🎬 Videos</div></div>
+    <div class="arrow">→</div>
+    <div class="stage"><div class="n">{{ funnel.leads }}</div><div class="l">📥 Leads</div></div>
+    <div class="arrow">→</div>
+    <div class="stage"><div class="n">{{ funnel.clicked }}</div><div class="l">🔗 Clicked</div></div>
+    <div class="arrow">→</div>
+    <div class="stage"><div class="n">{{ funnel.converted }}</div><div class="l">💰 Sales</div></div>
+  </div>
+</div>
+{% endblock %}

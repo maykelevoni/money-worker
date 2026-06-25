@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Scheduler · Money Worker{% endblock %}
+{% block nav_scheduler %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .timeline { list-style: none; }
+  .timeline li { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .timeline li:last-child { border-bottom: none; }
+  .dot { flex-shrink: 0; width: 56px; text-align: center; font-weight: 700; color: var(--accent); }
+  .small { color: var(--muted); font-size: 13px; }
+  code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+</style>
+
+<h1>📅 Scheduler</h1>
+<div class="sub">When things happen in your funnel.</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:14px">Email drip timeline</h3>
+  <ul class="timeline">
+    {% for s in steps %}
+      <li><div class="dot">Day {{ s.delay_days }}</div>
+        <div><strong>{{ s.subject }}</strong><br><span class="small">Sent {{ s.delay_days }} day{{ s.delay_days|pluralize }} after opt-in</span></div></li>
+    {% empty %}
+      <li><span class="small">No active email steps. Build them in <a href="/emails/" style="color:var(--accent)">Email Sequences</a>.</span></li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:10px">Run it on a schedule</h3>
+  <p class="small">The app's engine runs via a cron job — no extra services. Add this to your crontab to
+    process due emails every 10 minutes:</p>
+  <p style="margin-top:10px"><code>*/10 * * * * cd /path/to/money-worker && python3 manage.py run_engine</code></p>
+  <p class="small" style="margin-top:10px">Or trigger it manually any time from
+    <a href="/automations/" style="color:var(--accent)">Automations → Run now</a>.</p>
+</div>
+{% endblock %}

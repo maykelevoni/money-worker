@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Email Sequences · Money Worker{% endblock %}
+{% block nav_emails %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .warn { background: #33280f; color: var(--amber); border: 1px solid #50410f;
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .field { margin-bottom: 12px; }
+  input, textarea { width: 100%; }
+  textarea { min-height: 90px; resize: vertical; }
+  .inline { display: flex; gap: 12px; flex-wrap: wrap; }
+  .inline .field { flex: 1; min-width: 120px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; }
+  .pill.on { color: var(--green); border-color: #1d5235; }
+  .pill.off { color: var(--muted); }
+  .day { font-weight: 700; color: var(--accent); }
+  .actions { display: flex; gap: 6px; }
+  .actions form { display: inline; }
+  .small { color: var(--muted); font-size: 12px; }
+  @media (max-width: 820px) { table { min-width: 560px; } }
+</style>
+
+<h1>📧 Email Sequences</h1>
+<div class="sub">The nurture drip that turns leads into sales. Steps fire by days after opt-in.</div>
+
+{% if not email_configured %}
+  <div class="warn">⚠️ Resend not configured — add <code>RESEND_API_KEY</code> + <code>RESEND_FROM_EMAIL</code> to .env to actually send. You can still design the sequence now.</div>
+{% endif %}
+
+<div class="panel">
+  <form method="post" action="{% url 'sequences:create' %}">
+    {% csrf_token %}
+    <div class="inline">
+      <div class="field" style="max-width:140px"><label>Send after (days)</label>
+        <input type="number" name="delay_days" value="0" min="0"></div>
+      <div class="field"><label>Subject *</label>
+        <input name="subject" placeholder="Your free cheat sheet 🎁" required></div>
+    </div>
+    <div class="field"><label>Body * (HTML ok, use {magnet} for the freebie name)</label>
+      <textarea name="body" placeholder="<p>Hey! Here's your free guide…</p>" required></textarea></div>
+    <button class="btn" type="submit">+ Add email step</button>
+    {% if not steps %}
+      <form method="post" action="{% url 'sequences:starter' %}" style="display:inline">{% csrf_token %}
+        <button class="btn btn-ghost" type="submit">✨ Load 3-email starter</button></form>
+    {% endif %}
+  </form>
+</div>
+
+<div class="panel table-wrap">
+  <table>
+    <thead><tr><th>When</th><th>Subject</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for s in steps %}
+      <tr>
+        <td><span class="day">Day {{ s.delay_days }}</span></td>
+        <td><strong>{{ s.subject }}</strong><br><span class="small">{{ s.body|striptags|truncatechars:90 }}</span></td>
+        <td>{% if s.is_active %}<span class="pill on">active</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
+        <td><div class="actions">
+          <form method="post" action="{% url 'sequences:toggle' s.pk %}">{% csrf_token %}
+            <button class="btn btn-ghost" type="submit">{% if s.is_active %}Pause{% else %}Activate{% endif %}</button></form>
+          <form method="post" action="{% url 'sequences:delete' s.pk %}" onsubmit="return confirm('Delete step?')">{% csrf_token %}
+            <button class="btn btn-ghost" type="submit">Delete</button></form>
+        </div></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="small">No steps yet — add one above or load the starter.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

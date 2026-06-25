@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Analytics · Money Worker{% endblock %}
+{% block nav_analytics %}active{% endblock %}
+
+{% block content %}
+<style>
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .card .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  .card .v { font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .panel h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 16px; }
+  .funnel-row { margin-bottom: 14px; }
+  .funnel-row .top { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+  .funnel-row .top .rate { color: var(--accent); font-size: 12px; }
+  .bar { height: 26px; background: var(--panel2); border-radius: 7px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #8aa6ff);
+    min-width: 2px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .small { color: var(--muted); font-size: 13px; }
+  .num { text-align: right; font-weight: 600; }
+</style>
+
+<h1>📊 Analytics</h1>
+<div class="sub">How your funnel is performing.</div>
+
+<div class="cards">
+  <div class="card"><div class="k">Videos posted</div><div class="v">{{ videos_posted }}</div></div>
+  <div class="card"><div class="k">Total leads</div><div class="v">{{ leads_total }}</div></div>
+  <div class="card"><div class="k">Click rate</div><div class="v" style="color:var(--accent)">{{ click_rate }}%</div></div>
+  <div class="card"><div class="k">Conversion rate</div><div class="v" style="color:var(--green)">{{ lead_conv_rate }}%</div></div>
+  <div class="card"><div class="k">Emails sent</div><div class="v">{{ emails_sent }}</div></div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <h3>Funnel</h3>
+    {% for s in funnel %}
+      <div class="funnel-row">
+        <div class="top">
+          <span>{{ s.icon }} {{ s.label }} — <strong>{{ s.n }}</strong></span>
+          {% if s.rate is not None %}<span class="rate">{{ s.rate }}% of prev</span>{% endif %}
+        </div>
+        <div class="bar"><span style="width: {% if s.rate is not None %}{{ s.rate }}{% else %}100{% endif %}%"></span></div>
+      </div>
+    {% endfor %}
+    {% if videos_posted == 0 and leads_total == 0 %}
+      <p class="small">No data yet — post a video and capture leads to see your funnel fill in.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h3>Top videos by leads</h3>
+    <table>
+      <thead><tr><th>Video</th><th class="num">Leads</th></tr></thead>
+      <tbody>
+      {% for v in top_videos %}
+        <tr><td>{{ v }}<br><span class="small">{{ v.tool_featured }}</span></td><td class="num">{{ v.n }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2" class="small">No leads attributed to videos yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:22px">Video pipeline</h3>
+    <table>
+      <tbody>
+      {% for p in pipeline %}
+        <tr><td>{{ p.label }}</td><td class="num">{{ p.n }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2" class="small">No videos created yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

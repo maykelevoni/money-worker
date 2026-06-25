@@ -1,0 +1,117 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: MoneyWorker
+      - button "☰" [ref=e6] [cursor=pointer]
+  - main [ref=e7]:
+    - generic [ref=e8]:
+      - heading "🏭 Video Factory" [level=1] [ref=e9]
+      - generic [ref=e10]: Research ideas → pick one → record your take (PT) → AI adapts → voice → render → post.
+      - generic [ref=e11]:
+        - strong [ref=e12]: 🔎 Step 1 — Research trending ideas
+        - generic [ref=e13]:
+          - textbox "Optional keyword to steer it (e.g. Sora, AI thumbnails, faceless YouTube)…" [ref=e14]
+          - button "Find trending topics" [ref=e15] [cursor=pointer]
+        - generic [ref=e16]: No pending ideas — hit “Find trending topics”.
+      - generic [ref=e18]:
+        - textbox "Or start from an AI tool directly (skips research)…" [ref=e19]
+        - combobox [ref=e20]:
+          - option "— link an offer (optional) —" [selected]
+        - button "+ Manual draft" [ref=e21] [cursor=pointer]
+      - table [ref=e23]:
+        - rowgroup [ref=e24]:
+          - row "Video Status Assets Actions" [ref=e25]:
+            - columnheader "Video" [ref=e26]
+            - columnheader "Status" [ref=e27]
+            - columnheader "Assets" [ref=e28]
+            - columnheader "Actions" [ref=e29]
+        - rowgroup [ref=e30]:
+          - 'row "Boost Your YouTube Success with TubeBuddy! Tool: TubeBuddy Hook: “Want to level up your YouTube game fast?” Draft 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render" [ref=e31]':
+            - 'cell "Boost Your YouTube Success with TubeBuddy! Tool: TubeBuddy Hook: “Want to level up your YouTube game fast?”" [ref=e32]':
+              - strong [ref=e33]: Boost Your YouTube Success with TubeBuddy!
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Want to level up your YouTube game fast?”"
+              - group [ref=e34]:
+                - generic "view script" [ref=e35] [cursor=pointer]
+            - cell "Draft" [ref=e36]
+            - cell "🎙️ voice 🎬 video" [ref=e37]:
+              - link "🎙️ voice" [ref=e38] [cursor=pointer]:
+                - /url: /media/voices/video_5.mp3
+              - link "🎬 video" [ref=e39] [cursor=pointer]:
+                - /url: /media/videos/video_5.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e40]:
+              - generic [ref=e41]:
+                - button "✍️ Script" [ref=e43] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e45] [cursor=pointer]
+                - button "🎬 Render" [ref=e47] [cursor=pointer]
+          - 'row "TubeBuddy Overview Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!” Draft 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render" [ref=e48]':
+            - 'cell "TubeBuddy Overview Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!”" [ref=e49]':
+              - strong [ref=e50]: TubeBuddy Overview
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Struggling to grow your YouTube channel? Listen up!”"
+              - group [ref=e51]:
+                - generic "view script" [ref=e52] [cursor=pointer]
+            - cell "Draft" [ref=e53]
+            - cell "🎙️ voice 🎬 video" [ref=e54]:
+              - link "🎙️ voice" [ref=e55] [cursor=pointer]:
+                - /url: /media/voices/video_4.mp3
+              - link "🎬 video" [ref=e56] [cursor=pointer]:
+                - /url: /media/videos/video_4.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e57]:
+              - generic [ref=e58]:
+                - button "✍️ Script" [ref=e60] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e62] [cursor=pointer]
+                - button "🎬 Render" [ref=e64] [cursor=pointer]
+          - 'row "Boost Your YouTube Game with TubeBuddy Tool: TubeBuddy Hook: “Want to supercharge your YouTube channel overnight?” Draft 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render" [ref=e65]':
+            - 'cell "Boost Your YouTube Game with TubeBuddy Tool: TubeBuddy Hook: “Want to supercharge your YouTube channel overnight?”" [ref=e66]':
+              - strong [ref=e67]: Boost Your YouTube Game with TubeBuddy
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Want to supercharge your YouTube channel overnight?”"
+              - group [ref=e68]:
+                - generic "view script" [ref=e69] [cursor=pointer]
+            - cell "Draft" [ref=e70]
+            - cell "🎙️ voice 🎬 video" [ref=e71]:
+              - link "🎙️ voice" [ref=e72] [cursor=pointer]:
+                - /url: /media/voices/video_3.mp3
+              - link "🎬 video" [ref=e73] [cursor=pointer]:
+                - /url: /media/videos/video_3.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e74]:
+              - generic [ref=e75]:
+                - button "✍️ Script" [ref=e77] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e79] [cursor=pointer]
+                - button "🎬 Render" [ref=e81] [cursor=pointer]
+          - 'row "Boost Your YouTube Strategy with TubeBuddy Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!” Video rendered 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render ✅ Approve" [ref=e82]':
+            - 'cell "Boost Your YouTube Strategy with TubeBuddy Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!”" [ref=e83]':
+              - strong [ref=e84]: Boost Your YouTube Strategy with TubeBuddy
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Struggling to grow your YouTube channel? Listen up!”"
+              - group [ref=e85]:
+                - generic "view script" [ref=e86] [cursor=pointer]
+            - cell "Video rendered" [ref=e87]
+            - cell "🎙️ voice 🎬 video" [ref=e88]:
+              - link "🎙️ voice" [ref=e89] [cursor=pointer]:
+                - /url: /media/voices/video_2.mp3
+              - link "🎬 video" [ref=e90] [cursor=pointer]:
+                - /url: /media/videos/video_2.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render ✅ Approve" [ref=e91]:
+              - generic [ref=e92]:
+                - button "✍️ Script" [ref=e94] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e96] [cursor=pointer]
+                - button "🎬 Render" [ref=e98] [cursor=pointer]
+                - button "✅ Approve" [ref=e100] [cursor=pointer]
+          - 'row "TubeBuddy A/B Thumbnail Hack Tool: TubeBuddy Hook: “Your thumbnail is killing your views and you don''t know it.” Voiceover ready 🎙️ voice ✍️ Script 🎙️ Voice 🎬 Render" [ref=e101]':
+            - 'cell "TubeBuddy A/B Thumbnail Hack Tool: TubeBuddy Hook: “Your thumbnail is killing your views and you don''t know it.”" [ref=e102]':
+              - strong [ref=e103]: TubeBuddy A/B Thumbnail Hack
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Your thumbnail is killing your views and you don't know it.”"
+              - group [ref=e104]:
+                - generic "view script" [ref=e105] [cursor=pointer]
+            - cell "Voiceover ready" [ref=e106]
+            - cell "🎙️ voice" [ref=e107]:
+              - link "🎙️ voice" [ref=e108] [cursor=pointer]:
+                - /url: /media/voices/video_1.mp3
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e109]:
+              - generic [ref=e110]:
+                - button "✍️ Script" [ref=e112] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e114] [cursor=pointer]
+                - button "🎬 Render" [ref=e116] [cursor=pointer]

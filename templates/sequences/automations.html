@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Automations · Money Worker{% endblock %}
+{% block nav_automations %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stat .k { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: .4px; }
+  .stat .v { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .auto { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); }
+  .auto h3 { font-size: 15px; margin-bottom: 2px; }
+  .small { color: var(--muted); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+</style>
+
+<h1>⚙️ Automations</h1>
+<div class="sub">The background engine that runs your funnel.</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="k">Total leads</div><div class="v">{{ leads_total }}</div></div>
+  <div class="stat"><div class="k">Active email steps</div><div class="v">{{ active_steps }}</div></div>
+  <div class="stat"><div class="k">Last run</div><div class="v" style="font-size:15px">{% if last_run %}{{ last_run.ran_at|date:"M j, H:i" }}{% else %}never{% endif %}</div></div>
+</div>
+
+<div class="panel">
+  <div class="auto">
+    <div>
+      <h3>📧 Email nurture engine</h3>
+      <div class="small">Sends any sequence emails that are now due to your leads.
+        {% if not email_configured %}<span style="color:var(--amber)">(needs RESEND key to actually send)</span>{% endif %}</div>
+    </div>
+    <form method="post" action="{% url 'sequences:run_now' %}">{% csrf_token %}
+      <button class="btn" type="submit">▶ Run now</button></form>
+  </div>
+  <p class="small" style="margin-top:14px">To run automatically, schedule this with cron:
+    <br><code>*/10 * * * * cd {{ request.META.PWD|default:"/path/to/money-worker" }} && python3 manage.py run_engine</code></p>
+</div>
+
+<div class="panel">
+  <h3 style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Recent runs</h3>
+  <table>
+    <thead><tr><th>When</th><th>Automation</th><th>Sent</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+      <tr><td>{{ r.ran_at|date:"M j, H:i" }}</td><td>{{ r.name }}</td><td>{{ r.emails_sent }}</td><td class="small">{{ r.detail }}</td></tr>
+    {% empty %}
+      <tr><td colspan="4" class="small">No runs yet — hit “Run now”.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Offers · Money Worker{% endblock %}
+{% block nav_offers %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px; align-items: end; }
+  .grid-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .grid-form input { width: 100%; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; }
+  .pill.on { color: var(--green); border-color: #1d5235; }
+  .pill.off { color: var(--muted); }
+  .pill.rec { color: var(--accent); border-color: #2c3a6b; }
+  .actions { display: flex; gap: 6px; }
+  .actions form { display: inline; }
+  a.ext { color: var(--accent); text-decoration: none; font-size: 13px; }
+  .small { color: var(--muted); font-size: 12px; }
+  @media (max-width: 820px) { table { min-width: 640px; } }
+</style>
+
+<h1>🛒 Offers</h1>
+<div class="sub">The affiliate products your funnel promotes.</div>
+
+<div class="panel">
+  <form method="post" action="{% url 'offers:create' %}" class="grid-form">
+    {% csrf_token %}
+    <div><label>Name *</label><input name="name" placeholder="e.g. Pictory AI" required></div>
+    <div><label>Vendor</label><input name="vendor" placeholder="Pictory"></div>
+    <div><label>Affiliate URL *</label><input name="affiliate_url" placeholder="https://…?ref=you" required></div>
+    <div><label>Sales/landing URL</label><input name="landing_url" placeholder="https://…"></div>
+    <div><label>Commission</label><input name="commission" placeholder="30% recurring"></div>
+    <div><label class="check"><input type="checkbox" name="is_recurring" style="width:auto"> Recurring</label></div>
+    <div><button class="btn" type="submit">+ Add offer</button></div>
+  </form>
+</div>
+
+<div class="panel table-wrap">
+  <table>
+    <thead><tr><th>Offer</th><th>Commission</th><th>Status</th><th>Link</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for o in offers %}
+      <tr>
+        <td><strong>{{ o.name }}</strong>{% if o.vendor %}<br><span class="small">{{ o.vendor }}</span>{% endif %}</td>
+        <td>{% if o.commission %}{{ o.commission }}{% else %}<span class="small">—</span>{% endif %}
+            {% if o.is_recurring %} <span class="pill rec">recurring</span>{% endif %}</td>
+        <td>{% if o.is_active %}<span class="pill on">active</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
+        <td><a class="ext" href="{{ o.affiliate_url }}" target="_blank">open ↗</a></td>
+        <td>
+          <div class="actions">
+            <form method="post" action="{% url 'offers:toggle' o.pk %}">{% csrf_token %}
+              <button class="btn btn-ghost" type="submit">{% if o.is_active %}Pause{% else %}Activate{% endif %}</button></form>
+            <form method="post" action="{% url 'offers:delete' o.pk %}" onsubmit="return confirm('Delete this offer?')">{% csrf_token %}
+              <button class="btn btn-ghost" type="submit">Delete</button></form>
+          </div>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="small">No offers yet — add your first affiliate product above.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Leads · Money Worker{% endblock %}
+{% block nav_leads %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stat .k { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: .4px; }
+  .stat .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; text-transform: capitalize; }
+  .pill.converted { color: var(--green); border-color: #1d5235; }
+  .pill.clicked { color: var(--accent); border-color: #2c3a6b; }
+  .small { color: var(--muted); font-size: 12px; }
+  @media (max-width: 820px) { table { min-width: 640px; } }
+</style>
+
+<h1>👥 Leads</h1>
+<div class="sub">Everyone who opted in through your funnel.</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="k">Total</div><div class="v">{{ total }}</div></div>
+  <div class="stat"><div class="k">New</div><div class="v">{{ counts.new }}</div></div>
+  <div class="stat"><div class="k">Nurturing</div><div class="v">{{ counts.nurturing }}</div></div>
+  <div class="stat"><div class="k">Clicked</div><div class="v" style="color:var(--accent)">{{ counts.clicked }}</div></div>
+  <div class="stat"><div class="k">Converted</div><div class="v" style="color:var(--green)">{{ counts.converted }}</div></div>
+</div>
+
+<div class="panel table-wrap">
+  <table>
+    <thead><tr><th>Email</th><th>Stage</th><th>Lead magnet</th><th>Source video</th><th>Captured</th></tr></thead>
+    <tbody>
+    {% for l in leads %}
+      <tr>
+        <td><strong>{{ l.email }}</strong></td>
+        <td><span class="pill {{ l.stage }}">{{ l.get_stage_display }}</span></td>
+        <td class="small">{{ l.lead_magnet|default:"—" }}</td>
+        <td class="small">{% if l.source_video %}{{ l.source_video }}{% else %}—{% endif %}</td>
+        <td class="small">{{ l.created_at|date:"M j, Y" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="small">No leads yet — share your capture page link to start collecting emails.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

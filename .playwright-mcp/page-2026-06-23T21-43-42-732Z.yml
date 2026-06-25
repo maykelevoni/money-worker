@@ -1,0 +1,167 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: MoneyWorker
+      - button "☰" [ref=e6] [cursor=pointer]
+  - main [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: Idea picked 🎯 — review the talking points, then record your take.
+      - heading "🏭 Video Factory" [level=1] [ref=e11]
+      - generic [ref=e12]: Research ideas → pick one → record your take (PT) → AI adapts → voice → render → post.
+      - generic [ref=e13]:
+        - strong [ref=e14]: 🔎 Step 1 — Research trending ideas
+        - generic [ref=e15]:
+          - textbox "Optional keyword to steer it (e.g. Sora, AI thumbnails, faceless YouTube)…" [ref=e16]
+          - button "Find trending topics" [ref=e17] [cursor=pointer]
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - 'heading "AI Video Editing: The Future of Content Creation" [level=4] [ref=e20]'
+            - generic [ref=e21]: 📈 The rise in AI video tools sparks interest in the evolving landscape of content creation.
+            - generic [ref=e22]: 🎯 Discuss the implications of AI advancements in video editing for both amateur and pro creators.
+            - generic [ref=e23]:
+              - combobox [ref=e24]:
+                - option "— link an offer (optional) —" [selected]
+              - button "Pick this →" [ref=e25] [cursor=pointer]
+          - generic [ref=e26]:
+            - 'heading "Novella AI: All-in-One Video Editing Extension Launch" [level=4] [ref=e27]'
+            - generic [ref=e28]: 📈 Creators love streamlined tools that simplify their workflow and save time.
+            - generic [ref=e29]: 🎯 Explore how Novella AI’s browser extension consolidates video generation and editing for seamless content creation.
+            - generic [ref=e30]:
+              - combobox [ref=e31]:
+                - option "— link an offer (optional) —" [selected]
+              - button "Pick this →" [ref=e32] [cursor=pointer]
+          - generic [ref=e33]:
+            - 'heading "TikTok Symphony: AI Tools for Marketers'' Video Campaigns" [level=4] [ref=e34]'
+            - generic [ref=e35]: 📈 TikTok's new features make it easier for marketers to create engaging content quickly.
+            - generic [ref=e36]: 🎯 Demonstrate how Symphony can help creators analyze trends and generate video ads effortlessly.
+            - generic [ref=e37]:
+              - combobox [ref=e38]:
+                - option "— link an offer (optional) —" [selected]
+              - button "Pick this →" [ref=e39] [cursor=pointer]
+          - generic [ref=e40]:
+            - 'heading "Seedance 2.5: 30-Second AI Video Generation Revolution" [level=4] [ref=e41]'
+            - generic [ref=e42]: 📈 Creators are excited about the ability to generate longer, cohesive videos seamlessly.
+            - generic [ref=e43]: 🎯 Show how Seedance 2.5 allows creators to input multiple references for richer video content.
+            - generic [ref=e44]:
+              - combobox [ref=e45]:
+                - option "— link an offer (optional) —" [selected]
+              - button "Pick this →" [ref=e46] [cursor=pointer]
+      - generic [ref=e48]:
+        - textbox "Or start from an AI tool directly (skips research)…" [ref=e49]
+        - combobox [ref=e50]:
+          - option "— link an offer (optional) —" [selected]
+        - button "+ Manual draft" [ref=e51] [cursor=pointer]
+      - table [ref=e53]:
+        - rowgroup [ref=e54]:
+          - row "Video Status Assets Actions" [ref=e55]:
+            - columnheader "Video" [ref=e56]
+            - columnheader "Status" [ref=e57]
+            - columnheader "Assets" [ref=e58]
+            - columnheader "Actions" [ref=e59]
+        - rowgroup [ref=e60]:
+          - 'row "OpenMontage: Free AI Video Production for Everyone Topic: OpenMontage: Free AI Video Production for Everyone 🎤 Your take (Portuguese audio): Choose File Upload + transcribe Draft — ✍️ Script 🎙️ Voice 🎬 Render" [ref=e61]':
+            - 'cell "OpenMontage: Free AI Video Production for Everyone Topic: OpenMontage: Free AI Video Production for Everyone 🎤 Your take (Portuguese audio): Choose File Upload + transcribe" [ref=e62]':
+              - strong [ref=e63]: "OpenMontage: Free AI Video Production for Everyone"
+              - text: "Topic: OpenMontage: Free AI Video Production for Everyone"
+              - group [ref=e64]:
+                - generic "talking points" [ref=e65] [cursor=pointer]
+              - generic [ref=e66]:
+                - text: "🎤 Your take (Portuguese audio):"
+                - button "Choose File" [ref=e67]
+                - button "Upload + transcribe" [ref=e68] [cursor=pointer]
+            - cell "Draft" [ref=e69]
+            - cell "—" [ref=e70]
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e71]:
+              - generic [ref=e72]:
+                - button "✍️ Script" [ref=e74] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e76] [cursor=pointer]
+                - button "🎬 Render" [ref=e78] [cursor=pointer]
+          - 'row "Boost Your YouTube Success with TubeBuddy! Tool: TubeBuddy Hook: “Want to level up your YouTube game fast?” Draft 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render" [ref=e79]':
+            - 'cell "Boost Your YouTube Success with TubeBuddy! Tool: TubeBuddy Hook: “Want to level up your YouTube game fast?”" [ref=e80]':
+              - strong [ref=e81]: Boost Your YouTube Success with TubeBuddy!
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Want to level up your YouTube game fast?”"
+              - group [ref=e82]:
+                - generic "view script" [ref=e83] [cursor=pointer]
+            - cell "Draft" [ref=e84]
+            - cell "🎙️ voice 🎬 video" [ref=e85]:
+              - link "🎙️ voice" [ref=e86] [cursor=pointer]:
+                - /url: /media/voices/video_5.mp3
+              - link "🎬 video" [ref=e87] [cursor=pointer]:
+                - /url: /media/videos/video_5.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e88]:
+              - generic [ref=e89]:
+                - button "✍️ Script" [ref=e91] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e93] [cursor=pointer]
+                - button "🎬 Render" [ref=e95] [cursor=pointer]
+          - 'row "TubeBuddy Overview Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!” Draft 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render" [ref=e96]':
+            - 'cell "TubeBuddy Overview Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!”" [ref=e97]':
+              - strong [ref=e98]: TubeBuddy Overview
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Struggling to grow your YouTube channel? Listen up!”"
+              - group [ref=e99]:
+                - generic "view script" [ref=e100] [cursor=pointer]
+            - cell "Draft" [ref=e101]
+            - cell "🎙️ voice 🎬 video" [ref=e102]:
+              - link "🎙️ voice" [ref=e103] [cursor=pointer]:
+                - /url: /media/voices/video_4.mp3
+              - link "🎬 video" [ref=e104] [cursor=pointer]:
+                - /url: /media/videos/video_4.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e105]:
+              - generic [ref=e106]:
+                - button "✍️ Script" [ref=e108] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e110] [cursor=pointer]
+                - button "🎬 Render" [ref=e112] [cursor=pointer]
+          - 'row "Boost Your YouTube Game with TubeBuddy Tool: TubeBuddy Hook: “Want to supercharge your YouTube channel overnight?” Draft 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render" [ref=e113]':
+            - 'cell "Boost Your YouTube Game with TubeBuddy Tool: TubeBuddy Hook: “Want to supercharge your YouTube channel overnight?”" [ref=e114]':
+              - strong [ref=e115]: Boost Your YouTube Game with TubeBuddy
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Want to supercharge your YouTube channel overnight?”"
+              - group [ref=e116]:
+                - generic "view script" [ref=e117] [cursor=pointer]
+            - cell "Draft" [ref=e118]
+            - cell "🎙️ voice 🎬 video" [ref=e119]:
+              - link "🎙️ voice" [ref=e120] [cursor=pointer]:
+                - /url: /media/voices/video_3.mp3
+              - link "🎬 video" [ref=e121] [cursor=pointer]:
+                - /url: /media/videos/video_3.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e122]:
+              - generic [ref=e123]:
+                - button "✍️ Script" [ref=e125] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e127] [cursor=pointer]
+                - button "🎬 Render" [ref=e129] [cursor=pointer]
+          - 'row "Boost Your YouTube Strategy with TubeBuddy Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!” Video rendered 🎙️ voice 🎬 video ✍️ Script 🎙️ Voice 🎬 Render ✅ Approve" [ref=e130]':
+            - 'cell "Boost Your YouTube Strategy with TubeBuddy Tool: TubeBuddy Hook: “Struggling to grow your YouTube channel? Listen up!”" [ref=e131]':
+              - strong [ref=e132]: Boost Your YouTube Strategy with TubeBuddy
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Struggling to grow your YouTube channel? Listen up!”"
+              - group [ref=e133]:
+                - generic "view script" [ref=e134] [cursor=pointer]
+            - cell "Video rendered" [ref=e135]
+            - cell "🎙️ voice 🎬 video" [ref=e136]:
+              - link "🎙️ voice" [ref=e137] [cursor=pointer]:
+                - /url: /media/voices/video_2.mp3
+              - link "🎬 video" [ref=e138] [cursor=pointer]:
+                - /url: /media/videos/video_2.mp4
+            - cell "✍️ Script 🎙️ Voice 🎬 Render ✅ Approve" [ref=e139]:
+              - generic [ref=e140]:
+                - button "✍️ Script" [ref=e142] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e144] [cursor=pointer]
+                - button "🎬 Render" [ref=e146] [cursor=pointer]
+                - button "✅ Approve" [ref=e148] [cursor=pointer]
+          - 'row "TubeBuddy A/B Thumbnail Hack Tool: TubeBuddy Hook: “Your thumbnail is killing your views and you don''t know it.” Voiceover ready 🎙️ voice ✍️ Script 🎙️ Voice 🎬 Render" [ref=e149]':
+            - 'cell "TubeBuddy A/B Thumbnail Hack Tool: TubeBuddy Hook: “Your thumbnail is killing your views and you don''t know it.”" [ref=e150]':
+              - strong [ref=e151]: TubeBuddy A/B Thumbnail Hack
+              - text: "Tool: TubeBuddy"
+              - text: "Hook: “Your thumbnail is killing your views and you don't know it.”"
+              - group [ref=e152]:
+                - generic "view script" [ref=e153] [cursor=pointer]
+            - cell "Voiceover ready" [ref=e154]
+            - cell "🎙️ voice" [ref=e155]:
+              - link "🎙️ voice" [ref=e156] [cursor=pointer]:
+                - /url: /media/voices/video_1.mp3
+            - cell "✍️ Script 🎙️ Voice 🎬 Render" [ref=e157]:
+              - generic [ref=e158]:
+                - button "✍️ Script" [ref=e160] [cursor=pointer]
+                - button "🎙️ Voice" [ref=e162] [cursor=pointer]
+                - button "🎬 Render" [ref=e164] [cursor=pointer]

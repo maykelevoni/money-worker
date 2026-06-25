@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Django
+db.sqlite3
+staticfiles/
+media/*
+# ...but keep the canonical character/brand assets (expensive to regenerate)
+!media/character/
+!media/character/**
+
+# Env / secrets
+.env
+
+# Generated media
+*.mp4
+*.mp3
+*.wav
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
