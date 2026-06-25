@@ -15,19 +15,36 @@ def offer_list(request):
 @require_POST
 def offer_create(request):
     name = request.POST.get("name", "").strip()
-    url = request.POST.get("affiliate_url", "").strip()
-    if not name or not url:
-        messages.error(request, "Name and affiliate URL are required.")
+    kind = request.POST.get("kind", Offer.Kind.AFFILIATE)
+    if kind not in Offer.Kind.values:
+        kind = Offer.Kind.AFFILIATE
+    if not name:
+        messages.error(request, "Product name is required.")
         return redirect("offers:list")
+
+    if kind == Offer.Kind.AFFILIATE:
+        link = request.POST.get("affiliate_url", "").strip()
+        if not link:
+            messages.error(request, "An affiliate product needs an affiliate URL.")
+            return redirect("offers:list")
+    else:  # own product
+        link = request.POST.get("checkout_url", "").strip()
+        if not link:
+            messages.error(request, "Your own product needs a checkout URL.")
+            return redirect("offers:list")
+
     Offer.objects.create(
         name=name,
+        kind=kind,
         vendor=request.POST.get("vendor", "").strip(),
-        affiliate_url=url,
-        landing_url=request.POST.get("landing_url", "").strip(),
+        affiliate_url=request.POST.get("affiliate_url", "").strip(),
         commission=request.POST.get("commission", "").strip(),
         is_recurring=bool(request.POST.get("is_recurring")),
+        price=request.POST.get("price", "").strip(),
+        checkout_url=request.POST.get("checkout_url", "").strip(),
+        landing_url=request.POST.get("landing_url", "").strip(),
     )
-    messages.success(request, f"Added offer “{name}”.")
+    messages.success(request, f"Added product “{name}”.")
     return redirect("offers:list")
 
 
