@@ -48,12 +48,21 @@
       border: 1px solid var(--line); color: var(--text); border-radius: 9px;
       padding: 6px 11px; font-size: 16px; cursor: pointer; }
     .links { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
-    .links a { padding: 7px 11px; border-radius: 8px; color: var(--muted);
-      text-decoration: none; font-size: 13.5px; font-weight: 500; white-space: nowrap;
+    .navlink, .grp > .lbl { display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 11px; border-radius: 8px; color: var(--muted); text-decoration: none;
+      font-size: 13.5px; font-weight: 500; white-space: nowrap; cursor: pointer;
       transition: background .12s, color .12s; }
-    .links a:hover { background: var(--surface); color: var(--text); }
-    .links a.active { background: var(--beak-soft); color: var(--beak-2); font-weight: 600; }
-    .links a.ext { color: var(--faint); }
+    .navlink:hover, .grp:hover > .lbl, .grp:focus-within > .lbl { background: var(--surface); color: var(--text); }
+    .navlink.active, .grp.active > .lbl { background: var(--beak-soft); color: var(--beak-2); font-weight: 600; }
+    .navlink.ext { color: var(--faint); }
+    .grp { position: relative; }
+    .grp .menu { position: absolute; top: calc(100% + 4px); left: 0; min-width: 184px;
+      background: var(--ink-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+      display: none; z-index: 50; box-shadow: 0 12px 34px rgba(0,0,0,.45); }
+    .grp:hover .menu, .grp:focus-within .menu { display: block; }
+    .grp .menu a { display: block; padding: 8px 11px; border-radius: 7px; color: var(--muted);
+      text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+    .grp .menu a:hover { background: var(--surface); color: var(--text); }
 
     main { width: 100%; padding: clamp(20px, 3vw, 40px) clamp(16px, 3vw, 32px) 90px; }
     .content { width: 100%; max-width: 100%; }
@@ -64,7 +73,13 @@
       .links { display: none; order: 3; flex-basis: 100%; flex-direction: column;
         align-items: stretch; gap: 1px; padding-bottom: 6px; }
       .links.open { display: flex; }
-      .links a { padding: 10px 12px; font-size: 14px; }
+      .navlink, .grp > .lbl { padding: 10px 12px; font-size: 14px; }
+      .grp { width: 100%; }
+      .grp .menu { position: static; display: block; min-width: 0; border: none;
+        box-shadow: none; padding: 0 0 6px 14px; background: transparent; }
+      .grp > .lbl { color: var(--faint); font-size: 11px; text-transform: uppercase;
+        letter-spacing: 1px; pointer-events: none; }
+      .grp .menu a { padding: 9px 12px; }
     }
 
     /* ---------- type ---------- */
@@ -125,16 +140,38 @@
       <button class="menu-toggle" aria-label="Menu"
         onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
       <nav id="nav" class="links">
-        <a href="/" class="{% block nav_dashboard %}{% endblock %}">Dashboard</a>
-        <a href="/offers/" class="{% block nav_offers %}{% endblock %}">Products</a>
-        <a href="/factory/" class="{% block nav_factory %}{% endblock %}">Factory</a>
-        <a href="/capture-pages/" class="{% block nav_capture %}{% endblock %}">Capture</a>
-        <a href="/leads/" class="{% block nav_leads %}{% endblock %}">Leads</a>
-        <a href="/emails/" class="{% block nav_emails %}{% endblock %}">Emails</a>
-        <a href="/scheduler/" class="{% block nav_scheduler %}{% endblock %}">Scheduler</a>
-        <a href="/automations/" class="{% block nav_automations %}{% endblock %}">Automations</a>
-        <a href="/analytics/" class="{% block nav_analytics %}{% endblock %}">Analytics</a>
-        <a href="/admin/" class="ext" target="_blank">Admin ↗</a>
+        <a href="/" class="navlink {% if request.path == '/' %}active{% endif %}">Dashboard</a>
+
+        <div class="grp {% if '/factory/' in request.path %}active{% endif %}">
+          <a href="/factory/" class="lbl">Factory ▾</a>
+          <div class="menu">
+            <a href="/factory/research/">Research</a>
+            <a href="/factory/">Videos</a>
+            <a href="/factory/avatars/">Avatars</a>
+          </div>
+        </div>
+
+        <div class="grp {% if '/capture-pages/' in request.path or '/leads/' in request.path or '/emails/' in request.path %}active{% endif %}">
+          <a href="/leads/" class="lbl">Audience ▾</a>
+          <div class="menu">
+            <a href="/capture-pages/">Capture Pages</a>
+            <a href="/leads/">Leads</a>
+            <a href="/emails/">Email Sequences</a>
+          </div>
+        </div>
+
+        <a href="/offers/" class="navlink {% if '/offers/' in request.path %}active{% endif %}">Products</a>
+        <a href="/analytics/" class="navlink {% if '/analytics/' in request.path %}active{% endif %}">Analytics</a>
+
+        <div class="grp {% if '/scheduler/' in request.path or '/automations/' in request.path %}active{% endif %}">
+          <a href="/scheduler/" class="lbl">Automation ▾</a>
+          <div class="menu">
+            <a href="/scheduler/">Scheduler</a>
+            <a href="/automations/">Automations</a>
+          </div>
+        </div>
+
+        <a href="/admin/" class="navlink ext" target="_blank">Admin ↗</a>
       </nav>
     </div>
   </header>
