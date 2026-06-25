@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Free AI Tools Cheat Sheet</title>
+  <title>{{ page.headline }}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: linear-gradient(160deg, #0f1117, #1a1f30); color: #e6e8ee;
       font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-    .box { max-width: 440px; width: 100%; background: #181b24; border: 1px solid #2a2f3d;
+    .box { max-width: 460px; width: 100%; background: #181b24; border: 1px solid #2a2f3d;
       border-radius: 18px; padding: 36px 30px; text-align: center; }
     .emoji { font-size: 40px; }
-    h1 { font-size: 24px; margin: 14px 0 8px; }
+    h1 { font-size: 26px; margin: 14px 0 10px; line-height: 1.25; }
     p.lead { color: #8b91a3; margin-bottom: 24px; }
     form { display: flex; flex-direction: column; gap: 12px; }
     input { background: #1f2330; border: 1px solid #2a2f3d; color: #e6e8ee;
@@ -23,19 +23,21 @@
     button:hover { filter: brightness(1.1); }
     .err { color: #ff7a90; font-size: 14px; margin-bottom: 12px; }
     .fine { color: #5a6072; font-size: 12px; margin-top: 16px; }
+    .magnet { color: #6c8cff; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="box">
     <div class="emoji">🎁</div>
-    <h1>{{ magnet }}</h1>
-    <p class="lead">Drop your email and I'll send it straight to your inbox — free.</p>
+    <h1>{{ page.headline }}</h1>
+    {% if page.subheadline %}<p class="lead">{{ page.subheadline }}</p>
+    {% else %}<p class="lead">Drop your email and I'll send <span class="magnet">{{ page.lead_magnet }}</span> straight to your inbox — free.</p>{% endif %}
     {% if messages %}{% for m in messages %}<div class="err">{{ m }}</div>{% endfor %}{% endif %}
     <form method="post">
       {% csrf_token %}
       <input type="hidden" name="v" value="{{ request.GET.v }}">
       <input type="email" name="email" placeholder="you@email.com" required autofocus>
-      <button type="submit">Send me the cheat sheet →</button>
+      <button type="submit">{{ page.button_text }}</button>
     </form>
     <p class="fine">No spam. Unsubscribe anytime.</p>
   </div>

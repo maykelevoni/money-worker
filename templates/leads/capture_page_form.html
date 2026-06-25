@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{% if page %}Edit{% else %}New{% endif %} Capture Page · Money Worker{% endblock %}
+{% block nav_capture %}active{% endblock %}
+
+{% block content %}
+<style>
+  .form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; max-width: 640px; }
+  .form label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+  .form input, .form textarea, .form select { width: 100%; }
+  .form textarea { min-height: 70px; resize: vertical; }
+  .hint { font-size: 12px; color: #5a6072; margin-top: 3px; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+  .check input { width: auto; }
+  .actions { margin-top: 20px; display: flex; gap: 10px; }
+  a.link { color: var(--accent); text-decoration: none; }
+</style>
+
+<h1>{% if page %}Edit capture page{% else %}New capture page{% endif %}</h1>
+<div class="sub"><a class="link" href="{% url 'capture_pages' %}">← back to all pages</a></div>
+
+<form class="form" method="post">
+  {% csrf_token %}
+
+  <label>Title (internal)</label>
+  <input name="title" value="{{ page.title|default:'' }}" placeholder="e.g. Free SEO Checklist page" required>
+
+  <label>Slug (public URL)</label>
+  <input name="slug" value="{{ page.slug|default:'' }}" placeholder="leave blank to auto-generate from title">
+  <div class="hint">Public link will be /p/&lt;slug&gt;/</div>
+
+  <label>Headline</label>
+  <input name="headline" value="{{ page.headline|default:'' }}" placeholder="The big promise" required>
+
+  <label>Subheadline (optional)</label>
+  <textarea name="subheadline" placeholder="Supporting line under the headline">{{ page.subheadline|default:'' }}</textarea>
+
+  <label>Lead magnet (the freebie)</label>
+  <input name="lead_magnet" value="{{ page.lead_magnet|default:'' }}" placeholder="e.g. The 1-page launch checklist" required>
+
+  <label>Product to promote (optional)</label>
+  <select name="offer">
+    <option value="">— none —</option>
+    {% for o in offers %}
+      <option value="{{ o.pk }}" {% if page.offer_id == o.pk %}selected{% endif %}>{{ o.name }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Button text</label>
+  <input name="button_text" value="{{ page.button_text|default:'Send it to me →' }}">
+
+  <label>Success message (optional — shown after opt-in)</label>
+  <input name="success_message" value="{{ page.success_message|default:'' }}" placeholder="Defaults to 'Check your inbox for …'">
+
+  <label>Niche (optional, free-form)</label>
+  <input name="niche" value="{{ page.niche|default:'' }}" placeholder="e.g. fitness, finance, AI tools…">
+
+  <div class="check">
+    <input type="checkbox" name="is_active" id="is_active" {% if page.is_active or not page %}checked{% endif %}>
+    <label for="is_active" style="margin:0;">Live (publicly reachable)</label>
+  </div>
+
+  <div class="actions">
+    <button class="btn" type="submit">{% if page %}Save changes{% else %}Create page{% endif %}</button>
+    <a class="btn btn-ghost" href="{% url 'capture_pages' %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

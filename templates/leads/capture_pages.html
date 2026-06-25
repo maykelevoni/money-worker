@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Capture Pages · Money Worker{% endblock %}
+{% block nav_capture %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .small { color: var(--muted); font-size: 12px; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; }
+  .pill.live { color: var(--green); border-color: #1d5235; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+  a.link { color: var(--accent); text-decoration: none; }
+  @media (max-width: 820px) { table { min-width: 680px; } }
+</style>
+
+<div class="topbar">
+  <div>
+    <h1>🛬 Capture Pages</h1>
+    <div class="sub" style="margin:0;">One landing page per offer/lead magnet — each with its own public link.</div>
+  </div>
+  <a class="btn" href="{% url 'capture_page_create' %}">+ New page</a>
+</div>
+
+<div class="panel table-wrap">
+  <table>
+    <thead><tr><th>Title</th><th>Public URL</th><th>Lead magnet</th><th>Product</th><th>Leads</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for p in pages %}
+      <tr>
+        <td><strong>{{ p.title }}</strong></td>
+        <td class="small"><a class="link" href="{{ p.get_absolute_url }}" target="_blank">/p/{{ p.slug }}/ ↗</a></td>
+        <td class="small">{{ p.lead_magnet|truncatechars:40 }}</td>
+        <td class="small">{% if p.offer %}{{ p.offer.name }}{% else %}—{% endif %}</td>
+        <td class="small">{{ p.leads.count }}</td>
+        <td>{% if p.is_active %}<span class="pill live">live</span>{% else %}<span class="pill">draft</span>{% endif %}</td>
+        <td><a class="link" href="{% url 'capture_page_edit' p.pk %}">Edit</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="small">No capture pages yet — create your first one to start collecting emails.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

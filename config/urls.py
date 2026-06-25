@@ -28,7 +28,12 @@ urlpatterns = [
     path('offers/', include('apps.offers.urls')),
     path('', include('apps.sequences.urls')),  # /emails/ /scheduler/ /automations/
     path('leads/', lead_views.lead_list, name='leads'),
-    path('free/', lead_views.capture, name='capture'),  # public bio-link / capture page
+    # Capture pages — internal management + per-page public URLs
+    path('capture-pages/', lead_views.capture_pages, name='capture_pages'),
+    path('capture-pages/new/', lead_views.capture_page_create, name='capture_page_create'),
+    path('capture-pages/<int:pk>/edit/', lead_views.capture_page_edit, name='capture_page_edit'),
+    path('p/<slug:slug>/', lead_views.page, name='capture_page'),  # public capture page
+    path('free/', lead_views.capture, name='capture'),  # legacy → first active page
 ]
 
 if settings.DEBUG:
