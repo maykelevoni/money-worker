@@ -1,11 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Avatars · Money Worker{% endblock %}
-{% block nav_avatars %}active{% endblock %}
+{% block title %}Avatars · Video Factory{% endblock %}
+{% block nav_factory %}active{% endblock %}
 
 {% block content %}
-<div class="eyebrow">Video Factory / Cast</div>
+<div class="eyebrow">Video Factory</div>
 <h1>Avatars</h1>
 <p class="sub">Your reusable on-screen characters. Build one once, then put it in any video.</p>
+
+{% include "videos/_tabs.html" %}
 
 {% if not configured %}
   <div class="msg msg-error">FAL_API_KEY isn’t set — add it to your .env to generate avatars.</div>

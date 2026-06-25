@@ -101,6 +101,13 @@
     .grid > * { min-width: 0; }
     .data { font-family: var(--mono); }
     .money { font-family: var(--mono); color: var(--loot); }
+    /* sub-tabs (Factory: Research / Videos / Avatars) */
+    .ftabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line);
+      margin: 0 0 24px; }
+    .ftabs a { padding: 9px 14px; color: var(--muted); text-decoration: none; font-weight: 600;
+      font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .ftabs a:hover { color: var(--text); }
+    .ftabs a.on { color: var(--beak-2); border-bottom-color: var(--beak); }
     .messages { margin-bottom: 20px; display: grid; gap: 8px; }
     .msg { padding: 11px 14px; border-radius: 10px; font-size: 13.5px; border: 1px solid; }
     .msg-success { background: rgba(67,214,160,.08); color: var(--ok); border-color: rgba(67,214,160,.25); }
@@ -121,7 +128,6 @@
         <a href="/" class="{% block nav_dashboard %}{% endblock %}">Dashboard</a>
         <a href="/offers/" class="{% block nav_offers %}{% endblock %}">Products</a>
         <a href="/factory/" class="{% block nav_factory %}{% endblock %}">Factory</a>
-        <a href="/factory/avatars/" class="{% block nav_avatars %}{% endblock %}">Avatars</a>
         <a href="/capture-pages/" class="{% block nav_capture %}{% endblock %}">Capture</a>
         <a href="/leads/" class="{% block nav_leads %}{% endblock %}">Leads</a>
         <a href="/emails/" class="{% block nav_emails %}{% endblock %}">Emails</a>

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Research · Video Factory{% endblock %}
+{% block nav_factory %}active{% endblock %}
+
+{% block content %}
+<style>
+  .runbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+  .runbar .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .runbar .field-row > input { flex: 1; min-width: 180px; }
+  .idea { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 12px; }
+  .idea .head { display: flex; align-items: flex-start; gap: 12px; }
+  .idea h3 { font-size: 16px; font-weight: 700; flex: 1; }
+  .idea .why { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .idea .angle { color: var(--beak-2); font-size: 13px; margin-top: 4px; }
+  .idea .make { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;
+    border-top: 1px solid var(--line-soft); padding-top: 14px; }
+  .idea .make select, .idea .make input { flex: 1; min-width: 150px; }
+  .iconbtn { background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 8px; padding: 6px 9px; font-size: 13px; cursor: pointer; }
+  .iconbtn:hover { color: var(--eyes); border-color: var(--eyes); }
+</style>
+
+<div class="eyebrow">Video Factory</div>
+<h1>Research</h1>
+<p class="sub">Find trending topics. Keep the good ones, delete the rest — picking one creates a video.</p>
+
+{% include "videos/_tabs.html" %}
+
+<div class="runbar">
+  <div class="eyebrow" style="margin-bottom:8px;">Find trending topics</div>
+  <form method="post" action="{% url 'videos:research_run' %}" class="field-row">
+    {% csrf_token %}
+    <input type="text" name="niche" placeholder="Niche (e.g. AI tools, fitness, finance) — blank = whatever's trending">
+    <input type="text" name="keyword" placeholder="Optional keyword to steer it…">
+    <button class="btn" type="submit" style="flex:0;">Find topics</button>
+  </form>
+</div>
+
+{% for idea in ideas %}
+  <div class="idea">
+    <div class="head">
+      <h3>{{ idea.headline }}</h3>
+      <form method="post" action="{% url 'videos:delete_idea' idea.pk %}">
+        {% csrf_token %}
+        <button class="iconbtn" type="submit" title="Delete idea">✕</button>
+      </form>
+    </div>
+    {% if idea.why_viral %}<div class="why">{{ idea.why_viral }}</div>{% endif %}
+    {% if idea.angle %}<div class="angle">↳ {{ idea.angle }}</div>{% endif %}
+    <form method="post" action="{% url 'videos:pick_idea' idea.pk %}" class="make">
+      {% csrf_token %}
+      <input type="text" name="niche" placeholder="niche (optional)">
+      <select name="avatar">
+        <option value="">— avatar —</option>
+        {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+      </select>
+      <select name="offer">
+        <option value="">— product (optional) —</option>
+        {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+      </select>
+      <button class="btn" type="submit" style="flex:0;">Create video →</button>
+    </form>
+  </div>
+{% empty %}
+  <div class="card" style="color:var(--muted);">No ideas yet — run a search above to pull what's trending.</div>
+{% endfor %}
+{% endblock %}

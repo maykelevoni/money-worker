@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Videos · Video Factory{% endblock %}
+{% block nav_factory %}active{% endblock %}
+
+{% block content %}
+<style>
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; }
+  .stat .num { font-family: var(--mono); font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat .lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 8px; }
+  .stat.hot .num { color: var(--beak); }
+  .newbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+  .newbar .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .newbar .field-row > * { flex: 1; min-width: 160px; }
+  .vlist { display: grid; gap: 10px; }
+  .vrow { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; padding: 13px 16px; text-decoration: none; color: var(--text); transition: border-color .12s; }
+  .vrow:hover { border-color: #39414f; }
+  .vrow .body { flex: 1; min-width: 0; }
+  .vrow .vt { font-weight: 700; }
+  .vrow .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+  .vrow .arrow { color: var(--faint); font-size: 18px; }
+  .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
+  .s-draft{color:var(--faint);border-color:var(--line);background:var(--surface-2);}
+  .s-scripted{color:#8aa6ff;border-color:rgba(138,166,255,.3);background:rgba(138,166,255,.08);}
+  .s-voiced{color:#b98aff;border-color:rgba(185,138,255,.3);background:rgba(185,138,255,.08);}
+  .s-rendered{color:var(--beak-2);border-color:rgba(255,126,46,.35);background:var(--beak-soft);}
+  .s-approved,.s-posted{color:var(--ok);border-color:rgba(67,214,160,.35);background:rgba(67,214,160,.1);}
+</style>
+
+<div class="eyebrow">Video Factory</div>
+<h1>Videos</h1>
+<p class="sub">Every video is its own page — open one to write the script, generate the voice and render it.</p>
+
+{% include "videos/_tabs.html" %}
+
+{% if not config.openrouter or not config.stt or not config.voice %}
+  <div class="messages">
+    {% if not config.openrouter %}<span class="chip bad">OpenRouter key missing</span>{% endif %}
+    {% if not config.stt %}<span class="chip bad">FAL key missing</span>{% endif %}
+    {% if not config.voice %}<span class="chip bad">ElevenLabs key missing</span>{% endif %}
+  </div>
+{% endif %}
+
+<div class="stats">
+  <div class="stat"><div class="num">{{ stats.total }}</div><div class="lbl">Total</div></div>
+  <div class="stat"><div class="num">{{ stats.drafts }}</div><div class="lbl">Drafts</div></div>
+  <div class="stat"><div class="num">{{ stats.in_progress }}</div><div class="lbl">In progress</div></div>
+  <div class="stat hot"><div class="num">{{ stats.awaiting }}</div><div class="lbl">Awaiting approval</div></div>
+  <div class="stat"><div class="num">{{ stats.posted }}</div><div class="lbl">Posted</div></div>
+</div>
+
+<div class="newbar">
+  <div class="eyebrow" style="margin-bottom:8px;">Start a new video</div>
+  <form method="post" action="{% url 'videos:create' %}" class="field-row">
+    {% csrf_token %}
+    <input type="text" name="tool_featured" placeholder="Subject / topic for the video…" required>
+    <input type="text" name="niche" placeholder="niche (optional)">
+    <select name="avatar">
+      <option value="">— avatar —</option>
+      {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+    </select>
+    <select name="offer">
+      <option value="">— product (optional) —</option>
+      {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit" style="flex:0;">Create →</button>
+  </form>
+</div>
+
+<div class="vlist">
+  {% for v in videos %}
+    <a class="vrow" href="{% url 'videos:video_detail' v.pk %}">
+      <div class="body">
+        <div class="vt">{{ v }}</div>
+        <div class="meta">
+          {% if v.avatar %}<span class="chip">◐ {{ v.avatar.name }}</span>{% endif %}
+          {% if v.niche %}<span class="chip">{{ v.niche }}</span>{% endif %}
+          {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
+        </div>
+      </div>
+      <span class="pill s-{{ v.status }}">{{ v.get_status_display }}</span>
+      <span class="arrow">›</span>
+    </a>
+  {% empty %}
+    <div class="card" style="color:var(--muted);">No videos yet — start one above, or pick a topic in <a href="{% url 'videos:research' %}">Research</a>.</div>
+  {% endfor %}
+</div>
+{% endblock %}
