@@ -33,7 +33,7 @@
     {% csrf_token %}
     <input type="text" name="niche" placeholder="Niche (e.g. AI tools, fitness, finance) — blank = whatever's trending">
     <input type="text" name="keyword" placeholder="Optional keyword to steer it…">
-    <button class="btn" type="submit" style="flex:0;">Find topics</button>
+    <button class="btn" type="submit" style="flex:0 0 auto;">Find topics</button>
   </form>
 </div>
 
@@ -59,7 +59,7 @@
         <option value="">— product (optional) —</option>
         {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
       </select>
-      <button class="btn" type="submit" style="flex:0;">Create video →</button>
+      <button class="btn" type="submit" style="flex:0 0 auto;">Create video →</button>
     </form>
   </div>
 {% empty %}
