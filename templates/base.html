@@ -25,9 +25,8 @@
       --bg: var(--ink); --panel: var(--surface); --panel2: var(--surface-2);
       --accent: var(--beak); --green: var(--ok); --amber: var(--loot);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }
-    /* overflow-x:clip = no stray horizontal scrollbar can appear at ANY width */
-    html, body { overflow-x: clip; max-width: 100%; }
+    * { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; max-width: 100%; }
+    html, body { width: 100%; max-width: 100%; }
     html { -webkit-text-size-adjust: 100%; }
     body { background: var(--ink); color: var(--text); font-family: var(--sans);
       font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
@@ -36,7 +35,7 @@
     /* ---------- top nav shell ---------- */
     .topbar { position: sticky; top: 0; z-index: 30; background: var(--ink-2);
       border-bottom: 1px solid var(--line); }
-    .bar { max-width: 1360px; margin: 0 auto; display: flex; align-items: center;
+    .bar { width: 100%; display: flex; align-items: center;
       flex-wrap: wrap; gap: 4px 16px; padding: 10px clamp(16px, 3vw, 32px); }
     .brandwrap { display: flex; align-items: center; gap: 9px; }
     .logo { font-weight: 900; font-size: 17px; letter-spacing: -.3px; color: var(--text);
@@ -56,8 +55,8 @@
     .links a.active { background: var(--beak-soft); color: var(--beak-2); font-weight: 600; }
     .links a.ext { color: var(--faint); }
 
-    main { padding: clamp(20px, 3vw, 40px) clamp(16px, 3vw, 32px) 56px; }
-    .content { max-width: 1360px; margin: 0 auto; }
+    main { width: 100%; padding: clamp(20px, 3vw, 40px) clamp(16px, 3vw, 32px) 56px; }
+    .content { width: 100%; max-width: 100%; }
 
     /* collapse the nav to a toggle on narrow screens */
     @media (max-width: 860px) {
