@@ -11,8 +11,8 @@ from django.conf import settings
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Niche is locked (STRATEGY.md): AI tools for content creators.
-NICHE = "AI tools for content creators (faceless short-form / TikTok)"
+# Niche-agnostic: the caller supplies the niche (or leaves it open).
+NICHE = ""
 
 
 class NotConfigured(Exception):
@@ -25,7 +25,7 @@ def is_configured() -> bool:
 
 SYSTEM = (
     "You are a short-form content strategist. You find topics that are trending RIGHT NOW "
-    "and are a strong fit for a faceless TikTok channel about AI tools for content creators. "
+    "on TikTok/Reels/Shorts and are a strong fit for the creator's channel. "
     "Use live web results. Prefer concrete, specific, timely angles over evergreen generalities."
 )
 
@@ -62,14 +62,19 @@ def find_trending_topics(n: int = 5, niche: str = NICHE, keyword: str = "") -> l
         if keyword.strip()
         else ""
     )
+    niche_line = (
+        f"Niche: {niche.strip()}.\n"
+        if niche.strip()
+        else "No fixed niche — surface what's broadly trending on short-form right now.\n"
+    )
     user = (
-        f"Niche: {niche}.\n"
-        f"{focus}"
-        f"Find {n} topics trending in the last ~2 weeks that this channel could ride.\n"
+        niche_line
+        + f"{focus}"
+        + f"Find {n} topics trending in the last ~2 weeks that this channel could ride.\n"
         "Return ONLY a JSON array of objects with keys:\n"
         '  "headline"  – the scroll-stopping topic/title (<=12 words)\n'
         '  "why_viral" – one sentence on why it is trending / will perform\n'
-        '  "angle"     – how to tie it to a specific AI tool for creators\n'
+        '  "angle"     – how to angle it for the channel (and its niche, if given)\n'
         "No prose outside the JSON."
     )
     resp = requests.post(

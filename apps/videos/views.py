@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from apps.offers.models import Offer
 
 from .models import Avatar, TopicIdea, Video
-from .services import avatars, openrouter, render as render_svc, research, stt, voice
+from .services import avatars, openrouter, research, stt, talking, voice
 
 
 @login_required
@@ -66,13 +66,14 @@ def avatar_regenerate(request, pk):
 def factory(request):
     """The Video Factory: research ideas → pick → talk → record → adapt → render."""
     context = {
-        "videos": Video.objects.select_related("offer").all(),
+        "videos": Video.objects.select_related("offer", "avatar").all(),
         "ideas": TopicIdea.objects.filter(selected=False),
         "offers": Offer.objects.filter(is_active=True),
+        "avatars": Avatar.objects.all(),
         "config": {
             "openrouter": openrouter.is_configured(),
             "voice": voice.is_configured(),
-            "render": render_svc.is_configured(),
+            "render": talking.is_configured(),
             "stt": stt.is_configured(),
         },
     }
@@ -84,8 +85,9 @@ def factory(request):
 def research_ideas(request):
     """Step 1: ask an online LLM for trending topic ideas in our niche."""
     keyword = request.POST.get("keyword", "").strip()
+    niche = request.POST.get("niche", "").strip()
     try:
-        ideas = research.find_trending_topics(n=5, keyword=keyword)
+        ideas = research.find_trending_topics(n=5, niche=niche, keyword=keyword)
     except research.NotConfigured as e:
         messages.error(request, str(e))
         return redirect("videos:factory")
@@ -109,12 +111,14 @@ def pick_idea(request, pk):
     idea = get_object_or_404(TopicIdea, pk=pk)
     video = Video.objects.create(
         topic_idea=idea.headline,
+        niche=request.POST.get("niche", "").strip(),
+        avatar_id=request.POST.get("avatar") or None,
         offer_id=request.POST.get("offer") or None,
         status=Video.Status.DRAFT,
     )
     try:
         video.talking_points = openrouter.generate_talking_points(
-            idea.headline, idea.angle
+            idea.headline, idea.angle, niche=video.niche
         )
         video.save(update_fields=["talking_points"])
     except Exception as e:
@@ -156,12 +160,13 @@ def upload_audio(request, pk):
 def create(request):
     tool = request.POST.get("tool_featured", "").strip()
     if not tool:
-        messages.error(request, "Enter the AI tool to feature.")
+        messages.error(request, "Enter a subject/topic for the video.")
         return redirect("videos:factory")
-    offer_id = request.POST.get("offer") or None
     video = Video.objects.create(
         tool_featured=tool,
-        offer_id=offer_id,
+        niche=request.POST.get("niche", "").strip(),
+        avatar_id=request.POST.get("avatar") or None,
+        offer_id=request.POST.get("offer") or None,
         status=Video.Status.DRAFT,
     )
     messages.success(request, f"Created draft for “{tool}”. Generate the script next.")
@@ -176,15 +181,18 @@ def gen_script(request, pk):
         if video.transcript_pt:
             # New flow: translate + adapt Mayke's own Portuguese take.
             data = openrouter.adapt_transcript_to_script(
-                video.transcript_pt, video.topic_idea, video.talking_points
+                video.transcript_pt,
+                video.topic_idea,
+                video.talking_points,
+                niche=video.niche,
             )
         elif video.tool_featured:
-            # Fallback: generic tool-based script (original flow).
-            data = openrouter.generate_script(video.tool_featured)
+            # Fallback: generate a script straight from the subject.
+            data = openrouter.generate_script(video.tool_featured, niche=video.niche)
         else:
             messages.error(
                 request,
-                "Record + transcribe your voice memo first (or set an AI tool to feature).",
+                "Record + transcribe your voice memo first (or set a subject to feature).",
             )
             return redirect("videos:factory")
     except openrouter.NotConfigured as e:
@@ -211,7 +219,10 @@ def gen_voice(request, pk):
         messages.error(request, "Generate the script first.")
         return redirect("videos:factory")
     try:
-        url = voice.generate_voiceover(video.script, filename=f"video_{video.pk}.mp3")
+        voice_id = video.avatar.voice_id if video.avatar_id and video.avatar else ""
+        url = voice.generate_voiceover(
+            video.script, filename=f"video_{video.pk}.mp3", voice_id=voice_id
+        )
     except voice.NotConfigured as e:
         messages.error(request, str(e))
         return redirect("videos:factory")
@@ -230,8 +241,8 @@ def gen_voice(request, pk):
 def render_video_view(request, pk):
     video = get_object_or_404(Video, pk=pk)
     try:
-        url = render_svc.render_video(video)
-    except render_svc.NotConfigured as e:
+        url = talking.render_video(video)
+    except talking.NotConfigured as e:
         messages.error(request, str(e))
         return redirect("videos:factory")
     except Exception as e:
@@ -240,7 +251,7 @@ def render_video_view(request, pk):
     video.video_url = url
     video.status = Video.Status.RENDERED
     video.save()
-    messages.success(request, "Video rendered 🎬 — review and approve.")
+    messages.success(request, "Talking video rendered 🎬 — review and approve.")
     return redirect("videos:factory")
 
 

@@ -17,23 +17,32 @@ def is_configured() -> bool:
 
 
 SYSTEM_PROMPT = (
-    "You are a short-form video scriptwriter for a faceless TikTok channel in the "
-    "'AI tools for content creators' niche. You write punchy, high-retention scripts "
-    "(20-40 seconds spoken) that hook in the first 2 seconds, deliver one concrete "
-    "value point about an AI tool, and end with a soft CTA to the link in bio for a "
-    "free resource. Tone: energetic, plain-spoken, no fluff."
+    "You are a short-form video scriptwriter for a faceless TikTok/Reels/Shorts channel. "
+    "You write punchy, high-retention scripts (20-40 seconds spoken) that hook in the "
+    "first 2 seconds, deliver one concrete value point, and end with a soft CTA to the "
+    "link in bio for a free resource. Tone: energetic, plain-spoken, no fluff. "
+    "Stay relevant to whatever niche/topic the user gives — never assume one."
 )
 
 USER_TEMPLATE = (
-    "Create a short-form video about the AI tool: \"{tool}\".\n\n"
+    "{niche_clause}"
+    "Create a short-form video about: \"{subject}\".\n\n"
     "Return ONLY valid JSON with these keys:\n"
     "{{\n"
     '  "title": "internal title",\n'
     '  "hook": "the first spoken line (<=12 words, scroll-stopping)",\n'
     '  "script": "the full voiceover script, 60-110 words, ready to read aloud",\n'
-    '  "caption": "the TikTok caption with a CTA and 4-6 relevant hashtags"\n'
+    '  "caption": "the caption with a CTA and 4-6 relevant hashtags"\n'
     "}}"
 )
+
+
+def _niche_clause(niche: str) -> str:
+    """A leading instruction line that pins the niche — or explicitly stays open."""
+    niche = (niche or "").strip()
+    if niche:
+        return f'The channel niche/topic is: "{niche}". Keep everything relevant to it.\n'
+    return "The channel has no fixed niche — match the given subject.\n"
 
 
 def _extract_json(text: str) -> dict:
@@ -124,17 +133,18 @@ def _chat(system: str, user: str, temperature: float = 0.8) -> str:
 
 
 TALKING_POINTS_SYSTEM = (
-    "You are a short-form content coach for a faceless TikTok channel about AI tools for "
-    "content creators. Given a trending topic, you suggest concrete, specific points the "
-    "creator could speak about — angles, examples, contrarian takes, a concrete tip. "
-    "These are prompts to help them record their own take, not a finished script."
+    "You are a short-form content coach for a faceless TikTok/Reels/Shorts channel. "
+    "Given a trending topic, you suggest concrete, specific points the creator could "
+    "speak about — angles, examples, contrarian takes, a concrete tip. These are prompts "
+    "to help them record their own take, not a finished script."
 )
 
 
-def generate_talking_points(topic: str, angle: str = "") -> str:
+def generate_talking_points(topic: str, angle: str = "", niche: str = "") -> str:
     """Return a short bulleted list of points Mayke could cover on `topic`."""
     user = (
-        f"Topic: {topic}\n"
+        _niche_clause(niche)
+        + f"Topic: {topic}\n"
         + (f"Suggested angle: {angle}\n" if angle else "")
         + "Give 5-7 short bullet points (one line each, start each with '- ') of things "
         "I could say about this in a 20-40s video. Be specific and concrete. "
@@ -145,7 +155,7 @@ def generate_talking_points(topic: str, angle: str = "") -> str:
 
 ADAPT_SYSTEM = (
     "You are a bilingual (Portuguese↔English) short-form scriptwriter for a faceless "
-    "TikTok channel in the 'AI tools for content creators' niche. You receive a creator's "
+    "TikTok/Reels/Shorts channel. You receive a creator's "
     "raw spoken notes in Portuguese. You must: (1) understand their actual point and "
     "personality, (2) translate and adapt it into natural, punchy ENGLISH, (3) shape it "
     "into a high-retention 20-40 second script that hooks in the first 2 seconds, keeps "
@@ -156,7 +166,7 @@ ADAPT_SYSTEM = (
 
 
 def adapt_transcript_to_script(
-    transcript_pt: str, topic: str = "", talking_points: str = ""
+    transcript_pt: str, topic: str = "", talking_points: str = "", niche: str = ""
 ) -> dict:
     """Translate+adapt a Portuguese voice-memo transcript into the script package.
 
@@ -164,7 +174,8 @@ def adapt_transcript_to_script(
     rest of the pipeline (voice → scenes → render) is unchanged.
     """
     user = (
-        (f"Topic: {topic}\n" if topic else "")
+        _niche_clause(niche)
+        + (f"Topic: {topic}\n" if topic else "")
         + (f"Planned talking points:\n{talking_points}\n\n" if talking_points else "")
         + "Creator's raw spoken notes (Portuguese):\n"
         f'"""{transcript_pt}"""\n\n'
@@ -186,8 +197,8 @@ def adapt_transcript_to_script(
     }
 
 
-def generate_script(tool: str) -> dict:
-    """Return {title, hook, script, caption} for the given AI tool."""
+def generate_script(subject: str, niche: str = "") -> dict:
+    """Return {title, hook, script, caption} for the given subject, in any niche."""
     if not is_configured():
         raise NotConfigured("Set OPENROUTER_API_KEY in your .env")
 
@@ -201,7 +212,12 @@ def generate_script(tool: str) -> dict:
             "model": settings.OPENROUTER_MODEL,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": USER_TEMPLATE.format(tool=tool)},
+                {
+                    "role": "user",
+                    "content": USER_TEMPLATE.format(
+                        subject=subject, niche_clause=_niche_clause(niche)
+                    ),
+                },
             ],
             "temperature": 0.9,
         },

@@ -46,7 +46,7 @@ class TopicIdea(models.Model):
         blank=True, help_text="Why this is trending / likely to perform"
     )
     angle = models.TextField(
-        blank=True, help_text="Suggested angle for our AI-tools-for-creators lane"
+        blank=True, help_text="Suggested angle for the channel's niche"
     )
     selected = models.BooleanField(default=False, help_text="Picked → became a Video")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -69,8 +69,22 @@ class Video(models.Model):
         APPROVED = "approved", "Approved"
         POSTED = "posted", "Posted"
 
+    niche = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Free-form niche/topic for this video's channel (blank = niche-agnostic)",
+    )
+    avatar = models.ForeignKey(
+        "videos.Avatar",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="videos",
+        help_text="The character that presents/speaks this video",
+    )
+
     tool_featured = models.CharField(
-        max_length=200, blank=True, help_text="The AI tool this video showcases"
+        max_length=200, blank=True, help_text="The subject/topic this video showcases"
     )
 
     # --- New front-end of the pipeline (idea → your voice → adapted script) ---

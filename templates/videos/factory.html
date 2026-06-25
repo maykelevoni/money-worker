@@ -39,13 +39,13 @@
 </style>
 
 <h1>🏭 Video Factory</h1>
-<div class="sub">Research ideas → pick one → record your take (PT) → AI adapts → voice → render → post.</div>
+<div class="sub">Set niche + avatar → research trends → pick idea → record your take (PT) → AI adapts → voice → talking render → post.</div>
 
 {% if not config.openrouter %}
   <div class="warn">⚠️ OpenRouter not configured — add <code>OPENROUTER_API_KEY</code> to .env (research + scripts).</div>
 {% endif %}
 {% if not config.stt %}
-  <div class="warn">⚠️ fal.ai not configured — add <code>FAL_API_KEY</code> (transcription + scene images).</div>
+  <div class="warn">⚠️ fal.ai not configured — add <code>FAL_API_KEY</code> (transcription + avatar + talking render).</div>
 {% endif %}
 {% if not config.voice %}
   <div class="warn">⚠️ ElevenLabs not configured — add <code>ELEVENLABS_API_KEY</code> for voiceovers.</div>
@@ -56,7 +56,8 @@
   <strong>🔎 Step 1 — Research trending ideas</strong>
   <form method="post" action="{% url 'videos:research' %}" class="row" style="margin-top: 10px;">
     {% csrf_token %}
-    <input type="text" name="keyword" placeholder="Optional keyword to steer it (e.g. Sora, AI thumbnails, faceless YouTube)…" style="flex:1; min-width:240px;">
+    <input type="text" name="niche" placeholder="Your niche (e.g. AI tools, fitness, finance) — blank = whatever's trending" style="flex:1; min-width:220px;">
+    <input type="text" name="keyword" placeholder="Optional keyword to steer it…" style="flex:1; min-width:200px;">
     <button class="btn" type="submit">Find trending topics</button>
   </form>
   {% if ideas %}
@@ -68,8 +69,13 @@
           {% if idea.angle %}<div class="why">🎯 {{ idea.angle }}</div>{% endif %}
           <form method="post" action="{% url 'videos:pick_idea' idea.pk %}">
             {% csrf_token %}
-            <select name="offer">
-              <option value="">— link an offer (optional) —</option>
+            <input type="text" name="niche" placeholder="niche (optional)" style="width:100%; margin-bottom:6px;">
+            <select name="avatar" style="width:100%; margin-bottom:6px;">
+              <option value="">— choose avatar —</option>
+              {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+            </select>
+            <select name="offer" style="width:100%;">
+              <option value="">— link a product (optional) —</option>
               {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
             </select>
             <button class="btn btn-ghost" type="submit" style="margin-top:6px;">Pick this →</button>
@@ -86,9 +92,14 @@
 <div class="panel">
   <form method="post" action="{% url 'videos:create' %}" class="row">
     {% csrf_token %}
-    <input type="text" name="tool_featured" placeholder="Or start from an AI tool directly (skips research)…">
+    <input type="text" name="tool_featured" placeholder="Or start from a subject/topic directly (skips research)…">
+    <input type="text" name="niche" placeholder="niche (optional)">
+    <select name="avatar">
+      <option value="">— choose avatar —</option>
+      {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+    </select>
     <select name="offer">
-      <option value="">— link an offer (optional) —</option>
+      <option value="">— link a product (optional) —</option>
       {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
     </select>
     <button class="btn btn-ghost" type="submit">+ Manual draft</button>
@@ -104,8 +115,10 @@
         <td>
           <strong>{{ v }}</strong><br>
           <span class="small">
-            {% if v.topic_idea %}Topic: {{ v.topic_idea }}{% else %}Tool: {{ v.tool_featured }}{% endif %}
-            {% if v.offer %} · {{ v.offer.name }}{% endif %}
+            {% if v.topic_idea %}Topic: {{ v.topic_idea }}{% else %}Subject: {{ v.tool_featured }}{% endif %}
+            {% if v.avatar %} · 🎭 {{ v.avatar.name }}{% endif %}
+            {% if v.niche %} · 🎯 {{ v.niche }}{% endif %}
+            {% if v.offer %} · 🛒 {{ v.offer.name }}{% endif %}
           </span>
           {% if v.talking_points %}
             <details><summary>talking points</summary><p class="points">{{ v.talking_points }}</p></details>

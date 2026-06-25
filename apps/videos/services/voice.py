@@ -11,7 +11,7 @@ from django.conf import settings
 
 API_BASE = "https://api.elevenlabs.io/v1/text-to-speech"
 CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
-DEFAULT_VOICE = "21m00Tcm4TlvDq8ikWAM"  # ElevenLabs 'Rachel' — a safe default
+DEFAULT_VOICE = "pNInz6obpgDQGcFmaJgB"  # ElevenLabs 'Adam' — male default
 
 
 class NotConfigured(Exception):
@@ -56,12 +56,16 @@ def is_configured() -> bool:
     return bool(settings.ELEVENLABS_API_KEY)
 
 
-def generate_voiceover(text: str, filename: str) -> str:
-    """Render `text` to an MP3 under MEDIA_ROOT/voices, return the media URL path."""
+def generate_voiceover(text: str, filename: str, voice_id: str = "") -> str:
+    """Render `text` to an MP3 under MEDIA_ROOT/voices, return the media URL path.
+
+    Pass `voice_id` (e.g. the avatar's own cloned/chosen voice). Falls back to the
+    global ELEVENLABS_VOICE_ID, then to a male default — never the female Rachel.
+    """
     if not is_configured():
         raise NotConfigured("Set ELEVENLABS_API_KEY in your .env")
 
-    voice_id = settings.ELEVENLABS_VOICE_ID or DEFAULT_VOICE
+    voice_id = voice_id or settings.ELEVENLABS_VOICE_ID or DEFAULT_VOICE
     resp = requests.post(
         f"{API_BASE}/{voice_id}",
         headers={
