@@ -35,6 +35,8 @@
   <div class="card"><div class="k">Click rate</div><div class="v" style="color:var(--accent)">{{ click_rate }}%</div></div>
   <div class="card"><div class="k">Conversion rate</div><div class="v" style="color:var(--green)">{{ lead_conv_rate }}%</div></div>
   <div class="card"><div class="k">Emails sent</div><div class="v">{{ emails_sent }}</div></div>
+  <div class="card"><div class="k">Products</div><div class="v">{{ products_active }}</div>
+    <div class="small" style="font-size:12px;">{{ products_affiliate }} affiliate · {{ products_own }} own</div></div>
 </div>
 
 <div class="cols">
@@ -74,6 +76,20 @@
         <tr><td>{{ p.label }}</td><td class="num">{{ p.n }}</td></tr>
       {% empty %}
         <tr><td colspan="2" class="small">No videos created yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>Capture pages by leads</h3>
+    <table>
+      <thead><tr><th>Page</th><th class="num">Leads</th></tr></thead>
+      <tbody>
+      {% for pg in top_pages %}
+        <tr><td>{{ pg.title }}<br><span class="small">/p/{{ pg.slug }}/</span></td><td class="num">{{ pg.n }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2" class="small">No capture pages yet — build one to start collecting leads.</td></tr>
       {% endfor %}
       </tbody>
     </table>

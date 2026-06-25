@@ -50,7 +50,7 @@ class Lead(models.Model):
     class Stage(models.TextChoices):
         NEW = "new", "New"
         NURTURING = "nurturing", "Nurturing"
-        CLICKED = "clicked", "Clicked offer"
+        CLICKED = "clicked", "Clicked product"
         CONVERTED = "converted", "Converted"
 
     email = models.EmailField(unique=True)
