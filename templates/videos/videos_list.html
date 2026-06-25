@@ -13,9 +13,14 @@
   .newbar .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
   .newbar .field-row > * { flex: 1; min-width: 160px; }
   .vlist { display: grid; gap: 10px; }
-  .vrow { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 11px; padding: 13px 16px; text-decoration: none; color: var(--text); transition: border-color .12s; }
-  .vrow:hover { border-color: #39414f; }
+  .vitem { display: flex; align-items: stretch; gap: 0; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; transition: border-color .12s; overflow: hidden; }
+  .vitem:hover { border-color: #39414f; }
+  .vrow { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px;
+    padding: 13px 16px; text-decoration: none; color: var(--text); }
+  .vdel { background: transparent; border: none; border-left: 1px solid var(--line); color: var(--faint);
+    padding: 0 16px; font-size: 15px; cursor: pointer; transition: color .12s, background .12s; }
+  .vdel:hover { color: var(--beak); background: var(--beak-soft); }
   .vrow .body { flex: 1; min-width: 0; }
   .vrow .vt { font-weight: 700; }
   .vrow .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
@@ -27,6 +32,17 @@
   .s-voiced{color:#b98aff;border-color:rgba(185,138,255,.3);background:rgba(185,138,255,.08);}
   .s-rendered{color:var(--beak-2);border-color:rgba(255,126,46,.35);background:var(--beak-soft);}
   .s-approved,.s-posted{color:var(--ok);border-color:rgba(67,214,160,.35);background:rgba(67,214,160,.1);}
+  .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center;
+    justify-content: center; padding: 20px; background: rgba(5,7,10,.66); }
+  .modal-backdrop[hidden] { display: none; }
+  .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px; max-width: 430px; width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .modal h2 { margin-bottom: 10px; }
+  .modal-body { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .modal-body b { color: var(--text); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .btn-danger { background: var(--eyes); color: #fff; }
+  .btn-danger:hover { filter: brightness(1.08); }
 </style>
 
 <div class="eyebrow">Video Factory</div>
@@ -71,20 +87,70 @@
 
 <div class="vlist">
   {% for v in videos %}
-    <a class="vrow" href="{% url 'videos:video_detail' v.pk %}">
-      <div class="body">
-        <div class="vt">{{ v }}</div>
-        <div class="meta">
-          {% if v.avatar %}<span class="chip">◐ {{ v.avatar.name }}</span>{% endif %}
-          {% if v.niche %}<span class="chip">{{ v.niche }}</span>{% endif %}
-          {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
+    <div class="vitem">
+      <a class="vrow" href="{% url 'videos:video_detail' v.pk %}">
+        <div class="body">
+          <div class="vt">{{ v }}</div>
+          <div class="meta">
+            {% if v.avatar %}<span class="chip">◐ {{ v.avatar.name }}</span>{% endif %}
+            {% if v.niche %}<span class="chip">{{ v.niche }}</span>{% endif %}
+            {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
+          </div>
         </div>
-      </div>
-      <span class="pill s-{{ v.status }}">{{ v.get_status_display }}</span>
-      <span class="arrow">›</span>
-    </a>
+        <span class="pill s-{{ v.status }}">{{ v.get_status_display }}</span>
+        <span class="arrow">›</span>
+      </a>
+      <button class="vdel" type="button" title="Delete video"
+              data-del-url="{% url 'videos:delete_video' v.pk %}"
+              data-del-title="{{ v }}">✕</button>
+    </div>
   {% empty %}
     <div class="card" style="color:var(--muted);">No videos yet — start one above, or pick a topic in <a href="{% url 'videos:research' %}">Research</a>.</div>
   {% endfor %}
 </div>
+
+<div class="modal-backdrop" id="delModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delHeading">
+    <h2 id="delHeading">Delete video?</h2>
+    <p class="modal-body">This permanently deletes “<b id="delName"></b>”. This can’t be undone.</p>
+    <form method="post" id="delForm">
+      {% csrf_token %}
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal = document.getElementById('delModal');
+  var form  = document.getElementById('delForm');
+  var name  = document.getElementById('delName');
+  var cancel = modal.querySelector('[data-close]');
+  var opener = null;
+
+  function onKey(e) { if (e.key === 'Escape') close(); }
+  function open(btn) {
+    form.action = btn.dataset.delUrl;
+    name.textContent = btn.dataset.delTitle;
+    opener = btn;
+    modal.hidden = false;
+    cancel.focus();
+    document.addEventListener('keydown', onKey);
+  }
+  function close() {
+    modal.hidden = true;
+    document.removeEventListener('keydown', onKey);
+    if (opener) opener.focus();
+  }
+
+  document.querySelectorAll('.vdel').forEach(function (b) {
+    b.addEventListener('click', function () { open(b); });
+  });
+  cancel.addEventListener('click', close);
+  modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+})();
+</script>
 {% endblock %}

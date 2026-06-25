@@ -15,6 +15,7 @@ urlpatterns = [
     path("idea/<int:pk>/delete/", views.delete_idea, name="delete_idea"),
     # Per-video page + its workflow actions
     path("video/<int:pk>/", views.video_detail, name="video_detail"),
+    path("video/<int:pk>/delete/", views.delete_video, name="delete_video"),
     path("video/<int:pk>/audio/", views.upload_audio, name="upload_audio"),
     path("video/<int:pk>/script/", views.gen_script, name="gen_script"),
     path("video/<int:pk>/voice/", views.gen_voice, name="gen_voice"),

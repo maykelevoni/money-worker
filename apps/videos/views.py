@@ -71,6 +71,16 @@ def create(request):
     return redirect("videos:video_detail", pk=video.pk)
 
 
+@login_required
+@require_POST
+def delete_video(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    title = str(video)
+    video.delete()
+    messages.success(request, f"Deleted “{title}”.")
+    return redirect("videos:factory")
+
+
 # ============================ Factory · Research phase ============================
 
 @login_required
