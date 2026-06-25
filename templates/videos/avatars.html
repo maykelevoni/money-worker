@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Avatars · Money Worker{% endblock %}
+{% block nav_avatars %}active{% endblock %}
+
+{% block content %}
+<h1>🎭 Avatars</h1>
+<p class="sub">Your reusable video characters. Build one once, use it across every video.</p>
+
+{% if not configured %}
+  <div class="msg msg-error">FAL_API_KEY isn’t set — add it to your .env to generate avatars.</div>
+{% endif %}
+
+<style>
+  .av-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 32px; }
+  .av-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column; }
+  .av-card img { width: 100%; aspect-ratio: 9/16; object-fit: cover; background: var(--panel2); }
+  .av-card .noimg { width: 100%; aspect-ratio: 9/16; display: grid; place-items: center;
+    color: var(--muted); background: var(--panel2); font-size: 13px; }
+  .av-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .av-name { font-weight: 600; }
+  .av-badge { font-size: 11px; color: var(--green); }
+  .av-form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; max-width: 560px; }
+  .av-form label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  .av-form input, .av-form textarea { width: 100%; }
+  .av-form textarea { min-height: 90px; resize: vertical; }
+  .row { display: flex; gap: 10px; align-items: center; }
+</style>
+
+{% if avatars %}
+  <div class="av-grid">
+    {% for a in avatars %}
+      <div class="av-card">
+        {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.name }}">
+        {% else %}<div class="noimg">no image yet</div>{% endif %}
+        <div class="av-body">
+          <div class="row" style="justify-content:space-between;">
+            <span class="av-name">{{ a.name }}</span>
+            {% if a.is_default %}<span class="av-badge">default</span>{% endif %}
+          </div>
+          <form method="post" action="{% url 'videos:avatar_regenerate' a.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost" style="width:100%;">↻ Regenerate</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="msg" style="background:var(--panel2);color:var(--muted);">
+    No avatars yet — create your first character below (or run <code>manage.py seed_avatars</code> to add the Duck Hacker).
+  </div>
+{% endif %}
+
+<div class="av-form">
+  <h2 style="font-size:16px;margin-bottom:6px;">Create a new avatar</h2>
+  <p class="sub" style="margin:0;">Describe how the character looks — that text becomes the image prompt.</p>
+  <form method="post" action="{% url 'videos:avatar_create' %}">
+    {% csrf_token %}
+    <label>Name</label>
+    <input name="name" placeholder="e.g. Duck Hacker" required>
+    <label>Appearance (looks / outfit / vibe)</label>
+    <textarea name="appearance" placeholder="An adult anthropomorphic duck hacker, black hoodie, headphones, glowing red eyes, cinematic 3d animated character…" required></textarea>
+    <label>Seed (optional — fixes the look for consistent regenerations)</label>
+    <input name="seed" placeholder="e.g. 8101" inputmode="numeric">
+    <div style="margin-top:14px;">
+      <button class="btn" type="submit">Generate avatar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

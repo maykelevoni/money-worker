@@ -1,0 +1,35 @@
+"""Avatar portrait generation — the reusable engine behind the Duck Hacker.
+
+Wraps the ideogram image step (services.images) so any character can be made the
+same way: an appearance prompt + a fixed seed → a consistent 9:16 portrait saved
+under media/character/. Text suppression (no gibberish baked in) comes for free.
+"""
+from pathlib import Path
+
+from django.conf import settings
+
+from . import images
+
+NotConfigured = images.NotConfigured
+
+
+def is_configured() -> bool:
+    return images.is_configured()
+
+
+def generate_portrait(avatar) -> str:
+    """Generate `avatar`'s portrait, save it, point avatar.image at it; return media URL."""
+    if not is_configured():
+        raise NotConfigured("Set FAL_API_KEY in your .env (needed to generate avatars)")
+
+    rel = f"character/avatar_{avatar.pk}.png"
+    out = Path(settings.MEDIA_ROOT) / rel
+    images.generate_image(
+        avatar.appearance,
+        out,
+        seed=avatar.seed,
+        style=avatar.style or "render_3D",
+    )
+    avatar.image.name = rel
+    avatar.save(update_fields=["image"])
+    return f"{settings.MEDIA_URL}{rel}"

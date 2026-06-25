@@ -1,6 +1,43 @@
 from django.db import models
 
 
+class Avatar(models.Model):
+    """A reusable talking-video character (the Duck Hacker, and future ones).
+
+    The same engine that produced the duck: an appearance prompt → ideogram image →
+    (later) the talking-avatar pipeline. Niche-agnostic — a character, not a topic.
+    """
+
+    name = models.CharField(max_length=120)
+    appearance = models.TextField(
+        help_text="What the character looks like — used as the image generation prompt"
+    )
+    style = models.CharField(
+        max_length=20,
+        default="render_3D",
+        help_text="Ideogram style: render_3D, design, realistic, anime, general",
+    )
+    seed = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Fixed seed → consistent look across regenerations",
+    )
+    image = models.FileField(upload_to="character/", blank=True)
+    voice_id = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="ElevenLabs voice id used to narrate as this character",
+    )
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-is_default", "-created_at"]
+
+    def __str__(self):
+        return self.name
+
+
 class TopicIdea(models.Model):
     """A trending content idea surfaced by the research step, awaiting a pick."""
 

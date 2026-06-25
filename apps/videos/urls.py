@@ -6,6 +6,10 @@ app_name = "videos"
 
 urlpatterns = [
     path("", views.factory, name="factory"),
+    # Avatars (part of the Video Factory)
+    path("avatars/", views.avatar_list, name="avatars"),
+    path("avatars/create/", views.avatar_create, name="avatar_create"),
+    path("avatars/<int:pk>/regenerate/", views.avatar_regenerate, name="avatar_regenerate"),
     path("research/", views.research_ideas, name="research"),
     path("idea/<int:pk>/pick/", views.pick_idea, name="pick_idea"),
     path("create/", views.create, name="create"),

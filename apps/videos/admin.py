@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import TopicIdea, Video
+from .models import Avatar, TopicIdea, Video
+
+
+@admin.register(Avatar)
+class AvatarAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_default", "style", "voice_id", "created_at")
+    list_filter = ("is_default",)
+    search_fields = ("name",)
 
 
 @admin.register(Video)

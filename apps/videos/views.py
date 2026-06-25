@@ -6,8 +6,60 @@ from django.views.decorators.http import require_POST
 
 from apps.offers.models import Offer
 
-from .models import TopicIdea, Video
-from .services import openrouter, render as render_svc, research, stt, voice
+from .models import Avatar, TopicIdea, Video
+from .services import avatars, openrouter, render as render_svc, research, stt, voice
+
+
+@login_required
+def avatar_list(request):
+    """Avatars section (part of the Video Factory): the reusable character library."""
+    return render(
+        request,
+        "videos/avatars.html",
+        {"avatars": Avatar.objects.all(), "configured": avatars.is_configured()},
+    )
+
+
+@login_required
+@require_POST
+def avatar_create(request):
+    """Create a new character and generate its portrait from an appearance prompt."""
+    name = request.POST.get("name", "").strip()
+    appearance = request.POST.get("appearance", "").strip()
+    if not name or not appearance:
+        messages.error(request, "Give the avatar a name and describe how it looks.")
+        return redirect("videos:avatars")
+    seed = request.POST.get("seed", "").strip()
+    avatar = Avatar.objects.create(
+        name=name, appearance=appearance, seed=int(seed) if seed.isdigit() else None
+    )
+    try:
+        avatars.generate_portrait(avatar)
+    except avatars.NotConfigured as e:
+        messages.error(request, str(e))
+        return redirect("videos:avatars")
+    except Exception as e:
+        messages.error(request, f"Avatar image failed: {e}")
+        return redirect("videos:avatars")
+    messages.success(request, f"Avatar “{name}” created 🎭")
+    return redirect("videos:avatars")
+
+
+@login_required
+@require_POST
+def avatar_regenerate(request, pk):
+    """Re-roll the portrait (same prompt + seed) for an existing character."""
+    avatar = get_object_or_404(Avatar, pk=pk)
+    try:
+        avatars.generate_portrait(avatar)
+    except avatars.NotConfigured as e:
+        messages.error(request, str(e))
+        return redirect("videos:avatars")
+    except Exception as e:
+        messages.error(request, f"Regenerate failed: {e}")
+        return redirect("videos:avatars")
+    messages.success(request, f"“{avatar.name}” regenerated.")
+    return redirect("videos:avatars")
 
 
 @login_required
