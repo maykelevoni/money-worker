@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -65,8 +66,20 @@ def avatar_regenerate(request, pk):
 @login_required
 def factory(request):
     """The Video Factory: research ideas → pick → talk → record → adapt → render."""
+    videos = Video.objects.select_related("offer", "avatar").all()
+    counts = {
+        row["status"]: row["n"]
+        for row in Video.objects.values("status").annotate(n=Count("id"))
+    }
     context = {
-        "videos": Video.objects.select_related("offer", "avatar").all(),
+        "videos": videos,
+        "stats": {
+            "total": sum(counts.values()),
+            "drafts": counts.get("draft", 0),
+            "in_progress": counts.get("scripted", 0) + counts.get("voiced", 0),
+            "awaiting": counts.get("rendered", 0),
+            "posted": counts.get("posted", 0),
+        },
         "ideas": TopicIdea.objects.filter(selected=False),
         "offers": Offer.objects.filter(is_active=True),
         "avatars": Avatar.objects.all(),

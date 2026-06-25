@@ -4,176 +4,210 @@
 
 {% block content %}
 <style>
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 18px 20px; margin-bottom: 20px; }
-  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .row input[name=tool_featured] { flex: 1; min-width: 240px; }
-  .warn { background: #33280f; color: var(--amber); border: 1px solid #50410f;
-    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
-    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
-  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
-    border: 1px solid var(--line); white-space: nowrap; }
+  /* ---- metric strip (Ahrefs-style overview) ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; margin-bottom: 18px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
+    padding: 14px 16px; min-width: 0; }
+  .stat .num { font-family: var(--mono); font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat .lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin-top: 8px; }
+  .stat.hot .num { color: var(--beak); }
+
+  /* ---- warning chips ---- */
+  .warns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+  /* ---- toolbar / collapsible create ---- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  details.tool { background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; overflow: hidden; flex: 1; min-width: 280px; }
+  details.tool > summary { list-style: none; cursor: pointer; padding: 12px 16px;
+    font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  details.tool > summary::-webkit-details-marker { display: none; }
+  details.tool > summary::before { content: "+"; font-family: var(--mono); color: var(--beak);
+    font-weight: 700; }
+  details.tool[open] > summary::before { content: "−"; }
+  details.tool[open] > summary { border-bottom: 1px solid var(--line); }
+  .tool-body { padding: 14px 16px; }
+  .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .field-row > * { flex: 1; min-width: 180px; }
+
+  .ideas { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin-top: 12px; }
+  .idea { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .idea h4 { font-size: 13.5px; margin-bottom: 6px; }
+  .idea .why { color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+  .idea select, .idea input { margin-bottom: 6px; }
+
+  /* ---- data table ---- */
+  .table-wrap { background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  thead th { text-align: left; font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--faint);
+    padding: 11px 14px; border-bottom: 1px solid var(--line); background: var(--ink-2);
+    position: sticky; top: 0; }
+  tbody td { padding: 13px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; font-size: 13.5px; }
+  tbody tr:hover { background: var(--ink-2); }
+  tbody tr:last-child td { border-bottom: none; }
+  .vtitle { font-weight: 700; font-size: 14px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .small { color: var(--muted); font-size: 12px; }
+  details.inl summary { cursor: pointer; color: var(--beak-2); font-size: 12px; font-family: var(--mono); }
+  details.inl p { margin-top: 6px; white-space: pre-wrap; }
+
+  /* status pills, colored by stage */
+  .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
+  .s-draft    { color: var(--faint);  border-color: var(--line); background: var(--surface-2); }
+  .s-scripted { color: #8aa6ff; border-color: rgba(138,166,255,.3); background: rgba(138,166,255,.08); }
+  .s-voiced   { color: #b98aff; border-color: rgba(185,138,255,.3); background: rgba(185,138,255,.08); }
+  .s-rendered { color: var(--beak-2); border-color: rgba(255,126,46,.35); background: var(--beak-soft); }
+  .s-approved { color: var(--ok); border-color: rgba(67,214,160,.3); background: rgba(67,214,160,.08); }
+  .s-posted   { color: var(--ok); border-color: rgba(67,214,160,.5); background: rgba(67,214,160,.16); }
+
   .actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .actions form { display: inline; }
-  .small { color: var(--muted); font-size: 12px; }
-  details summary { cursor: pointer; color: var(--accent); font-size: 12px; }
-  details p { margin-top: 6px; white-space: pre-wrap; }
-  .table-wrap { overflow-x: auto; }
-  .ideas { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .idea { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-  .idea h4 { margin: 0 0 6px; font-size: 14px; }
-  .idea .why { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
-  .points { white-space: pre-wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .upload { margin-top: 8px; }
+  .btn-xs { padding: 6px 10px; font-size: 12px; }
+  .rec { display: flex; gap: 6px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+  .rec-start.recording { background: var(--eyes); border-color: var(--eyes); color: #fff; }
+  .rec-timer { font-family: var(--mono); }
   .upload input[type=file] { font-size: 12px; display: block; margin: 6px 0; }
-  .rec { display: flex; gap: 6px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
-  .rec-start.recording { background: #5a1f1f; border-color: #7a2a2a; }
-  .rec-timer { font-variant-numeric: tabular-nums; }
-  @media (max-width: 820px) {
-    .row input[name=tool_featured], .row select, .row button { width: 100%; }
-    table { min-width: 600px; }
-  }
+  @media (max-width: 760px) { .toolbar { flex-direction: column; } }
 </style>
 
-<h1>🏭 Video Factory</h1>
-<div class="sub">Set niche + avatar → research trends → pick idea → record your take (PT) → AI adapts → voice → talking render → post.</div>
+<div class="eyebrow">Create</div>
+<h1>Video Factory</h1>
+<p class="sub">Research a trend → pick an idea → record your take → AI adapts → voice → talking-avatar render → post.</p>
 
-{% if not config.openrouter %}
-  <div class="warn">⚠️ OpenRouter not configured — add <code>OPENROUTER_API_KEY</code> to .env (research + scripts).</div>
-{% endif %}
-{% if not config.stt %}
-  <div class="warn">⚠️ fal.ai not configured — add <code>FAL_API_KEY</code> (transcription + avatar + talking render).</div>
-{% endif %}
-{% if not config.voice %}
-  <div class="warn">⚠️ ElevenLabs not configured — add <code>ELEVENLABS_API_KEY</code> for voiceovers.</div>
+{% if not config.openrouter or not config.stt or not config.voice %}
+  <div class="warns">
+    {% if not config.openrouter %}<span class="chip bad">OpenRouter key missing</span>{% endif %}
+    {% if not config.stt %}<span class="chip bad">FAL key missing</span>{% endif %}
+    {% if not config.voice %}<span class="chip bad">ElevenLabs key missing</span>{% endif %}
+  </div>
 {% endif %}
 
-<!-- Step 1: research trending ideas -->
-<div class="panel">
-  <strong>🔎 Step 1 — Research trending ideas</strong>
-  <form method="post" action="{% url 'videos:research' %}" class="row" style="margin-top: 10px;">
-    {% csrf_token %}
-    <input type="text" name="niche" placeholder="Your niche (e.g. AI tools, fitness, finance) — blank = whatever's trending" style="flex:1; min-width:220px;">
-    <input type="text" name="keyword" placeholder="Optional keyword to steer it…" style="flex:1; min-width:200px;">
-    <button class="btn" type="submit">Find trending topics</button>
-  </form>
-  {% if ideas %}
-    <div class="ideas" style="margin-top: 14px;">
-      {% for idea in ideas %}
-        <div class="idea">
-          <h4>{{ idea.headline }}</h4>
-          {% if idea.why_viral %}<div class="why">📈 {{ idea.why_viral }}</div>{% endif %}
-          {% if idea.angle %}<div class="why">🎯 {{ idea.angle }}</div>{% endif %}
-          <form method="post" action="{% url 'videos:pick_idea' idea.pk %}">
-            {% csrf_token %}
-            <input type="text" name="niche" placeholder="niche (optional)" style="width:100%; margin-bottom:6px;">
-            <select name="avatar" style="width:100%; margin-bottom:6px;">
-              <option value="">— choose avatar —</option>
-              {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
-            </select>
-            <select name="offer" style="width:100%;">
-              <option value="">— link a product (optional) —</option>
-              {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
-            </select>
-            <button class="btn btn-ghost" type="submit" style="margin-top:6px;">Pick this →</button>
-          </form>
+<!-- metric strip -->
+<div class="stats">
+  <div class="stat"><div class="num">{{ stats.total }}</div><div class="lbl">Total videos</div></div>
+  <div class="stat"><div class="num">{{ stats.drafts }}</div><div class="lbl">Drafts</div></div>
+  <div class="stat"><div class="num">{{ stats.in_progress }}</div><div class="lbl">In progress</div></div>
+  <div class="stat hot"><div class="num">{{ stats.awaiting }}</div><div class="lbl">Awaiting approval</div></div>
+  <div class="stat"><div class="num">{{ stats.posted }}</div><div class="lbl">Posted</div></div>
+</div>
+
+<!-- create toolbar (collapsible, table stays the hero) -->
+<div class="toolbar">
+  <details class="tool" {% if ideas %}open{% endif %}>
+    <summary>Research trending topics</summary>
+    <div class="tool-body">
+      <form method="post" action="{% url 'videos:research' %}" class="field-row">
+        {% csrf_token %}
+        <input type="text" name="niche" placeholder="Niche (e.g. AI tools, fitness) — blank = whatever's trending">
+        <input type="text" name="keyword" placeholder="Optional keyword to steer it…">
+        <button class="btn" type="submit" style="flex:0;">Find topics</button>
+      </form>
+      {% if ideas %}
+        <div class="ideas">
+          {% for idea in ideas %}
+            <div class="idea">
+              <h4>{{ idea.headline }}</h4>
+              {% if idea.why_viral %}<div class="why">{{ idea.why_viral }}</div>{% endif %}
+              {% if idea.angle %}<div class="why">↳ {{ idea.angle }}</div>{% endif %}
+              <form method="post" action="{% url 'videos:pick_idea' idea.pk %}">
+                {% csrf_token %}
+                <input type="text" name="niche" placeholder="niche (optional)">
+                <select name="avatar">
+                  <option value="">— choose avatar —</option>
+                  {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+                </select>
+                <select name="offer">
+                  <option value="">— link a product (optional) —</option>
+                  {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+                </select>
+                <button class="btn btn-ghost btn-xs" type="submit">Pick this →</button>
+              </form>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
+      {% endif %}
     </div>
-  {% else %}
-    <div class="small" style="margin-top:10px;">No pending ideas — hit “Find trending topics”.</div>
-  {% endif %}
+  </details>
+
+  <details class="tool">
+    <summary>Start from a subject</summary>
+    <div class="tool-body">
+      <form method="post" action="{% url 'videos:create' %}" class="field-row">
+        {% csrf_token %}
+        <input type="text" name="tool_featured" placeholder="Subject/topic (skips research)…">
+        <input type="text" name="niche" placeholder="niche (optional)">
+        <select name="avatar">
+          <option value="">— choose avatar —</option>
+          {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+        </select>
+        <select name="offer">
+          <option value="">— link a product (optional) —</option>
+          {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+        </select>
+        <button class="btn" type="submit" style="flex:0;">Create draft</button>
+      </form>
+    </div>
+  </details>
 </div>
 
-<!-- Fallback: classic tool-based draft -->
-<div class="panel">
-  <form method="post" action="{% url 'videos:create' %}" class="row">
-    {% csrf_token %}
-    <input type="text" name="tool_featured" placeholder="Or start from a subject/topic directly (skips research)…">
-    <input type="text" name="niche" placeholder="niche (optional)">
-    <select name="avatar">
-      <option value="">— choose avatar —</option>
-      {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
-    </select>
-    <select name="offer">
-      <option value="">— link a product (optional) —</option>
-      {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
-    </select>
-    <button class="btn btn-ghost" type="submit">+ Manual draft</button>
-  </form>
-</div>
-
-<div class="panel table-wrap">
+<!-- data table -->
+<div class="table-wrap">
   <table>
     <thead><tr><th>Video</th><th>Status</th><th>Assets</th><th>Actions</th></tr></thead>
     <tbody>
     {% for v in videos %}
       <tr>
         <td>
-          <strong>{{ v }}</strong><br>
-          <span class="small">
-            {% if v.topic_idea %}Topic: {{ v.topic_idea }}{% else %}Subject: {{ v.tool_featured }}{% endif %}
-            {% if v.avatar %} · 🎭 {{ v.avatar.name }}{% endif %}
-            {% if v.niche %} · 🎯 {{ v.niche }}{% endif %}
-            {% if v.offer %} · 🛒 {{ v.offer.name }}{% endif %}
-          </span>
-          {% if v.talking_points %}
-            <details><summary>talking points</summary><p class="points">{{ v.talking_points }}</p></details>
-          {% endif %}
+          <div class="vtitle">{{ v }}</div>
+          <div class="meta">
+            {% if v.avatar %}<span class="chip">◐ {{ v.avatar.name }}</span>{% endif %}
+            {% if v.niche %}<span class="chip">{{ v.niche }}</span>{% endif %}
+            {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
+          </div>
+          {% if v.talking_points %}<details class="inl"><summary>talking points</summary><p class="small">{{ v.talking_points }}</p></details>{% endif %}
 
           {% if not v.script %}
             <form class="upload" method="post" action="{% url 'videos:upload_audio' v.pk %}" enctype="multipart/form-data">
               {% csrf_token %}
-              <label class="small">🎤 Your take (Portuguese) — record here or upload a file:</label>
+              <label class="small" style="margin-top:8px;">Your take (Portuguese) — record or upload:</label>
               <div class="rec">
-                <button type="button" class="btn btn-ghost rec-start">🔴 Record</button>
-                <button type="button" class="btn btn-ghost rec-stop" disabled>⏹ Stop</button>
+                <button type="button" class="btn btn-ghost btn-xs rec-start">● Record</button>
+                <button type="button" class="btn btn-ghost btn-xs rec-stop" disabled>■ Stop</button>
                 <span class="rec-timer small"></span>
                 <span class="rec-status small"></span>
               </div>
               <input type="file" name="audio" accept="audio/*" required>
-              <button class="btn btn-ghost" type="submit">Upload + transcribe</button>
+              <button class="btn btn-ghost btn-xs" type="submit">Upload + transcribe</button>
             </form>
           {% endif %}
-          {% if v.source_audio %}<span class="small">🎧 <a href="{{ v.source_audio.url }}" target="_blank">your memo</a></span>{% endif %}
-          {% if v.transcript_pt %}
-            <details><summary>PT transcript</summary><p class="small">{{ v.transcript_pt }}</p></details>
-          {% endif %}
-          {% if v.hook %}<br><span class="small">Hook: “{{ v.hook }}”</span>{% endif %}
-          {% if v.script %}
-            <details><summary>view script</summary><p class="small">{{ v.script }}</p></details>
-          {% endif %}
+          {% if v.source_audio %}<div class="small">▸ <a href="{{ v.source_audio.url }}" target="_blank">your memo</a></div>{% endif %}
+          {% if v.transcript_pt %}<details class="inl"><summary>PT transcript</summary><p class="small">{{ v.transcript_pt }}</p></details>{% endif %}
+          {% if v.hook %}<div class="small">Hook: “{{ v.hook }}”</div>{% endif %}
+          {% if v.script %}<details class="inl"><summary>view script</summary><p class="small">{{ v.script }}</p></details>{% endif %}
         </td>
-        <td><span class="pill">{{ v.get_status_display }}</span></td>
+        <td><span class="pill s-{{ v.status }}">{{ v.get_status_display }}</span></td>
         <td class="small">
-          {% if v.voice_url %}<a href="{{ v.voice_url }}" target="_blank">🎙️ voice</a><br>{% endif %}
-          {% if v.video_url %}<a href="{{ v.video_url }}" target="_blank">🎬 video</a>{% endif %}
+          {% if v.voice_url %}<a href="{{ v.voice_url }}" target="_blank">voice</a><br>{% endif %}
+          {% if v.video_url %}<a href="{{ v.video_url }}" target="_blank">video</a>{% endif %}
           {% if not v.voice_url and not v.video_url %}—{% endif %}
         </td>
         <td>
           <div class="actions">
-            <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}
-              <button class="btn btn-ghost" type="submit">✍️ Script</button></form>
-            <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}
-              <button class="btn btn-ghost" type="submit">🎙️ Voice</button></form>
-            <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}
-              <button class="btn btn-ghost" type="submit">🎬 Render</button></form>
-            {% if v.status == 'rendered' %}
-              <form method="post" action="{% url 'videos:approve' v.pk %}">{% csrf_token %}
-                <button class="btn" type="submit">✅ Approve</button></form>
-            {% endif %}
-            {% if v.status == 'approved' %}
-              <form method="post" action="{% url 'videos:mark_posted' v.pk %}">{% csrf_token %}
-                <button class="btn" type="submit">📲 Posted</button></form>
-            {% endif %}
+            <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-xs" type="submit">Script</button></form>
+            <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-xs" type="submit">Voice</button></form>
+            <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-xs" type="submit">Render</button></form>
+            {% if v.status == 'rendered' %}<form method="post" action="{% url 'videos:approve' v.pk %}">{% csrf_token %}<button class="btn btn-xs" type="submit">Approve</button></form>{% endif %}
+            {% if v.status == 'approved' %}<form method="post" action="{% url 'videos:mark_posted' v.pk %}">{% csrf_token %}<button class="btn btn-xs" type="submit">Mark posted</button></form>{% endif %}
           </div>
         </td>
       </tr>
     {% empty %}
-      <tr><td colspan="4" class="small">No videos yet — create your first one above.</td></tr>
+      <tr><td colspan="4" class="small">No videos yet — research a topic or start from a subject above.</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -192,7 +226,7 @@ document.querySelectorAll('.rec').forEach(function (group) {
 
   startBtn.addEventListener('click', function () {
     if (!navigator.mediaDevices || !window.MediaRecorder) {
-      status.textContent = '⚠️ recording not supported in this browser';
+      status.textContent = 'recording not supported in this browser';
       return;
     }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
@@ -207,7 +241,7 @@ document.querySelectorAll('.rec').forEach(function (group) {
         var dt = new DataTransfer();
         dt.items.add(file);
         fileInput.files = dt.files;
-        status.textContent = '✅ recorded (' + Math.round(file.size / 1024) + ' KB) — hit Upload + transcribe';
+        status.textContent = 'recorded (' + Math.round(file.size / 1024) + ' KB) — hit Upload + transcribe';
         stream.getTracks().forEach(function (tr) { tr.stop(); });
       };
       recorder.start();
@@ -217,9 +251,9 @@ document.querySelectorAll('.rec').forEach(function (group) {
       }, 250);
       startBtn.disabled = true; stopBtn.disabled = false;
       startBtn.classList.add('recording');
-      status.textContent = '🔴 recording…';
+      status.textContent = 'recording…';
     }).catch(function (err) {
-      status.textContent = '⚠️ mic blocked: ' + err.message;
+      status.textContent = 'mic blocked: ' + err.message;
     });
   });
 
