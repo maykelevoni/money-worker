@@ -12,65 +12,64 @@
   <style>
     :root {
       /* Operator's Console — palette pulled from the Duck Hacker himself */
-      --ink:      #0b0d11;   /* near-black, cool undertone */
-      --ink-2:    #0e1116;
-      --surface:  #14181f;   /* panels */
-      --surface-2:#1b202a;   /* raised / inputs */
-      --line:     #252b36;
-      --line-soft:#1d222c;
-      --text:     #e9ecf2;
-      --muted:    #868e9e;
-      --faint:    #5b6273;
-      --beak:     #ff7e2e;   /* SIGNATURE accent — duck beak orange */
-      --beak-2:   #ff9a55;
-      --beak-soft:rgba(255,126,46,.13);
-      --eyes:     #ff4d4d;   /* alerts only */
-      --loot:     #f4c04e;   /* money figures only */
-      --ok:       #43d6a0;
-      --r:        12px;
+      --ink:      #0b0d11;   --ink-2:    #0e1116;
+      --surface:  #14181f;   --surface-2:#1b202a;
+      --line:     #252b36;   --line-soft:#1d222c;
+      --text:     #e9ecf2;   --muted:    #868e9e;   --faint: #5b6273;
+      --beak:     #ff7e2e;   --beak-2:   #ff9a55;   --beak-soft: rgba(255,126,46,.13);
+      --eyes:     #ff4d4d;   --loot:     #f4c04e;   --ok: #43d6a0;
+      --r: 12px;
       --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
       --sans: "Archivo", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      /* legacy aliases — re-skin pages built before the redesign to the new palette */
+      /* legacy aliases so pre-redesign pages re-skin to the new palette */
       --bg: var(--ink); --panel: var(--surface); --panel2: var(--surface-2);
       --accent: var(--beak); --green: var(--ok); --amber: var(--loot);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }
+    /* overflow-x:clip = no stray horizontal scrollbar can appear at ANY width */
+    html, body { overflow-x: clip; max-width: 100%; }
     html { -webkit-text-size-adjust: 100%; }
     body { background: var(--ink); color: var(--text); font-family: var(--sans);
       font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    img, video, table { max-width: 100%; }
 
-    /* ---------- shell ---------- */
-    .layout { display: flex; min-height: 100vh; }
-    aside { width: 248px; flex-shrink: 0; background: var(--ink-2);
-      border-right: 1px solid var(--line); display: flex; flex-direction: column;
-      position: sticky; top: 0; height: 100vh; }
-    .brand { display: flex; align-items: center; gap: 10px; padding: 18px 18px 14px; }
-    .brand .logo { font-weight: 900; font-size: 17px; letter-spacing: -.3px; }
-    .brand .logo b { color: var(--beak); }
-    .brand .tag { font-family: var(--mono); font-size: 9.5px; color: var(--faint);
+    /* ---------- top nav shell ---------- */
+    .topbar { position: sticky; top: 0; z-index: 30; background: var(--ink-2);
+      border-bottom: 1px solid var(--line); }
+    .bar { max-width: 1360px; margin: 0 auto; display: flex; align-items: center;
+      flex-wrap: wrap; gap: 4px 16px; padding: 10px clamp(16px, 3vw, 32px); }
+    .brandwrap { display: flex; align-items: center; gap: 9px; }
+    .logo { font-weight: 900; font-size: 17px; letter-spacing: -.3px; color: var(--text);
+      text-decoration: none; }
+    .logo b { color: var(--beak); }
+    .tag { font-family: var(--mono); font-size: 9.5px; color: var(--faint);
       border: 1px solid var(--line); border-radius: 5px; padding: 2px 5px;
-      text-transform: uppercase; letter-spacing: .5px; margin-right: auto; }
-    nav { padding: 4px 12px 16px; overflow-y: auto; flex: 1; }
-    .nav-group { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
-      letter-spacing: 1.2px; color: var(--faint); padding: 16px 10px 6px; }
-    nav a { display: flex; align-items: center; gap: 9px; padding: 9px 11px;
-      border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 14px;
-      font-weight: 500; margin-bottom: 1px; position: relative; transition: background .12s, color .12s; }
-    nav a:hover { background: var(--surface); color: var(--text); }
-    nav a.active { background: var(--beak-soft); color: var(--beak-2); font-weight: 600; }
-    nav a.active::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px;
-      width: 3px; border-radius: 0 3px 3px 0; background: var(--beak); }
-    nav a.sub { padding-left: 30px; font-size: 13px; }
-    nav a.muted { color: var(--faint); font-size: 13px; }
-    .nav-foot { padding: 12px 18px; border-top: 1px solid var(--line-soft);
-      font-family: var(--mono); font-size: 10px; color: var(--faint); }
+      text-transform: uppercase; letter-spacing: .5px; }
+    .menu-toggle { display: none; margin-left: auto; background: var(--surface-2);
+      border: 1px solid var(--line); color: var(--text); border-radius: 9px;
+      padding: 6px 11px; font-size: 16px; cursor: pointer; }
+    .links { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+    .links a { padding: 7px 11px; border-radius: 8px; color: var(--muted);
+      text-decoration: none; font-size: 13.5px; font-weight: 500; white-space: nowrap;
+      transition: background .12s, color .12s; }
+    .links a:hover { background: var(--surface); color: var(--text); }
+    .links a.active { background: var(--beak-soft); color: var(--beak-2); font-weight: 600; }
+    .links a.ext { color: var(--faint); }
 
-    main { flex: 1; min-width: 0; padding: clamp(20px, 3.2vw, 44px); }
-    .content { max-width: 1340px; margin: 0 auto; min-width: 0; }
+    main { padding: clamp(20px, 3vw, 40px) clamp(16px, 3vw, 32px) 56px; }
+    .content { max-width: 1360px; margin: 0 auto; }
+
+    /* collapse the nav to a toggle on narrow screens */
+    @media (max-width: 860px) {
+      .menu-toggle { display: block; }
+      .links { display: none; order: 3; flex-basis: 100%; flex-direction: column;
+        align-items: stretch; gap: 1px; padding-bottom: 6px; }
+      .links.open { display: flex; }
+      .links a { padding: 10px 12px; font-size: 14px; }
+    }
 
     /* ---------- type ---------- */
-    h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; letter-spacing: -.5px;
-      line-height: 1.1; }
+    h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
     h2 { font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
     .eyebrow { font-family: var(--mono); font-size: 11px; text-transform: uppercase;
       letter-spacing: 1.6px; color: var(--beak); margin-bottom: 8px; }
@@ -78,11 +77,9 @@
     a { color: var(--beak-2); }
 
     /* ---------- components ---------- */
-    .panel, .card { background: var(--surface); border: 1px solid var(--line);
-      border-radius: var(--r); }
+    .panel, .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
     .card { padding: 16px; }
     .card.hover:hover { border-color: #313845; }
-
     .btn { display: inline-flex; align-items: center; gap: 7px; background: var(--beak);
       color: #1a1206; border: 1px solid transparent; padding: 9px 15px; border-radius: 9px;
       font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer;
@@ -91,99 +88,60 @@
     .btn:active { transform: translateY(1px); }
     .btn-ghost { background: var(--surface-2); color: var(--text); border-color: var(--line); }
     .btn-ghost:hover { border-color: #39414f; filter: none; }
-
     input, select, textarea { width: 100%; background: var(--surface-2);
       border: 1px solid var(--line); color: var(--text); border-radius: 9px;
       padding: 9px 12px; font-size: 14px; font-family: var(--sans); }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--beak);
       box-shadow: 0 0 0 3px var(--beak-soft); }
     label { display: block; font-size: 12.5px; color: var(--muted); margin: 12px 0 5px; }
-
-    /* mono status chip */
     .chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono);
       font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
-      background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
-      padding: 3px 8px; }
-    .chip.ok { color: var(--ok); } .chip.warn { color: var(--beak-2); }
-    .chip.bad { color: var(--eyes); }
-
-    /* flexible grid that collapses cleanly (min-width:0 kills overflow) */
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+    .chip.ok { color: var(--ok); } .chip.warn { color: var(--beak-2); } .chip.bad { color: var(--eyes); }
     .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
     .grid > * { min-width: 0; }
     .data { font-family: var(--mono); }
     .money { font-family: var(--mono); color: var(--loot); }
-
-    /* messages */
     .messages { margin-bottom: 20px; display: grid; gap: 8px; }
     .msg { padding: 11px 14px; border-radius: 10px; font-size: 13.5px; border: 1px solid; }
     .msg-success { background: rgba(67,214,160,.08); color: var(--ok); border-color: rgba(67,214,160,.25); }
     .msg-error, .msg-warning { background: rgba(255,77,77,.08); color: #ff8a8a; border-color: rgba(255,77,77,.28); }
-
-    /* mobile top bar */
-    .menu-toggle { background: var(--surface-2); border: 1px solid var(--line);
-      color: var(--text); border-radius: 9px; padding: 7px 11px; font-size: 16px; cursor: pointer; }
-
-    /* ---------- responsive ---------- */
-    @media (max-width: 980px) {
-      .layout { flex-direction: column; }
-      aside { width: 100%; height: auto; position: static; border-right: none;
-        border-bottom: 1px solid var(--line); }
-      .brand { padding: 12px 16px; }
-      nav { display: none; padding: 4px 12px 14px; }
-      nav.open { display: block; }
-      .nav-group { padding-top: 10px; }
-      nav a.active::before { display: none; }
-      .nav-foot { display: none; }
-      main { padding: 20px 16px 40px; }
-    }
-    @media (min-width: 981px) { .menu-toggle { display: none; } }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
 <body>
-  <div class="layout">
-    <aside>
-      <div class="brand">
-        <span class="logo">MONEY<b>WORKER</b></span>
+  <header class="topbar">
+    <div class="bar">
+      <div class="brandwrap">
+        <a href="/" class="logo">MONEY<b>WORKER</b></a>
         <span class="tag">ops</span>
-        <button class="menu-toggle" aria-label="Menu"
-          onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
       </div>
-      <nav id="nav">
-        <a href="/" class="{% block nav_dashboard %}{% endblock %}">◧ Dashboard</a>
-
-        <div class="nav-group">Plan</div>
-        <a href="/offers/" class="{% block nav_offers %}{% endblock %}">▦ Products</a>
-
-        <div class="nav-group">Create</div>
-        <a href="/factory/" class="{% block nav_factory %}{% endblock %}">▶ Video Factory</a>
-        <a href="/factory/avatars/" class="sub {% block nav_avatars %}{% endblock %}">◐ Avatars</a>
-        <a href="/capture-pages/" class="{% block nav_capture %}{% endblock %}">⬡ Capture Pages</a>
-
-        <div class="nav-group">Grow</div>
-        <a href="/leads/" class="{% block nav_leads %}{% endblock %}">◆ Leads</a>
-        <a href="/emails/" class="{% block nav_emails %}{% endblock %}">✉ Email Sequences</a>
-
-        <div class="nav-group">Run</div>
-        <a href="/scheduler/" class="{% block nav_scheduler %}{% endblock %}">◷ Scheduler</a>
-        <a href="/automations/" class="{% block nav_automations %}{% endblock %}">⚙ Automations</a>
-
-        <div class="nav-group">Measure</div>
-        <a href="/analytics/" class="{% block nav_analytics %}{% endblock %}">▤ Analytics</a>
-        <a href="/admin/" class="muted" target="_blank">⌥ Django Admin ↗</a>
+      <button class="menu-toggle" aria-label="Menu"
+        onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+      <nav id="nav" class="links">
+        <a href="/" class="{% block nav_dashboard %}{% endblock %}">Dashboard</a>
+        <a href="/offers/" class="{% block nav_offers %}{% endblock %}">Products</a>
+        <a href="/factory/" class="{% block nav_factory %}{% endblock %}">Factory</a>
+        <a href="/factory/avatars/" class="{% block nav_avatars %}{% endblock %}">Avatars</a>
+        <a href="/capture-pages/" class="{% block nav_capture %}{% endblock %}">Capture</a>
+        <a href="/leads/" class="{% block nav_leads %}{% endblock %}">Leads</a>
+        <a href="/emails/" class="{% block nav_emails %}{% endblock %}">Emails</a>
+        <a href="/scheduler/" class="{% block nav_scheduler %}{% endblock %}">Scheduler</a>
+        <a href="/automations/" class="{% block nav_automations %}{% endblock %}">Automations</a>
+        <a href="/analytics/" class="{% block nav_analytics %}{% endblock %}">Analytics</a>
+        <a href="/admin/" class="ext" target="_blank">Admin ↗</a>
       </nav>
-      <div class="nav-foot">faceless video → leads → sales</div>
-    </aside>
-    <main>
-      <div class="content">
-        {% if messages %}
-          <div class="messages">
-            {% for m in messages %}<div class="msg msg-{{ m.tags }}">{{ m }}</div>{% endfor %}
-          </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-      </div>
-    </main>
-  </div>
+    </div>
+  </header>
+  <main>
+    <div class="content">
+      {% if messages %}
+        <div class="messages">
+          {% for m in messages %}<div class="msg msg-{{ m.tags }}">{{ m }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
 </body>
 </html>
