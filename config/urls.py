@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.dashboard.urls')),
     path('factory/', include('apps.videos.urls')),
+    path('content/', include('apps.content.urls')),
     path('offers/', include('apps.offers.urls')),
     path('', include('apps.sequences.urls')),  # /emails/ /scheduler/ /automations/
     path('leads/', lead_views.lead_list, name='leads'),

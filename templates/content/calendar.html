@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Calendar · Content{% endblock %}
+
+{% block content %}
+<style>
+  .vlist { display: grid; gap: 10px; }
+  .vrow { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; padding: 13px 16px; text-decoration: none; color: var(--text); transition: border-color .12s; }
+  .vrow:hover { border-color: #39414f; }
+  .vrow .when { font-family: var(--mono); font-size: 12px; color: var(--beak-2); min-width: 120px; flex: 0 0 auto; }
+  .vrow .body { flex: 1; min-width: 0; }
+  .vrow .vt { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
+  .s-draft{color:var(--faint);border-color:var(--line);background:var(--surface-2);}
+  .s-scheduled{color:#8aa6ff;border-color:rgba(138,166,255,.3);background:rgba(138,166,255,.08);}
+  .s-publishing{color:var(--beak-2);border-color:rgba(255,126,46,.35);background:var(--beak-soft);}
+  .s-posted{color:var(--ok);border-color:rgba(67,214,160,.35);background:rgba(67,214,160,.1);}
+  .s-failed{color:#ff8a8a;border-color:rgba(255,77,77,.28);background:rgba(255,77,77,.08);}
+  .page-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+</style>
+
+<div class="page-hd">
+  <div>
+    <div class="eyebrow">Content</div>
+    <h1>Calendar</h1>
+  </div>
+  <a class="btn" href="{% url 'content:create' %}">＋ Create new</a>
+</div>
+<p class="sub">Posts you've given a schedule time, in order. Set a “Schedule for” time on any post to queue it here.</p>
+
+{% include "content/_tabs.html" %}
+
+<div class="vlist">
+  {% for p in scheduled %}
+    <a class="vrow" href="{% url 'content:post_detail' p.pk %}">
+      <span class="when">{{ p.scheduled_at|date:"M j, H:i" }}</span>
+      <div class="body">
+        <div class="vt">{{ p }}</div>
+        <div class="meta" style="margin-top:4px;"><span class="chip">{{ p.get_kind_display }}</span></div>
+      </div>
+      <span class="pill s-{{ p.status }}">{{ p.get_status_display }}</span>
+    </a>
+  {% empty %}
+    <div class="card" style="color:var(--muted);">Nothing scheduled yet — open a post and set a “Schedule for” time to queue it here.</div>
+  {% endfor %}
+</div>
+{% endblock %}

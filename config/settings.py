@@ -34,6 +34,16 @@ ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h]
 if DEBUG:
     ALLOWED_HOSTS += ['localhost', '127.0.0.1']
 
+# Comma-separated https origins for CSRF, e.g. "https://app.example.com"
+CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+
+# Behind Coolify/Caddy (or any reverse proxy) TLS is terminated at the proxy and
+# forwarded over HTTP — trust the proxy's protocol header and secure cookies in prod.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 
@@ -50,10 +60,12 @@ INSTALLED_APPS = [
     'apps.videos',
     'apps.leads',
     'apps.sequences',
+    'apps.content',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -171,33 +183,37 @@ R2_PUBLIC_URL = os.getenv('R2_PUBLIC_URL', '')
 
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET])
 
+# WhiteNoise's hashed/compressed storage needs a built manifest (collectstatic),
+# which dev's runserver doesn't have — so only use it in production.
+_STATIC_BACKEND = (
+    'django.contrib.staticfiles.storage.StaticFilesStorage' if DEBUG
+    else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+)
+
 if USE_R2:
-    STORAGES = {
-        'default': {
-            'BACKEND': 'storages.backends.s3.S3Storage',
-            'OPTIONS': {
-                'bucket_name': R2_BUCKET,
-                'endpoint_url': f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com',
-                'access_key': R2_ACCESS_KEY_ID,
-                'secret_key': R2_SECRET_ACCESS_KEY,
-                'region_name': 'auto',
-                'signature_version': 's3v4',
-                'default_acl': None,        # R2 has no ACLs; bucket is made public in the dashboard
-                'querystring_auth': False,  # serve clean, unsigned public URLs
-                'file_overwrite': False,
-                # Strip the scheme so .url() yields https://<host>/<key>
-                'custom_domain': R2_PUBLIC_URL.split('://', 1)[-1].rstrip('/') or False,
-            },
-        },
-        'staticfiles': {
-            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    _DEFAULT_STORAGE = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'bucket_name': R2_BUCKET,
+            'endpoint_url': f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com',
+            'access_key': R2_ACCESS_KEY_ID,
+            'secret_key': R2_SECRET_ACCESS_KEY,
+            'region_name': 'auto',
+            'signature_version': 's3v4',
+            'default_acl': None,        # R2 has no ACLs; bucket is made public in the dashboard
+            'querystring_auth': False,  # serve clean, unsigned public URLs
+            'file_overwrite': False,
+            # Strip the scheme so .url() yields https://<host>/<key>
+            'custom_domain': R2_PUBLIC_URL.split('://', 1)[-1].rstrip('/') or False,
         },
     }
 else:
-    STORAGES = {
-        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
-        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
-    }
+    _DEFAULT_STORAGE = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
+
+STORAGES = {
+    'default': _DEFAULT_STORAGE,
+    'staticfiles': {'BACKEND': _STATIC_BACKEND},
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -325,17 +325,18 @@ def share_video(request, pk):
         return _back(pk)
 
     file_path = _video_file_path(video)
+    if not file_path.exists():
+        messages.error(request, "The rendered file is missing — re-render the video.")
+        return _back(pk)
     title = (video.title or str(video)).strip()
     try:
-        result = uploadpost.upload_video(
-            file_path, platforms, title, video.caption,
-            idempotency_key=f"video-{video.pk}-{int(timezone.now().timestamp())}",
-        )
+        with file_path.open("rb") as fh:
+            result = uploadpost.upload_video(
+                fh, file_path.name, platforms, title, video.caption,
+                idempotency_key=f"video-{video.pk}-{int(timezone.now().timestamp())}",
+            )
     except uploadpost.NotConfigured as e:
         messages.error(request, str(e))
-        return _back(pk)
-    except FileNotFoundError:
-        messages.error(request, "The rendered file is missing — re-render the video.")
         return _back(pk)
     except Exception as e:
         messages.error(request, f"Share failed: {e}")

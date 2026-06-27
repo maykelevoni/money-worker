@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ p.title|default:"Post" }} · Content{% endblock %}
+
+{% block content %}
+<style>
+  .backlink { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .backlink:hover { color: var(--text); }
+  .vhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 18px; }
+  .vhead h1 { flex: 1; min-width: 200px; }
+  .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
+  .s-draft{color:var(--faint);border-color:var(--line);background:var(--surface-2);}
+  .s-scheduled{color:#8aa6ff;border-color:rgba(138,166,255,.3);background:rgba(138,166,255,.08);}
+  .s-publishing{color:var(--beak-2);border-color:rgba(255,126,46,.35);background:var(--beak-soft);}
+  .s-posted{color:var(--ok);border-color:rgba(67,214,160,.35);background:rgba(67,214,160,.1);}
+  .s-failed{color:#ff8a8a;border-color:rgba(255,77,77,.28);background:rgba(255,77,77,.08);}
+  .editor-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+  @media (max-width: 880px) { .editor-grid { grid-template-columns: 1fr; } }
+  .block { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .block .eyebrow { margin-bottom: 10px; }
+  .asset img, .asset video { width: 100%; border-radius: 9px; display: block; background: var(--surface-2); }
+  .small { color: var(--muted); font-size: 12px; }
+  .small.ok { color: var(--ok); } .small.bad { color: #ff8a8a; }
+  .chk-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .chk input { width: auto; }
+  .pub-results { margin-top: 12px; display: grid; gap: 6px; }
+  .pub-row { display: flex; align-items: center; gap: 8px; }
+  .linklike { background: none; border: none; color: var(--beak-2); cursor: pointer; font-size: 12px;
+    text-decoration: underline; padding: 0; }
+</style>
+
+<a class="backlink" href="{% url 'content:library' %}">← Content</a>
+<div class="vhead">
+  <h1>{{ p.title|default:p|truncatechars:60 }}</h1>
+  <span class="chip">{{ p.get_kind_display }}</span>
+  <span class="pill s-{{ p.status }}">{{ p.get_status_display }}</span>
+</div>
+
+<div class="editor-grid">
+  <div>
+    <form method="post" action="{% url 'content:post_detail' p.pk %}" enctype="multipart/form-data" class="block">
+      {% csrf_token %}
+      <div class="eyebrow">Edit</div>
+      <label>Title</label>
+      <input name="title" value="{{ p.title }}" placeholder="Title (optional)">
+      <label>{% if p.kind == 'article' %}Article body{% else %}Caption / text{% endif %}</label>
+      <textarea name="body" style="min-height:200px;line-height:1.6;">{{ p.body }}</textarea>
+      {% if p.kind == 'image' or p.kind == 'video' %}
+        <label>Replace media ({{ p.kind }})</label>
+        <input type="file" name="media" accept="{% if p.kind == 'image' %}image/*{% else %}video/*{% endif %}">
+      {% endif %}
+      <label>Schedule for (optional)</label>
+      <input type="datetime-local" name="scheduled_at" value="{{ p.scheduled_at|date:'Y-m-d\TH:i' }}">
+      <div style="margin-top:14px;"><button class="btn" type="submit">Save</button></div>
+    </form>
+  </div>
+
+  <div class="side">
+    {% if p.media_src %}
+      <div class="block asset">
+        <div class="eyebrow">Media</div>
+        {% if p.kind == 'video' %}<video src="{{ p.media_src }}" controls></video>
+        {% else %}<img src="{{ p.media_src }}" alt="">{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="block">
+      <div class="eyebrow">Publish</div>
+      {% if p.kind == 'article' %}
+        <p class="small">Articles publish to your blog. Social repurposing (tweet / IG / Pinterest) is coming next.</p>
+      {% elif not config.share %}
+        <p class="small">Set <code>UPLOAD_POST_API_KEY</code> + <code>UPLOAD_POST_USER</code> in .env to publish.</p>
+      {% elif not available_channels %}
+        <p class="small">No channels available for this content type.</p>
+      {% else %}
+        <form method="post" action="{% url 'content:publish_post' p.pk %}">
+          {% csrf_token %}
+          <div class="chk-row">
+            {% for value, label in available_channels %}
+              <label class="chk"><input type="checkbox" name="channels" value="{{ value }}"
+                {% if value in p.channels or not p.channels %}checked{% endif %}> {{ label }}</label>
+            {% endfor %}
+          </div>
+          <button class="btn" type="submit">🚀 Publish now</button>
+        </form>
+        {% if p.status == 'publishing' %}
+          <div class="small" style="margin-top:10px;">⏳ Publishing…
+            <form method="post" action="{% url 'content:post_status' p.pk %}" style="display:inline;">
+              {% csrf_token %}<button class="linklike" type="submit">refresh</button>
+            </form>
+          </div>
+        {% endif %}
+        {% if p.share_results %}
+          <div class="pub-results">
+            {% for plat, res in p.share_results.items %}
+              <div class="pub-row">
+                <span class="chip">{{ plat }}</span>
+                {% if res.url %}<a href="{{ res.url }}" target="_blank">view ↗</a>
+                {% elif res.success %}<span class="small ok">posted ✓</span>
+                {% else %}<span class="small bad">{{ res.error|default:"failed" }}</span>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

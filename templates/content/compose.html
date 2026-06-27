@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Create new · Content{% endblock %}
+
+{% block content %}
+<style>
+  .compose { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; max-width: 720px; }
+  .small { color: var(--muted); font-size: 12px; }
+</style>
+
+<div class="eyebrow">Content</div>
+<h1>Create new</h1>
+<p class="sub">Start a piece of content. Pick the kind, add your text, and attach media — you can edit and publish it on the next screen.</p>
+
+{% include "content/_tabs.html" %}
+
+<form method="post" action="{% url 'content:create' %}" enctype="multipart/form-data" class="compose">
+  {% csrf_token %}
+  <label>Kind</label>
+  <select name="kind">
+    {% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+  </select>
+  <label>Title (optional)</label>
+  <input type="text" name="title" placeholder="Internal title">
+  <label>Caption / text</label>
+  <textarea name="body" style="min-height:120px;line-height:1.5;" placeholder="Caption for social, or the article body…"></textarea>
+  <label>Media (for image / video posts)</label>
+  <input type="file" name="media" accept="image/*,video/*">
+  <div style="margin-top:16px;"><button class="btn" type="submit">Create →</button></div>
+  <p class="small" style="margin-top:12px;">Want an AI-generated image instead? Use <a href="{% url 'content:image_studio' %}">Image Studio</a>.</p>
+</form>
+{% endblock %}

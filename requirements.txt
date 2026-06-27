@@ -5,3 +5,5 @@ requests
 imageio-ffmpeg
 django-storages[s3]
 boto3
+gunicorn
+whitenoise
