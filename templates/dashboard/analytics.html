@@ -15,8 +15,8 @@
   .funnel-row { margin-bottom: 14px; }
   .funnel-row .top { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
   .funnel-row .top .rate { color: var(--accent); font-size: 12px; }
-  .bar { height: 26px; background: var(--panel2); border-radius: 7px; overflow: hidden; }
-  .bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #8aa6ff);
+  .fbar { height: 26px; background: var(--panel2); border-radius: 7px; overflow: hidden; }
+  .fbar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #8aa6ff);
     min-width: 2px; }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
@@ -48,7 +48,7 @@
           <span>{{ s.icon }} {{ s.label }} — <strong>{{ s.n }}</strong></span>
           {% if s.rate is not None %}<span class="rate">{{ s.rate }}% of prev</span>{% endif %}
         </div>
-        <div class="bar"><span style="width: {% if s.rate is not None %}{{ s.rate }}{% else %}100{% endif %}%"></span></div>
+        <div class="fbar"><span style="width: {% if s.rate is not None %}{{ s.rate }}{% else %}100{% endif %}%"></span></div>
       </div>
     {% endfor %}
     {% if videos_posted == 0 and leads_total == 0 %}
