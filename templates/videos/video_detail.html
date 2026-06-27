@@ -35,6 +35,17 @@
   .rec-start.recording { background: var(--eyes); border-color: var(--eyes); color: #fff; }
   .rec-timer { font-family: var(--mono); }
   .small { color: var(--muted); font-size: 12px; }
+  .small.ok { color: var(--ok); } .small.bad { color: #ff8a8a; }
+  .share-platforms { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .share-pl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+    cursor: pointer; }
+  .share-pl input { width: auto; }
+  .share-state { margin-top: 10px; }
+  .share-results { margin-top: 12px; display: grid; gap: 6px; }
+  .share-row { display: flex; align-items: center; gap: 8px; }
+  .linklike { background: none; border: none; color: var(--beak-2); cursor: pointer; font-size: 12px;
+    text-decoration: underline; padding: 0; }
 </style>
 
 <a class="backlink" href="{% url 'videos:factory' %}">← Videos</a>
@@ -128,6 +139,43 @@
       <div class="block asset">
         <div class="eyebrow">Final video</div>
         <video src="{{ v.video_url }}" controls></video>
+      </div>
+
+      <div class="block">
+        <div class="eyebrow">Share to social</div>
+        {% if not config.share %}
+          <p class="small">Set <code>UPLOAD_POST_API_KEY</code> and <code>UPLOAD_POST_USER</code> in your .env, and connect your accounts in the Upload-Post dashboard.</p>
+        {% else %}
+          <form method="post" action="{% url 'videos:share_video' v.pk %}" class="actions">
+            {% csrf_token %}
+            <div class="share-platforms">
+              {% for key, label in share_platforms.items %}
+                <label class="share-pl"><input type="checkbox" name="platforms" value="{{ key }}" checked> {{ label }}</label>
+              {% endfor %}
+            </div>
+            <p class="small">Posts the rendered video with your saved title &amp; caption, publicly.</p>
+            <button class="btn" type="submit">🚀 Share now</button>
+          </form>
+          {% if v.share_status == 'pending' %}
+            <div class="share-state small">⏳ Upload in progress…
+              <form method="post" action="{% url 'videos:share_status' v.pk %}" style="display:inline;">
+                {% csrf_token %}<button class="linklike" type="submit">refresh status</button>
+              </form>
+            </div>
+          {% endif %}
+          {% if v.share_results %}
+            <div class="share-results">
+              {% for plat, res in v.share_results.items %}
+                <div class="share-row">
+                  <span class="chip">{{ plat }}</span>
+                  {% if res.url %}<a href="{{ res.url }}" target="_blank">view post ↗</a>
+                  {% elif res.success %}<span class="small ok">posted ✓</span>
+                  {% else %}<span class="small bad">{{ res.error|default:"failed" }}</span>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endif %}
       </div>
     {% endif %}
 

@@ -172,3 +172,8 @@ ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', '')
 ELEVENLABS_VOICE_ID = os.getenv('ELEVENLABS_VOICE_ID', '')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', '')
+
+# Upload-Post — one API to publish a rendered video to YouTube/TikTok/Instagram.
+# UPLOAD_POST_USER is the profile name created in the Upload-Post dashboard.
+UPLOAD_POST_API_KEY = os.getenv('UPLOAD_POST_API_KEY', '')
+UPLOAD_POST_USER = os.getenv('UPLOAD_POST_USER', '')

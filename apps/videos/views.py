@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
@@ -8,7 +11,7 @@ from django.views.decorators.http import require_POST
 from apps.offers.models import Offer
 
 from .models import Avatar, TopicIdea, Video
-from .services import avatars, openrouter, research, stt, talking, voice
+from .services import avatars, openrouter, research, stt, talking, uploadpost, voice
 
 
 def _config():
@@ -17,6 +20,7 @@ def _config():
         "voice": voice.is_configured(),
         "render": talking.is_configured(),
         "stt": stt.is_configured(),
+        "share": uploadpost.is_configured(),
     }
 
 
@@ -171,6 +175,7 @@ def video_detail(request, pk):
     return render(request, "videos/video_detail.html", {
         "v": video,
         "config": _config(),
+        "share_platforms": uploadpost.PLATFORM_LABELS,
         **_pickers(),
     })
 
@@ -297,6 +302,91 @@ def mark_posted(request, pk):
     video.posted_at = timezone.now()
     video.save()
     messages.success(request, "Marked as posted 📲")
+    return _back(pk)
+
+
+def _video_file_path(video):
+    """Local filesystem path of a video's rendered MP4 from its media URL."""
+    rel = video.video_url.replace(settings.MEDIA_URL, "", 1)
+    return Path(settings.MEDIA_ROOT) / rel
+
+
+@login_required
+@require_POST
+def share_video(request, pk):
+    """Publish the rendered video to the chosen platforms via Upload-Post."""
+    video = get_object_or_404(Video, pk=pk)
+    platforms = [p for p in request.POST.getlist("platforms") if p in uploadpost.PLATFORMS]
+    if not platforms:
+        messages.error(request, "Pick at least one platform to share to.")
+        return _back(pk)
+    if not video.video_url:
+        messages.error(request, "Render the video before sharing it.")
+        return _back(pk)
+
+    file_path = _video_file_path(video)
+    title = (video.title or str(video)).strip()
+    try:
+        result = uploadpost.upload_video(
+            file_path, platforms, title, video.caption,
+            idempotency_key=f"video-{video.pk}-{int(timezone.now().timestamp())}",
+        )
+    except uploadpost.NotConfigured as e:
+        messages.error(request, str(e))
+        return _back(pk)
+    except FileNotFoundError:
+        messages.error(request, "The rendered file is missing — re-render the video.")
+        return _back(pk)
+    except Exception as e:
+        messages.error(request, f"Share failed: {e}")
+        return _back(pk)
+
+    video.share_request_id = result.get("request_id", "")
+    if result.get("results"):
+        # Finished synchronously.
+        video.share_results = result["results"]
+        video.share_status = "done"
+        video.status = Video.Status.POSTED
+        video.posted_at = timezone.now()
+    else:
+        video.share_status = "pending"
+    video.save()
+
+    labels = ", ".join(uploadpost.PLATFORM_LABELS[p] for p in platforms)
+    messages.success(request, f"Sharing to {labels} 🚀")
+    return _back(pk)
+
+
+@login_required
+@require_POST
+def share_status(request, pk):
+    """Poll Upload-Post for the result of an in-flight share."""
+    video = get_object_or_404(Video, pk=pk)
+    if not video.share_request_id:
+        messages.error(request, "No share in progress for this video.")
+        return _back(pk)
+    try:
+        data = uploadpost.check_status(video.share_request_id)
+    except uploadpost.NotConfigured as e:
+        messages.error(request, str(e))
+        return _back(pk)
+    except Exception as e:
+        messages.error(request, f"Status check failed: {e}")
+        return _back(pk)
+
+    results = data.get("results") or {}
+    if results:
+        video.share_results = results
+    # Treat an explicit completion flag, or the presence of results, as done.
+    if data.get("status") in ("completed", "done") or results:
+        video.share_status = "done"
+        if video.status != Video.Status.POSTED:
+            video.status = Video.Status.POSTED
+            video.posted_at = timezone.now()
+        messages.success(request, "Share complete ✅")
+    else:
+        messages.success(request, "Still processing — check again in a moment.")
+    video.save()
     return _back(pk)
 
 

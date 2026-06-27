@@ -123,6 +123,18 @@ class Video(models.Model):
     )
 
     posted_at = models.DateTimeField(null=True, blank=True)
+
+    # --- Social sharing (Upload-Post) ---
+    share_request_id = models.CharField(
+        max_length=120, blank=True, help_text="Upload-Post async request id, for status polling"
+    )
+    share_status = models.CharField(
+        max_length=20, blank=True, help_text="'' | pending | done | failed"
+    )
+    share_results = models.JSONField(
+        default=dict, blank=True, help_text="Per-platform result (url/error) from Upload-Post"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
