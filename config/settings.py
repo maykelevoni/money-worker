@@ -153,9 +153,51 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media (generated voiceovers, etc.)
+# Media (generated voiceovers, rendered videos, images, etc.)
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ---------------------------------------------------------------------------
+# Media storage — Cloudflare R2 (S3-compatible) when configured, else local disk.
+# R2 gives durable public URLs (for Upload-Post, the blog and the calendar) and
+# charges nothing for egress. Leave the R2_* vars blank to use local files in dev.
+# ---------------------------------------------------------------------------
+R2_ACCOUNT_ID = os.getenv('R2_ACCOUNT_ID', '')
+R2_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID', '')
+R2_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY', '')
+R2_BUCKET = os.getenv('R2_BUCKET', '')
+# Public base URL of the bucket — a custom domain or the pub-xxx.r2.dev URL.
+R2_PUBLIC_URL = os.getenv('R2_PUBLIC_URL', '')
+
+USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET])
+
+if USE_R2:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+            'OPTIONS': {
+                'bucket_name': R2_BUCKET,
+                'endpoint_url': f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com',
+                'access_key': R2_ACCESS_KEY_ID,
+                'secret_key': R2_SECRET_ACCESS_KEY,
+                'region_name': 'auto',
+                'signature_version': 's3v4',
+                'default_acl': None,        # R2 has no ACLs; bucket is made public in the dashboard
+                'querystring_auth': False,  # serve clean, unsigned public URLs
+                'file_overwrite': False,
+                # Strip the scheme so .url() yields https://<host>/<key>
+                'custom_domain': R2_PUBLIC_URL.split('://', 1)[-1].rstrip('/') or False,
+            },
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+else:
+    STORAGES = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

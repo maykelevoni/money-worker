@@ -3,3 +3,5 @@ psycopg[binary]
 python-dotenv
 requests
 imageio-ffmpeg
+django-storages[s3]
+boto3
