@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -6,11 +7,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.db.models import Count
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from apps.videos.services import images, uploadpost
+from apps.videos.services import images, openrouter, uploadpost
 
 from .models import Post
 
@@ -90,25 +92,164 @@ def image_studio(request):
     })
 
 
+# Compose "format" (the user-facing choice) → the underlying Post.kind.
+# "everything" is an image post with a caption promoted alongside it.
+FORMAT_KINDS = {
+    "text": Post.Kind.TEXT,
+    "image": Post.Kind.IMAGE,
+    "everything": Post.Kind.IMAGE,
+}
+KIND_FORMATS = {Post.Kind.TEXT: "text", Post.Kind.IMAGE: "image"}
+
+# Words that mean "make me a picture" → route the AI prompt to image generation.
+_IMAGE_WORDS = (
+    "image", "picture", "photo", "poster", "logo", "illustration", "illustrate",
+    "draw", "render", "visual", "graphic", "thumbnail", "artwork", "photograph",
+)
+
+CAPTION_SYSTEM = (
+    "You are a punchy social-media copywriter. Write a single ready-to-post "
+    "caption for the user's request. No preamble, no options, no quotes — return "
+    "only the caption text itself, with hashtags only if they clearly help."
+)
+
+
+def _route_intent(prompt: str) -> str:
+    """Smart routing: does this prompt want an image, or caption text?"""
+    p = prompt.lower()
+    return "image" if any(w in p for w in _IMAGE_WORDS) else "caption"
+
+
+def _do_publish(request, post, channels):
+    """Shared publish → Upload-Post. Adds a flash message; returns True on success."""
+    title = (post.title or "").strip()
+    caption = post.body
+    idem = f"post-{post.pk}-{int(timezone.now().timestamp())}"
+    try:
+        if post.kind == Post.Kind.VIDEO:
+            if not post.media:
+                messages.error(request, "Attach a video file first.")
+                return False
+            with post.media.open("rb") as fh:
+                result = uploadpost.upload_video(
+                    fh, os.path.basename(post.media.name), channels, title, caption, idempotency_key=idem
+                )
+        elif post.kind == Post.Kind.IMAGE:
+            if not post.media:
+                messages.error(request, "Attach an image first.")
+                return False
+            with post.media.open("rb") as fh:
+                result = uploadpost.upload_photo(
+                    fh, os.path.basename(post.media.name), channels, title, caption, idempotency_key=idem
+                )
+        elif post.kind == Post.Kind.TEXT:
+            result = uploadpost.upload_text(channels, post.body or title, idempotency_key=idem)
+        else:
+            messages.error(request, "Articles publish to the blog, not social channels.")
+            return False
+    except uploadpost.NotConfigured as e:
+        messages.error(request, str(e))
+        return False
+    except Exception as e:
+        messages.error(request, f"Publish failed: {e}")
+        return False
+
+    post.channels = channels
+    post.share_request_id = result.get("request_id", "")
+    if result.get("results"):
+        post.share_results = result["results"]
+        post.status = Post.Status.POSTED
+    else:
+        post.status = Post.Status.PUBLISHING
+    post.save()
+    messages.success(request, f"Publishing to {', '.join(post.channel_labels)} 🚀")
+    return True
+
+
 @login_required
 def create(request):
-    """Compose a new post of any kind → land on its page."""
+    """New Post → open the workbench on a fresh (or reused-blank) draft."""
+    post = (
+        Post.objects.filter(status=Post.Status.DRAFT, title="", body="", media="")
+        .order_by("-created_at")
+        .first()
+    )
+    if post is None:
+        post = Post.objects.create(kind=Post.Kind.IMAGE, status=Post.Status.DRAFT)
+    return redirect("content:compose", pk=post.pk)
+
+
+@login_required
+def compose(request, pk):
+    """The workbench: canvas + AI prompt + sidebar widgets for one draft."""
+    post = get_object_or_404(Post, pk=pk)
     if request.method == "POST":
-        kind = request.POST.get("kind", Post.Kind.TEXT)
-        if kind not in Post.Kind.values:
-            kind = Post.Kind.TEXT
-        post = Post.objects.create(
-            kind=kind,
-            title=request.POST.get("title", "").strip(),
-            body=request.POST.get("body", "").strip(),
-            media=request.FILES.get("media"),
-        )
-        messages.success(request, "Draft created.")
-        return _back(post.pk)
-    return render(request, "content/compose.html", {
-        "kinds": Post.Kind.choices,
+        post.kind = FORMAT_KINDS.get(request.POST.get("format"), post.kind)
+        allowed = uploadpost.KIND_CHANNELS.get(post.kind, [])
+        post.channels = [c for c in request.POST.getlist("channels") if c in allowed]
+        post.title = request.POST.get("title", "").strip()
+        post.body = request.POST.get("body", "").strip()
+        if request.FILES.get("media") and post.kind == Post.Kind.IMAGE:
+            post.media = request.FILES["media"]
+        sched = request.POST.get("scheduled_at", "").strip()
+        post.scheduled_at = timezone.datetime.fromisoformat(sched) if sched else None
+        post.save()
+
+        if request.POST.get("action") == "publish":
+            channels = [c for c in post.channels if c in post.available_channels]
+            if not channels:
+                messages.error(request, "Pick at least one platform to publish to.")
+                return redirect("content:compose", pk=pk)
+            if _do_publish(request, post, channels):
+                return redirect("content:post_detail", pk=pk)
+            return redirect("content:compose", pk=pk)
+
+        messages.success(request, "Saved.")
+        return redirect("content:compose", pk=pk)
+
+    return render(request, "content/workbench.html", {
+        "p": post,
+        "format": KIND_FORMATS.get(post.kind, "image"),
+        "platforms": list(uploadpost.PLATFORM_LABELS.items()),
+        "kind_channels_json": json.dumps(uploadpost.KIND_CHANNELS),
+        "config": {"text": openrouter.is_configured(), "images": images.is_configured()},
         "tab": "library",
     })
+
+
+@login_required
+@require_POST
+def compose_ai(request, pk):
+    """Smart AI prompt: write a caption, or generate an image — saved to the draft."""
+    post = get_object_or_404(Post, pk=pk)
+    prompt = request.POST.get("prompt", "").strip()
+    if not prompt:
+        return JsonResponse({"ok": False, "error": "Type what you want first."})
+
+    if _route_intent(prompt) == "image":
+        if not images.is_configured():
+            return JsonResponse({"ok": False, "error": "Image AI isn't set up (FAL_API_KEY)."})
+        tmp = Path(tempfile.gettempdir()) / f"gen_{int(timezone.now().timestamp())}.png"
+        try:
+            images.generate_image(prompt, tmp, style="design")
+        except Exception as e:
+            return JsonResponse({"ok": False, "error": f"Image generation failed: {e}"})
+        post.kind = Post.Kind.IMAGE
+        with tmp.open("rb") as fh:
+            post.media.save(f"gen_{post.pk}.png", File(fh), save=False)
+        post.save()
+        tmp.unlink(missing_ok=True)
+        return JsonResponse({"ok": True, "intent": "image", "media_url": post.media.url})
+
+    if not openrouter.is_configured():
+        return JsonResponse({"ok": False, "error": "Writing AI isn't set up (OPENROUTER_API_KEY)."})
+    try:
+        text = openrouter._chat(CAPTION_SYSTEM, prompt).strip()
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": f"Writing failed: {e}"})
+    post.body = text
+    post.save()
+    return JsonResponse({"ok": True, "intent": "caption", "body": text})
 
 
 @login_required
@@ -141,48 +282,7 @@ def publish_post(request, pk):
     if not channels:
         messages.error(request, "Pick at least one channel to publish to.")
         return _back(pk)
-
-    title = (post.title or "").strip()
-    caption = post.body
-    idem = f"post-{post.pk}-{int(timezone.now().timestamp())}"
-    try:
-        if post.kind == Post.Kind.VIDEO:
-            if not post.media:
-                messages.error(request, "Attach a video file first.")
-                return _back(pk)
-            with post.media.open("rb") as fh:
-                result = uploadpost.upload_video(
-                    fh, os.path.basename(post.media.name), channels, title, caption, idempotency_key=idem
-                )
-        elif post.kind == Post.Kind.IMAGE:
-            if not post.media:
-                messages.error(request, "Attach an image first.")
-                return _back(pk)
-            with post.media.open("rb") as fh:
-                result = uploadpost.upload_photo(
-                    fh, os.path.basename(post.media.name), channels, title, caption, idempotency_key=idem
-                )
-        elif post.kind == Post.Kind.TEXT:
-            result = uploadpost.upload_text(channels, post.body or title, idempotency_key=idem)
-        else:
-            messages.error(request, "Articles publish to the blog, not social channels.")
-            return _back(pk)
-    except uploadpost.NotConfigured as e:
-        messages.error(request, str(e))
-        return _back(pk)
-    except Exception as e:
-        messages.error(request, f"Publish failed: {e}")
-        return _back(pk)
-
-    post.channels = channels
-    post.share_request_id = result.get("request_id", "")
-    if result.get("results"):
-        post.share_results = result["results"]
-        post.status = Post.Status.POSTED
-    else:
-        post.status = Post.Status.PUBLISHING
-    post.save()
-    messages.success(request, f"Publishing to {', '.join(post.channel_labels)} 🚀")
+    _do_publish(request, post, channels)
     return _back(pk)
 
 

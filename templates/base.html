@@ -142,21 +142,15 @@
       <nav id="nav" class="links">
         <a href="/" class="navlink {% if request.path == '/' %}active{% endif %}">Dashboard</a>
 
-        <div class="grp {% if '/factory/' in request.path or '/content/image/' in request.path %}active{% endif %}">
-          <a href="/factory/" class="lbl">Create ▾</a>
+        <div class="grp {% if '/content/' in request.path or '/factory/research/' in request.path or '/factory/avatars/' in request.path %}active{% endif %}">
+          <a href="/content/new/" class="lbl">Content ▾</a>
           <div class="menu">
-            <a href="/factory/">Videos</a>
+            <a href="/content/new/">New Post</a>
             <a href="/content/image/">Image Studio</a>
-            <a href="/factory/research/">Research</a>
-            <a href="/factory/avatars/">Avatars</a>
-          </div>
-        </div>
-
-        <div class="grp {% if '/content/' in request.path and '/content/image/' not in request.path %}active{% endif %}">
-          <a href="/content/" class="lbl">Content ▾</a>
-          <div class="menu">
             <a href="/content/">Library</a>
             <a href="/content/calendar/">Calendar</a>
+            <a href="/factory/research/">Research</a>
+            <a href="/factory/avatars/">Avatars</a>
           </div>
         </div>
 
