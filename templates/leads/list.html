@@ -21,11 +21,37 @@
   .pill.converted { color: var(--green); border-color: #1d5235; }
   .pill.clicked { color: var(--accent); border-color: #2c3a6b; }
   .small { color: var(--muted); font-size: 12px; }
-  @media (max-width: 820px) { table { min-width: 640px; } }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .chip-l { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:99px;
+    border:1px solid var(--line); background:var(--panel2); color:var(--muted); text-decoration:none; font-size:13px; }
+  .chip-l.on { border-color:var(--accent); color:var(--accent); }
+  .chip-l .n { font-family:var(--mono); font-size:11px; opacity:.8; }
+  .ltag { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 8px;
+    border-radius:99px; background:var(--panel2); border:1px solid var(--line); color:var(--muted); }
+  .ltag form { display:inline; } .ltag button { background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:12px; }
+  .addlist { display:flex; gap:6px; }
+  .inline-form { display:flex; gap:8px; align-items:center; }
+  @media (max-width: 820px) { table { min-width: 720px; } }
 </style>
 
-<h1>👥 Leads</h1>
-<div class="sub">Everyone who opted in through your funnel.</div>
+<h1>📋 Email Lists</h1>
+<div class="sub">Everyone who opted in — grouped into lists you can filter and nurture separately.</div>
+
+<div class="panel">
+  <div class="chips" style="margin-bottom:12px">
+    <a href="{% url 'leads' %}" class="chip-l {% if not selected_list %}on{% endif %}">All <span class="n">{{ total }}</span></a>
+    {% for l in lists %}
+      <a href="?list={{ l.pk }}" class="chip-l {% if selected_list == l.pk|stringformat:'s' %}on{% endif %}">
+        {{ l.name }} <span class="n">{{ l.n }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  <form method="post" action="{% url 'list_create' %}" class="inline-form">
+    {% csrf_token %}
+    <input name="name" placeholder="New list name" style="max-width:240px">
+    <button class="btn btn-ghost" type="submit">+ Add list</button>
+  </form>
+</div>
 
 <div class="stat-row">
   <div class="stat"><div class="k">Total</div><div class="v">{{ total }}</div></div>
@@ -37,18 +63,32 @@
 
 <div class="panel table-wrap">
   <table>
-    <thead><tr><th>Email</th><th>Stage</th><th>Lead magnet</th><th>Source video</th><th>Captured</th></tr></thead>
+    <thead><tr><th>Email</th><th>Stage</th><th>Lists</th><th>Lead magnet</th><th>Captured</th></tr></thead>
     <tbody>
     {% for l in leads %}
       <tr>
         <td><strong>{{ l.email }}</strong></td>
         <td><span class="pill {{ l.stage }}">{{ l.get_stage_display }}</span></td>
+        <td>
+          <div class="chips">
+            {% for lst in l.lists.all %}
+              <span class="ltag">{{ lst.name }}
+                <form method="post" action="{% url 'lead_remove_list' l.pk lst.pk %}">{% csrf_token %}<button title="Remove" type="submit">×</button></form>
+              </span>
+            {% endfor %}
+            <form method="post" action="{% url 'lead_add_list' l.pk %}" class="addlist">{% csrf_token %}
+              <select name="list" onchange="this.form.submit()">
+                <option value="">+ list…</option>
+                {% for opt in lists %}<option value="{{ opt.pk }}">{{ opt.name }}</option>{% endfor %}
+              </select>
+            </form>
+          </div>
+        </td>
         <td class="small">{{ l.lead_magnet|default:"—" }}</td>
-        <td class="small">{% if l.source_video %}{{ l.source_video }}{% else %}—{% endif %}</td>
         <td class="small">{{ l.created_at|date:"M j, Y" }}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="5" class="small">No leads yet — share your capture page link to start collecting emails.</td></tr>
+      <tr><td colspan="5" class="small">No leads yet — share a capture page or site opt-in to start collecting emails.</td></tr>
     {% endfor %}
     </tbody>
   </table>

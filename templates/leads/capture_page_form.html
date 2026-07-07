@@ -46,6 +46,14 @@
     {% endfor %}
   </select>
 
+  <label>Add signups to list</label>
+  <select name="email_list">
+    <option value="">— default (All subscribers) —</option>
+    {% for l in lists %}
+      <option value="{{ l.pk }}" {% if page.email_list_id == l.pk %}selected{% endif %}>{{ l.name }}</option>
+    {% endfor %}
+  </select>
+
   <label>Button text</label>
   <input name="button_text" value="{{ page.button_text|default:'Send it to me →' }}">
 

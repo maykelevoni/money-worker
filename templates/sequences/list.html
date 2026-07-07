@@ -48,6 +48,11 @@
     </div>
     <div class="field"><label>Body * (HTML ok, use {magnet} for the freebie name)</label>
       <textarea name="body" placeholder="<p>Hey! Here's your free guide…</p>" required></textarea></div>
+    <div class="field" style="max-width:280px"><label>Send to list</label>
+      <select name="email_list">
+        <option value="">Everyone in the workspace</option>
+        {% for l in lists %}<option value="{{ l.pk }}">{{ l.name }}</option>{% endfor %}
+      </select></div>
     <button class="btn" type="submit">+ Add email step</button>
     {% if not steps %}
       <form method="post" action="{% url 'sequences:starter' %}" style="display:inline">{% csrf_token %}
@@ -58,12 +63,13 @@
 
 <div class="panel table-wrap">
   <table>
-    <thead><tr><th>When</th><th>Subject</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>When</th><th>Subject</th><th>List</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
     {% for s in steps %}
       <tr>
         <td><span class="day">Day {{ s.delay_days }}</span></td>
         <td><strong>{{ s.subject }}</strong><br><span class="small">{{ s.body|striptags|truncatechars:90 }}</span></td>
+        <td class="small">{% if s.email_list %}{{ s.email_list.name }}{% else %}Everyone{% endif %}</td>
         <td>{% if s.is_active %}<span class="pill on">active</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
         <td><div class="actions">
           <form method="post" action="{% url 'sequences:toggle' s.pk %}">{% csrf_token %}
@@ -73,7 +79,7 @@
         </div></td>
       </tr>
     {% empty %}
-      <tr><td colspan="4" class="small">No steps yet — add one above or load the starter.</td></tr>
+      <tr><td colspan="5" class="small">No steps yet — add one above or load the starter.</td></tr>
     {% endfor %}
     </tbody>
   </table>

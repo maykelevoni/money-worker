@@ -3,11 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
+from django.views.decorators.http import require_POST
 
 from apps.offers.models import Offer
 from apps.videos.models import Video
 
-from .models import CapturePage, Lead
+from .models import CapturePage, EmailList, Lead
 
 
 # ---------------------------------------------------------------------------
@@ -35,6 +36,9 @@ def _capture_email(request, page):
             "stage": Lead.Stage.NEW,
         },
     )
+    # Join the page's list (or the workspace default).
+    lead.lists.add(page.email_list or EmailList.default_for(page.workspace))
+
     # Enroll in the nurture sequence — fires any day-0 email immediately.
     if created:
         try:
@@ -76,15 +80,67 @@ def capture(request):
 # ---------------------------------------------------------------------------
 @login_required
 def lead_list(request):
-    leads = Lead.objects.for_workspace(request.workspace).select_related(
-        "source_video", "source_page"
+    from django.db.models import Count
+
+    ws = request.workspace
+    lists = list(EmailList.objects.for_workspace(ws).annotate(n=Count("leads")))
+    leads = (
+        Lead.objects.for_workspace(ws)
+        .select_related("source_video", "source_page")
+        .prefetch_related("lists")
     )
+    selected = request.GET.get("list") or ""
+    if selected:
+        leads = leads.filter(lists__id=selected)
     counts = {s.value: leads.filter(stage=s.value).count() for s in Lead.Stage}
     return render(
         request,
         "leads/list.html",
-        {"leads": leads, "counts": counts, "total": leads.count()},
+        {
+            "leads": leads,
+            "counts": counts,
+            "total": leads.count(),
+            "lists": lists,
+            "selected_list": selected,
+        },
     )
+
+
+@login_required
+@require_POST
+def list_create(request):
+    name = request.POST.get("name", "").strip()
+    if name:
+        EmailList.objects.get_or_create(workspace=request.workspace, name=name)
+        messages.success(request, f"List “{name}” created.")
+    return redirect("leads")
+
+
+@login_required
+@require_POST
+def list_delete(request, pk):
+    get_object_or_404(EmailList, pk=pk, workspace=request.workspace).delete()
+    messages.success(request, "List deleted.")
+    return redirect("leads")
+
+
+@login_required
+@require_POST
+def lead_add_list(request, pk):
+    lead = get_object_or_404(Lead, pk=pk, workspace=request.workspace)
+    lst = get_object_or_404(
+        EmailList, pk=request.POST.get("list"), workspace=request.workspace
+    )
+    lead.lists.add(lst)
+    return redirect(request.META.get("HTTP_REFERER") or "leads")
+
+
+@login_required
+@require_POST
+def lead_remove_list(request, pk, list_id):
+    lead = get_object_or_404(Lead, pk=pk, workspace=request.workspace)
+    lead.lists.remove(list_id)
+    return redirect(request.META.get("HTTP_REFERER") or "leads")
 
 
 @login_required
@@ -107,6 +163,7 @@ def _save_page(request, page):
     page.niche = request.POST.get("niche", "").strip()
     page.is_active = bool(request.POST.get("is_active"))
     page.offer_id = request.POST.get("offer") or None
+    page.email_list_id = request.POST.get("email_list") or None
     page.slug = request.POST.get("slug", "").strip() or slugify(page.title)
 
     if not page.title or not page.headline or not page.lead_magnet:
@@ -129,7 +186,8 @@ def capture_page_create(request):
     return render(
         request,
         "leads/capture_page_form.html",
-        {"page": None, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True)},
+        {"page": None, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True),
+         "lists": EmailList.objects.for_workspace(request.workspace)},
     )
 
 
@@ -142,5 +200,6 @@ def capture_page_edit(request, pk):
     return render(
         request,
         "leads/capture_page_form.html",
-        {"page": page_obj, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True)},
+        {"page": page_obj, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True),
+         "lists": EmailList.objects.for_workspace(request.workspace)},
     )

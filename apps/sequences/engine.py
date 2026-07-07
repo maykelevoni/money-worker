@@ -62,8 +62,12 @@ def _run_for_workspace(workspace, leads, *, log: bool) -> dict:
         already = set(
             SentEmail.objects.filter(lead=ld).values_list("step_id", flat=True)
         )
+        lead_list_ids = set(ld.lists.values_list("id", flat=True))
         for step in steps:
             if step.id in already or step.delay_days > days_since:
+                continue
+            # List-targeted step only goes to leads on that list.
+            if step.email_list_id and step.email_list_id not in lead_list_ids:
                 continue
             if not configured:
                 skipped_no_key += 1

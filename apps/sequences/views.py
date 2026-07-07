@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.leads.models import Lead
+from apps.leads.models import EmailList, Lead
 from apps.leads.services import email as email_svc
 
 from .engine import process_due_emails
@@ -16,8 +16,9 @@ def step_list(request):
         request,
         "sequences/list.html",
         {
-            "steps": SequenceStep.objects.for_workspace(request.workspace),
+            "steps": SequenceStep.objects.for_workspace(request.workspace).select_related("email_list"),
             "email_configured": email_svc.is_configured(),
+            "lists": EmailList.objects.for_workspace(request.workspace),
         },
     )
 
@@ -35,6 +36,7 @@ def step_create(request):
         delay_days=int(request.POST.get("delay_days") or 0),
         subject=subject,
         body=body,
+        email_list_id=request.POST.get("email_list") or None,
     )
     messages.success(request, "Email step added.")
     return redirect("sequences:list")

@@ -4,6 +4,31 @@ from django.urls import reverse
 from apps.accounts.models import WorkspaceOwned
 
 
+class EmailList(WorkspaceOwned):
+    """A named audience. Leads from different sources join different lists so
+    they can be seen, filtered and nurtured separately."""
+
+    name = models.CharField(max_length=200)
+    description = models.CharField(max_length=300, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def default_for(cls, workspace):
+        obj, _ = cls.objects.get_or_create(
+            workspace=workspace,
+            name="All subscribers",
+            defaults={"description": "Everyone who opted in."},
+        )
+        return obj
+
+
 class CapturePage(WorkspaceOwned):
     """A generated lead-capture / bio-link landing page.
 
@@ -27,6 +52,14 @@ class CapturePage(WorkspaceOwned):
         on_delete=models.SET_NULL,
         related_name="capture_pages",
         help_text="Product this page promotes (optional)",
+    )
+    email_list = models.ForeignKey(
+        "leads.EmailList",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="capture_pages",
+        help_text="New signups from this page join this list",
     )
     button_text = models.CharField(max_length=80, default="Send it to me →")
     success_message = models.CharField(
@@ -76,6 +109,9 @@ class Lead(WorkspaceOwned):
     )
     stage = models.CharField(
         max_length=20, choices=Stage.choices, default=Stage.NEW
+    )
+    lists = models.ManyToManyField(
+        "leads.EmailList", blank=True, related_name="leads"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

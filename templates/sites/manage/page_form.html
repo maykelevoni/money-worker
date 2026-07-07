@@ -102,6 +102,11 @@
           <div><label>Button text</label><input name="button_text" value="{{ s.data.button_text }}"></div>
         </div>
         <label>Success message</label><input name="success_message" value="{{ s.data.success_message }}">
+        <label>Add signups to list</label>
+        <select name="list_id">
+          <option value="">— default (All subscribers) —</option>
+          {% for l in lists %}<option value="{{ l.pk }}" {% if s.data.list_id == l.pk|stringformat:'s' %}selected{% endif %}>{{ l.name }}</option>{% endfor %}
+        </select>
       {% elif s.kind == 'testimonial' %}
         <label>Quote</label><textarea name="quote" rows="2">{{ s.data.quote }}</textarea>
         <div class="frow">

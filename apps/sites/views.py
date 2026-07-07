@@ -6,6 +6,7 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from apps.content.models import Post
+from apps.leads.models import EmailList
 
 from . import public_views
 from .models import MANDATORY_KINDS, Page, Section, Website
@@ -204,6 +205,7 @@ def page_edit(request, pk):
             "page": page,
             "sections": page.sections.all(),
             "section_kinds": Section.Kind.choices,
+            "lists": EmailList.objects.for_workspace(request.workspace),
         },
     )
 
@@ -278,6 +280,7 @@ def _parse_section(kind, POST):
             "lead_magnet": POST.get("lead_magnet", "").strip(),
             "button_text": POST.get("button_text", "").strip(),
             "success_message": POST.get("success_message", "").strip(),
+            "list_id": POST.get("list_id", "").strip(),
         }
     if kind == "testimonial":
         return {

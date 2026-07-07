@@ -12,6 +12,14 @@ class SequenceStep(WorkspaceOwned):
     )
     subject = models.CharField(max_length=255)
     body = models.TextField(help_text="HTML allowed. Use {magnet} as a placeholder.")
+    email_list = models.ForeignKey(
+        "leads.EmailList",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="steps",
+        help_text="Only send to this list (blank = everyone in the workspace)",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

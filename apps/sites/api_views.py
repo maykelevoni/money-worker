@@ -49,6 +49,13 @@ def optin_api(request):
         email=email,
         defaults={"lead_magnet": (data.get("lead_magnet") or ""), "stage": Lead.Stage.NEW},
     )
+    from apps.leads.models import EmailList
+
+    target = None
+    list_id = (data.get("list_id") or "").strip()
+    if list_id:
+        target = EmailList.objects.filter(pk=list_id, workspace=site.workspace).first()
+    lead.lists.add(target or EmailList.default_for(site.workspace))
     if created:
         try:
             from apps.sequences.engine import process_due_emails

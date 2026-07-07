@@ -33,6 +33,10 @@ urlpatterns = [
     path('offers/', include('apps.offers.urls')),
     path('', include('apps.sequences.urls')),  # /emails/ /scheduler/ /automations/
     path('leads/', lead_views.lead_list, name='leads'),
+    path('leads/lists/new/', lead_views.list_create, name='list_create'),
+    path('leads/lists/<int:pk>/delete/', lead_views.list_delete, name='list_delete'),
+    path('leads/<int:pk>/add-list/', lead_views.lead_add_list, name='lead_add_list'),
+    path('leads/<int:pk>/remove-list/<int:list_id>/', lead_views.lead_remove_list, name='lead_remove_list'),
     # Capture pages — internal management + per-page public URLs
     path('capture-pages/', lead_views.capture_pages, name='capture_pages'),
     path('capture-pages/new/', lead_views.capture_page_create, name='capture_page_create'),
