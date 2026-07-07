@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.offers.models import Offer
+from apps.social import publish as social_publish
+from apps.social.models import SocialAccount
 
 from .models import Avatar, TopicIdea, Video
 from .services import avatars, openrouter, research, stt, talking, uploadpost, voice
@@ -181,7 +183,9 @@ def video_detail(request, pk):
     return render(request, "videos/video_detail.html", {
         "v": video,
         "config": _config(),
-        "share_platforms": uploadpost.PLATFORM_LABELS,
+        "share_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(
+            is_active=True, platform__in=uploadpost.KIND_CHANNELS["video"]
+        ),
         **_pickers(request),
     })
 
@@ -322,9 +326,11 @@ def _video_file_path(video):
 def share_video(request, pk):
     """Publish the rendered video to the chosen platforms via Upload-Post."""
     video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
-    platforms = [p for p in request.POST.getlist("platforms") if p in uploadpost.PLATFORMS]
-    if not platforms:
-        messages.error(request, "Pick at least one platform to share to.")
+    accounts = social_publish.accounts_for(
+        request.workspace, uploadpost.KIND_CHANNELS["video"], request.POST.getlist("accounts")
+    )
+    if not accounts:
+        messages.error(request, "Pick at least one connected account to share to.")
         return _back(pk)
     if not video.video_url:
         messages.error(request, "Render the video before sharing it.")
@@ -334,33 +340,42 @@ def share_video(request, pk):
     if not file_path.exists():
         messages.error(request, "The rendered file is missing — re-render the video.")
         return _back(pk)
-    title = (video.title or str(video)).strip()
-    try:
-        with file_path.open("rb") as fh:
-            result = uploadpost.upload_video(
-                fh, file_path.name, platforms, title, video.caption,
-                idempotency_key=f"video-{video.pk}-{int(timezone.now().timestamp())}",
-            )
-    except uploadpost.NotConfigured as e:
-        messages.error(request, str(e))
-        return _back(pk)
-    except Exception as e:
-        messages.error(request, f"Share failed: {e}")
-        return _back(pk)
 
-    video.share_request_id = result.get("request_id", "")
-    if result.get("results"):
-        # Finished synchronously.
-        video.share_results = result["results"]
+    title = (video.title or str(video)).strip()
+    ts = int(timezone.now().timestamp())
+    results, last_id, errors = {}, "", []
+    for profile, platforms in social_publish.group_by_profile(accounts).items():
+        try:
+            with file_path.open("rb") as fh:
+                r = uploadpost.upload_video(
+                    fh, file_path.name, platforms, title, video.caption,
+                    user=profile, idempotency_key=f"video-{video.pk}-{profile}-{ts}",
+                )
+        except uploadpost.NotConfigured as e:
+            messages.error(request, str(e))
+            return _back(pk)
+        except Exception as e:
+            errors.append(f"{profile}: {e}")
+            continue
+        last_id = r.get("request_id", "") or last_id
+        if r.get("results"):
+            results.update(r["results"])
+
+    video.share_request_id = last_id
+    if results:
+        video.share_results = results
         video.share_status = "done"
         video.status = Video.Status.POSTED
         video.posted_at = timezone.now()
-    else:
+    elif last_id:
         video.share_status = "pending"
     video.save()
 
-    labels = ", ".join(uploadpost.PLATFORM_LABELS[p] for p in platforms)
-    messages.success(request, f"Sharing to {labels} 🚀")
+    if errors:
+        messages.warning(request, "Some posts failed — " + "; ".join(errors))
+    if results or last_id:
+        handles = ", ".join(a.handle for a in accounts)
+        messages.success(request, f"Sharing to {handles} 🚀")
     return _back(pk)
 
 

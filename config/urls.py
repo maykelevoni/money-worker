@@ -27,6 +27,7 @@ urlpatterns = [
     path('', include('apps.dashboard.urls')),
     path('factory/', include('apps.videos.urls')),
     path('websites/', include('apps.sites.urls')),
+    path('social/', include('apps.social.urls')),
     path('api/optin/', sites_api.optin_api, name='api_optin'),
     path('content/', include('apps.content.urls')),
     path('offers/', include('apps.offers.urls')),

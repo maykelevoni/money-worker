@@ -86,12 +86,14 @@
     </div>
 
     <div class="card">
-      <h4>Platforms</h4>
+      <h4>Accounts</h4>
       <div class="plats" id="plats">
-        {% for value, label in platforms %}
-        <label class="plat" data-plat="{{ value }}">
-          <input type="checkbox" name="channels" value="{{ value }}" {% if value in p.channels %}checked{% endif %}> {{ label }}
+        {% for a in publish_accounts %}
+        <label class="plat" data-plat="{{ a.platform }}">
+          <input type="checkbox" name="accounts" value="{{ a.pk }}"> {{ a.platform_label }} · {{ a.handle }}
         </label>
+        {% empty %}
+        <p class="sub" style="margin:0">No accounts yet — add them in <a href="/social/">Social Accounts</a>.</p>
         {% endfor %}
       </div>
     </div>

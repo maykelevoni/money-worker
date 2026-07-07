@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     # money-worker apps
     'apps.accounts',
     'apps.sites',
+    'apps.social',
     'apps.dashboard',
     'apps.offers',
     'apps.videos',

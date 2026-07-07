@@ -12,6 +12,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from apps.social import publish as social_publish
+from apps.social.models import SocialAccount
 from apps.videos.services import images, openrouter, uploadpost
 
 from .models import Post
@@ -121,50 +123,65 @@ def _route_intent(prompt: str) -> str:
     return "image" if any(w in p for w in _IMAGE_WORDS) else "caption"
 
 
-def _do_publish(request, post, channels):
-    """Shared publish → Upload-Post. Adds a flash message; returns True on success."""
-    title = (post.title or "").strip()
-    caption = post.body
-    idem = f"post-{post.pk}-{int(timezone.now().timestamp())}"
-    try:
-        if post.kind == Post.Kind.VIDEO:
-            if not post.media:
-                messages.error(request, "Attach a video file first.")
-                return False
-            with post.media.open("rb") as fh:
-                result = uploadpost.upload_video(
-                    fh, os.path.basename(post.media.name), channels, title, caption, idempotency_key=idem
-                )
-        elif post.kind == Post.Kind.IMAGE:
-            if not post.media:
-                messages.error(request, "Attach an image first.")
-                return False
-            with post.media.open("rb") as fh:
-                result = uploadpost.upload_photo(
-                    fh, os.path.basename(post.media.name), channels, title, caption, idempotency_key=idem
-                )
-        elif post.kind == Post.Kind.TEXT:
-            result = uploadpost.upload_text(channels, post.body or title, idempotency_key=idem)
-        else:
-            messages.error(request, "Articles publish to the blog, not social channels.")
-            return False
-    except uploadpost.NotConfigured as e:
-        messages.error(request, str(e))
+def _do_publish(request, post, accounts):
+    """Publish a post to the chosen SocialAccounts, grouped by Upload-Post
+    profile. Adds a flash message; returns True on success."""
+    if post.kind == Post.Kind.ARTICLE:
+        messages.error(request, "Articles publish to the blog, not social channels.")
         return False
-    except Exception as e:
-        messages.error(request, f"Publish failed: {e}")
+    if post.kind in (Post.Kind.VIDEO, Post.Kind.IMAGE) and not post.media:
+        messages.error(request, "Attach a file first.")
         return False
 
-    post.channels = channels
-    post.share_request_id = result.get("request_id", "")
-    if result.get("results"):
-        post.share_results = result["results"]
+    title = (post.title or "").strip()
+    caption = post.body
+    ts = int(timezone.now().timestamp())
+    results, last_id, errors, done_platforms = {}, "", [], set()
+
+    for profile, platforms in social_publish.group_by_profile(accounts).items():
+        idem = f"post-{post.pk}-{profile}-{ts}"
+        try:
+            if post.kind == Post.Kind.VIDEO:
+                with post.media.open("rb") as fh:
+                    r = uploadpost.upload_video(
+                        fh, os.path.basename(post.media.name), platforms, title, caption,
+                        user=profile, idempotency_key=idem,
+                    )
+            elif post.kind == Post.Kind.IMAGE:
+                with post.media.open("rb") as fh:
+                    r = uploadpost.upload_photo(
+                        fh, os.path.basename(post.media.name), platforms, title, caption,
+                        user=profile, idempotency_key=idem,
+                    )
+            else:  # TEXT
+                r = uploadpost.upload_text(
+                    platforms, post.body or title, user=profile, idempotency_key=idem
+                )
+        except uploadpost.NotConfigured as e:
+            messages.error(request, str(e))
+            return False
+        except Exception as e:
+            errors.append(f"{profile}: {e}")
+            continue
+        last_id = r.get("request_id", "") or last_id
+        if r.get("results"):
+            results.update(r["results"])
+        done_platforms.update(platforms)
+
+    post.channels = list(done_platforms)
+    post.share_request_id = last_id
+    if results:
+        post.share_results = results
         post.status = Post.Status.POSTED
-    else:
+    elif last_id:
         post.status = Post.Status.PUBLISHING
     post.save()
-    messages.success(request, f"Publishing to {', '.join(post.channel_labels)} 🚀")
-    return True
+
+    if errors:
+        messages.warning(request, "Some posts failed — " + "; ".join(errors))
+    if results or last_id:
+        messages.success(request, f"Publishing to {', '.join(a.handle for a in accounts)} 🚀")
+    return bool(results or last_id)
 
 
 @login_required
@@ -189,8 +206,6 @@ def compose(request, pk):
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
         post.kind = FORMAT_KINDS.get(request.POST.get("format"), post.kind)
-        allowed = uploadpost.KIND_CHANNELS.get(post.kind, [])
-        post.channels = [c for c in request.POST.getlist("channels") if c in allowed]
         post.title = request.POST.get("title", "").strip()
         post.body = request.POST.get("body", "").strip()
         if request.FILES.get("media") and post.kind == Post.Kind.IMAGE:
@@ -200,11 +215,13 @@ def compose(request, pk):
         post.save()
 
         if request.POST.get("action") == "publish":
-            channels = [c for c in post.channels if c in post.available_channels]
-            if not channels:
-                messages.error(request, "Pick at least one platform to publish to.")
+            accounts = social_publish.accounts_for(
+                request.workspace, post.available_channels, request.POST.getlist("accounts")
+            )
+            if not accounts:
+                messages.error(request, "Pick at least one connected account to publish to.")
                 return redirect("content:compose", pk=pk)
-            if _do_publish(request, post, channels):
+            if _do_publish(request, post, accounts):
                 return redirect("content:post_detail", pk=pk)
             return redirect("content:compose", pk=pk)
 
@@ -214,7 +231,7 @@ def compose(request, pk):
     return render(request, "content/workbench.html", {
         "p": post,
         "format": KIND_FORMATS.get(post.kind, "image"),
-        "platforms": list(uploadpost.PLATFORM_LABELS.items()),
+        "publish_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(is_active=True),
         "kind_channels_json": json.dumps(uploadpost.KIND_CHANNELS),
         "config": {"text": openrouter.is_configured(), "images": images.is_configured()},
         "tab": "library",
@@ -272,7 +289,9 @@ def post_detail(request, pk):
         return _back(pk)
     return render(request, "content/post_detail.html", {
         "p": post,
-        "available_channels": [(c, uploadpost.PLATFORM_LABELS[c]) for c in post.available_channels],
+        "available_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(
+            is_active=True, platform__in=post.available_channels
+        ),
         "config": _config(),
     })
 
@@ -282,11 +301,13 @@ def post_detail(request, pk):
 def publish_post(request, pk):
     """Publish the post to the selected channels via Upload-Post."""
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
-    channels = [c for c in request.POST.getlist("channels") if c in post.available_channels]
-    if not channels:
-        messages.error(request, "Pick at least one channel to publish to.")
+    accounts = social_publish.accounts_for(
+        request.workspace, post.available_channels, request.POST.getlist("accounts")
+    )
+    if not accounts:
+        messages.error(request, "Pick at least one connected account to publish to.")
         return _back(pk)
-    _do_publish(request, post, channels)
+    _do_publish(request, post, accounts)
     return _back(pk)
 
 

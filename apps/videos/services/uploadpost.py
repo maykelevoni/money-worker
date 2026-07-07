@@ -40,7 +40,7 @@ def _headers() -> dict:
     return {"Authorization": f"Apikey {settings.UPLOAD_POST_API_KEY}"}
 
 
-def upload_video(fileobj, filename, platforms, title, caption="", *, idempotency_key=""):
+def upload_video(fileobj, filename, platforms, title, caption="", *, user=None, idempotency_key=""):
     """Post a video (open file object) to `platforms`; return the API's JSON.
 
     Taking a file object rather than a path keeps this backend-agnostic — the
@@ -52,7 +52,7 @@ def upload_video(fileobj, filename, platforms, title, caption="", *, idempotency
         raise NotConfigured("Set UPLOAD_POST_API_KEY and UPLOAD_POST_USER in your .env")
 
     data = [
-        ("user", settings.UPLOAD_POST_USER),
+        ("user", user or settings.UPLOAD_POST_USER),
         ("title", (title or "Untitled").strip()),
         ("async_upload", "true"),
         # Publish publicly — "share" means make it live.
@@ -82,14 +82,14 @@ def upload_video(fileobj, filename, platforms, title, caption="", *, idempotency
     return resp.json()
 
 
-def upload_photo(fileobj, filename, platforms, title, caption="", *, idempotency_key=""):
+def upload_photo(fileobj, filename, platforms, title, caption="", *, user=None, idempotency_key=""):
     """Post a single image (open file object) to `platforms`
     (Instagram/TikTok/X/Pinterest…). `title` is the caption.
     """
     if not is_configured():
         raise NotConfigured("Set UPLOAD_POST_API_KEY and UPLOAD_POST_USER in your .env")
 
-    data = [("user", settings.UPLOAD_POST_USER), ("title", (title or caption or "").strip())]
+    data = [("user", user or settings.UPLOAD_POST_USER), ("title", (title or caption or "").strip())]
     for p in platforms:
         data.append(("platform[]", p))
     if caption:
@@ -110,11 +110,11 @@ def upload_photo(fileobj, filename, platforms, title, caption="", *, idempotency
     return resp.json()
 
 
-def upload_text(platforms, title, description="", *, idempotency_key=""):
+def upload_text(platforms, title, description="", *, user=None, idempotency_key=""):
     """Post a text-only update to `platforms` (X/LinkedIn/Threads/Reddit…)."""
     if not is_configured():
         raise NotConfigured("Set UPLOAD_POST_API_KEY and UPLOAD_POST_USER in your .env")
-    data = [("user", settings.UPLOAD_POST_USER), ("title", (title or "").strip())]
+    data = [("user", user or settings.UPLOAD_POST_USER), ("title", (title or "").strip())]
     for p in platforms:
         data.append(("platform[]", p))
     if description:

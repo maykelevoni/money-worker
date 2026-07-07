@@ -149,12 +149,14 @@
           <form method="post" action="{% url 'videos:share_video' v.pk %}" class="actions">
             {% csrf_token %}
             <div class="share-platforms">
-              {% for key, label in share_platforms.items %}
-                <label class="share-pl"><input type="checkbox" name="platforms" value="{{ key }}" checked> {{ label }}</label>
+              {% for a in share_accounts %}
+                <label class="share-pl"><input type="checkbox" name="accounts" value="{{ a.pk }}" checked> {{ a.platform_label }} · {{ a.handle }}</label>
+              {% empty %}
+                <p class="small">No accounts yet — add them in <a href="/social/">Social Accounts</a>.</p>
               {% endfor %}
             </div>
             <p class="small">Posts the rendered video with your saved title &amp; caption, publicly.</p>
-            <button class="btn" type="submit">🚀 Share now</button>
+            {% if share_accounts %}<button class="btn" type="submit">🚀 Share now</button>{% endif %}
           </form>
           {% if v.share_status == 'pending' %}
             <div class="share-state small">⏳ Upload in progress…
