@@ -44,6 +44,9 @@
 <div class="eyebrow">Content</div>
 <h1>New post</h1>
 <p class="sub">Write or generate with AI on the left, dial in format &amp; platforms on the right, then publish.</p>
+{% if p.source_idea %}
+  <p class="sub" style="margin-top:-6px;">💡 From research: <strong>{{ p.source_idea.headline }}</strong></p>
+{% endif %}
 
 {% include "content/_tabs.html" %}
 

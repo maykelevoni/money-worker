@@ -52,6 +52,15 @@ class Post(WorkspaceOwned):
         related_name="content_posts",
     )
 
+    # Where this came from, if spawned from a researched idea.
+    source_idea = models.ForeignKey(
+        "videos.TopicIdea",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="posts",
+    )
+
     # --- Blog fields (only meaningful when kind == ARTICLE) ---
     website = models.ForeignKey(
         "sites.Website",

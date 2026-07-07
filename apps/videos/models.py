@@ -50,7 +50,10 @@ class TopicIdea(WorkspaceOwned):
     angle = models.TextField(
         blank=True, help_text="Suggested angle for the channel's niche"
     )
-    selected = models.BooleanField(default=False, help_text="Picked → became a Video")
+    selected = models.BooleanField(default=False, help_text="Legacy: first pick consumed the idea")
+    archived = models.BooleanField(
+        default=False, help_text="Hidden from research — cleared out after use"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -83,6 +86,16 @@ class Video(WorkspaceOwned):
         on_delete=models.SET_NULL,
         related_name="videos",
         help_text="The character that presents/speaks this video",
+    )
+
+    # Where this came from, if spawned from a researched idea.
+    source_idea = models.ForeignKey(
+        "videos.TopicIdea",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="videos",
+        help_text="The researched idea this video was spawned from",
     )
 
     tool_featured = models.CharField(

@@ -94,8 +94,14 @@ def delete_video(request, pk):
 @login_required
 def research_page(request):
     """Research phase — trending ideas; they persist and each is deletable."""
+    ideas = (
+        TopicIdea.objects.for_workspace(request.workspace)
+        .filter(archived=False)
+        .annotate(post_count=Count("posts", distinct=True),
+                  video_count=Count("videos", distinct=True))
+    )
     return render(request, "videos/research.html", {
-        "ideas": TopicIdea.objects.for_workspace(request.workspace).filter(selected=False),
+        "ideas": ideas,
         "config": _config(),
         "tab": "research",
         **_pickers(request),
@@ -137,10 +143,14 @@ def delete_idea(request, pk):
 @login_required
 @require_POST
 def pick_idea(request, pk):
-    """Turn an idea into a video → land on its page (talking points generated)."""
+    """Turn an idea into a video → land on its page (talking points generated).
+
+    The idea stays in research (reusable) so it can also spawn Studio posts.
+    """
     idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
     video = Video.objects.create(
         workspace=request.workspace,
+        source_idea=idea,
         topic_idea=idea.headline,
         niche=request.POST.get("niche", "").strip(),
         avatar_id=request.POST.get("avatar") or None,
@@ -154,10 +164,47 @@ def pick_idea(request, pk):
         video.save(update_fields=["talking_points"])
     except Exception as e:
         messages.warning(request, f"Video created, but talking points failed: {e}")
-    idea.selected = True
-    idea.save(update_fields=["selected"])
     messages.success(request, "Video created from idea 🎯")
     return redirect("videos:video_detail", pk=video.pk)
+
+
+@login_required
+@require_POST
+def spawn_post(request, pk):
+    """Turn an idea into a Studio post (text / image / article) → open the workbench.
+
+    Pre-seeds the draft from the idea and records provenance; the idea stays in
+    research so it can feed more formats.
+    """
+    from apps.content.models import Post
+
+    idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
+    kinds = {Post.Kind.TEXT, Post.Kind.IMAGE, Post.Kind.ARTICLE}
+    kind = request.POST.get("kind")
+    if kind not in kinds:
+        messages.error(request, "Unknown content type.")
+        return redirect("videos:research")
+    post = Post.objects.create(
+        workspace=request.workspace,
+        kind=kind,
+        status=Post.Status.DRAFT,
+        source_idea=idea,
+        title=idea.headline[:300],
+        body=idea.angle or idea.why_viral or "",
+    )
+    messages.success(request, f"{post.get_kind_display()} started from idea ✍️")
+    return redirect("content:compose", pk=post.pk)
+
+
+@login_required
+@require_POST
+def archive_idea(request, pk):
+    """Clear a used idea out of the research list without deleting its content."""
+    idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
+    idea.archived = True
+    idea.save(update_fields=["archived"])
+    messages.success(request, "Idea archived.")
+    return redirect("videos:research")
 
 
 # ============================ The per-video page ============================

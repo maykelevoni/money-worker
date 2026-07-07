@@ -13,9 +13,17 @@
   .idea h3 { font-size: 16px; font-weight: 700; flex: 1; }
   .idea .why { color: var(--muted); font-size: 13px; margin-top: 8px; }
   .idea .angle { color: var(--beak-2); font-size: 13px; margin-top: 4px; }
-  .idea .make { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;
+  .idea .make { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px;
     border-top: 1px solid var(--line-soft); padding-top: 14px; }
   .idea .make select, .idea .make input { flex: 1; min-width: 150px; }
+  .idea .spawn { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+    border-top: 1px solid var(--line-soft); padding-top: 14px; align-items: center; }
+  .idea .spawn .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: .04em; margin-right: 2px; }
+  .kindbtn { background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .kindbtn:hover { color: var(--eyes); border-color: var(--eyes); }
+  .idea .used { color: var(--beak-2); font-size: 12px; font-weight: 600; }
   .iconbtn { background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
     border-radius: 8px; padding: 6px 9px; font-size: 13px; cursor: pointer; }
   .iconbtn:hover { color: var(--eyes); border-color: var(--eyes); }
@@ -23,7 +31,7 @@
 
 <div class="eyebrow">Create</div>
 <h1>Research</h1>
-<p class="sub">Find trending topics. Keep the good ones, delete the rest — picking one creates a video.</p>
+<p class="sub">Find trending topics. Turn any one into a post, image, article or video — one idea can feed every format.</p>
 
 {% include "videos/_tabs.html" %}
 
@@ -41,6 +49,17 @@
   <div class="idea">
     <div class="head">
       <h3>{{ idea.headline }}</h3>
+      {% if idea.post_count or idea.video_count %}
+        <span class="used" title="Content spawned from this idea">✓ used:
+          {% if idea.post_count %}{{ idea.post_count }} post{{ idea.post_count|pluralize }}{% endif %}
+          {% if idea.post_count and idea.video_count %} · {% endif %}
+          {% if idea.video_count %}{{ idea.video_count }} video{{ idea.video_count|pluralize }}{% endif %}
+        </span>
+        <form method="post" action="{% url 'videos:archive_idea' idea.pk %}">
+          {% csrf_token %}
+          <button class="iconbtn" type="submit" title="Archive idea">Archive</button>
+        </form>
+      {% endif %}
       <form method="post" action="{% url 'videos:delete_idea' idea.pk %}">
         {% csrf_token %}
         <button class="iconbtn" type="submit" title="Delete idea">✕</button>
@@ -48,6 +67,15 @@
     </div>
     {% if idea.why_viral %}<div class="why">{{ idea.why_viral }}</div>{% endif %}
     {% if idea.angle %}<div class="angle">↳ {{ idea.angle }}</div>{% endif %}
+
+    <form method="post" action="{% url 'videos:spawn_post' idea.pk %}" class="spawn">
+      {% csrf_token %}
+      <span class="lbl">Make</span>
+      <button class="kindbtn" type="submit" name="kind" value="text">Text</button>
+      <button class="kindbtn" type="submit" name="kind" value="image">Image</button>
+      <button class="kindbtn" type="submit" name="kind" value="article">Article</button>
+    </form>
+
     <form method="post" action="{% url 'videos:pick_idea' idea.pk %}" class="make">
       {% csrf_token %}
       <input type="text" name="niche" placeholder="niche (optional)">
