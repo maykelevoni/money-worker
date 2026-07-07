@@ -44,6 +44,11 @@
     .tag { font-family: var(--mono); font-size: 9.5px; color: var(--faint);
       border: 1px solid var(--line); border-radius: 5px; padding: 2px 5px;
       text-transform: uppercase; letter-spacing: .5px; }
+    .ws-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--surface-2);
+      border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; font-size: 12px;
+      color: var(--text); white-space: nowrap; }
+    .ws-av { width: 15px; height: 15px; border-radius: 5px; flex: none;
+      background: linear-gradient(135deg, var(--beak), var(--loot)); }
     .menu-toggle { display: none; margin-left: auto; background: var(--surface-2);
       border: 1px solid var(--line); color: var(--text); border-radius: 9px;
       padding: 6px 11px; font-size: 16px; cursor: pointer; }
@@ -63,6 +68,17 @@
     .grp .menu a { display: block; padding: 8px 11px; border-radius: 7px; color: var(--muted);
       text-decoration: none; font-size: 13.5px; white-space: nowrap; }
     .grp .menu a:hover { background: var(--surface); color: var(--text); }
+    /* not-yet-built menu items */
+    .grp .menu .soon { display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 8px 11px; border-radius: 7px; color: var(--faint);
+      font-size: 13.5px; white-space: nowrap; cursor: default; }
+    .soon-tag { font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--faint); border: 1px solid var(--line);
+      border-radius: 5px; padding: 1px 5px; }
+    /* right-aligned utility (settings) menu */
+    .util { margin-left: auto; }
+    .util > .lbl { font-size: 15px; padding: 7px 10px; }
+    .util .menu { left: auto; right: 0; }
 
     main { width: 100%; padding: clamp(20px, 3vw, 40px) clamp(16px, 3vw, 32px) 90px; }
     .content { width: 100%; max-width: 100%; }
@@ -135,52 +151,61 @@
     <div class="bar">
       <div class="brandwrap">
         <a href="/" class="logo">MONEY<b>WORKER</b></a>
+        {% if request.workspace and request.user.memberships.count > 1 %}
+        <span class="ws-chip" title="Current workspace">
+          <span class="ws-av"></span>{{ request.workspace.name }}
+        </span>
+        {% else %}
         <span class="tag">ops</span>
+        {% endif %}
       </div>
       <button class="menu-toggle" aria-label="Menu"
         onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
       <nav id="nav" class="links">
         <a href="/" class="navlink {% if request.path == '/' %}active{% endif %}">Dashboard</a>
 
-        <div class="grp {% if '/factory/' in request.path or '/content/image/' in request.path %}active{% endif %}">
-          <a href="/factory/" class="lbl">Create ▾</a>
-          <div class="menu">
-            <a href="/factory/">Videos</a>
-            <a href="/content/image/">Image Studio</a>
-            <a href="/factory/research/">Research</a>
-            <a href="/factory/avatars/">Avatars</a>
-          </div>
-        </div>
+        <a href="/factory/research/" class="navlink {% if '/factory/research' in request.path %}active{% endif %}">Research</a>
 
-        <div class="grp {% if '/content/' in request.path and '/content/image/' not in request.path %}active{% endif %}">
-          <a href="/content/" class="lbl">Content ▾</a>
+        <div class="grp {% if '/content/' in request.path or request.path == '/factory/' or '/factory/create' in request.path or '/factory/video' in request.path or '/factory/avatars' in request.path %}active{% endif %}">
+          <a href="/content/new/" class="lbl">Studio ▾</a>
           <div class="menu">
+            <a href="/content/new/">New Post</a>
+            <a href="/content/image/">Image Studio</a>
+            <a href="/factory/">Video Factory</a>
+            <a href="/factory/avatars/">Avatars</a>
             <a href="/content/">Library</a>
             <a href="/content/calendar/">Calendar</a>
           </div>
         </div>
 
-        <div class="grp {% if '/capture-pages/' in request.path or '/leads/' in request.path or '/emails/' in request.path %}active{% endif %}">
-          <a href="/leads/" class="lbl">Audience ▾</a>
+        <div class="grp {% if '/websites/' in request.path or '/capture-pages/' in request.path or '/leads/' in request.path %}active{% endif %}">
+          <a href="/websites/" class="lbl">Assets ▾</a>
           <div class="menu">
+            <a href="/websites/">Websites</a>
+            <span class="soon">Social Accounts <span class="soon-tag">soon</span></span>
             <a href="/capture-pages/">Capture Pages</a>
-            <a href="/leads/">Leads</a>
+            <a href="/leads/">Email Lists</a>
+          </div>
+        </div>
+
+        <div class="grp {% if '/emails/' in request.path or '/scheduler/' in request.path or '/automations/' in request.path %}active{% endif %}">
+          <a href="/emails/" class="lbl">Grow ▾</a>
+          <div class="menu">
             <a href="/emails/">Email Sequences</a>
+            <a href="/scheduler/">Scheduler</a>
+            <a href="/automations/">Automations</a>
           </div>
         </div>
 
         <a href="/offers/" class="navlink {% if '/offers/' in request.path %}active{% endif %}">Products</a>
         <a href="/analytics/" class="navlink {% if '/analytics/' in request.path %}active{% endif %}">Analytics</a>
 
-        <div class="grp {% if '/scheduler/' in request.path or '/automations/' in request.path %}active{% endif %}">
-          <a href="/scheduler/" class="lbl">Automation ▾</a>
+        <div class="grp util" title="Settings">
+          <span class="lbl" tabindex="0" role="button" aria-label="Settings">⚙</span>
           <div class="menu">
-            <a href="/scheduler/">Scheduler</a>
-            <a href="/automations/">Automations</a>
+            <a href="/admin/" target="_blank" class="ext">Admin panel ↗</a>
           </div>
         </div>
-
-        <a href="/admin/" class="navlink ext" target="_blank">Admin ↗</a>
       </nav>
     </div>
   </header>

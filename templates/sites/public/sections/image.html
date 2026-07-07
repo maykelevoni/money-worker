@@ -1,0 +1,6 @@
+<section class="section sec-image">
+  <div class="wrap prose-wrap">
+    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.data.caption }}">{% endif %}
+    {% if s.data.caption %}<div class="cap">{{ s.data.caption }}</div>{% endif %}
+  </div>
+</section>

@@ -1,9 +1,10 @@
 from django.db import models
 
+from apps.accounts.models import WorkspaceOwned
 from apps.videos.services import uploadpost
 
 
-class Post(models.Model):
+class Post(WorkspaceOwned):
     """A unit of content in the hub — written here or pulled from the Video
     Factory — that gets organised, scheduled and published to social channels.
 
@@ -51,11 +52,30 @@ class Post(models.Model):
         related_name="content_posts",
     )
 
+    # --- Blog fields (only meaningful when kind == ARTICLE) ---
+    website = models.ForeignKey(
+        "sites.Website",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="articles",
+        help_text="Which website's blog this article publishes to",
+    )
+    slug = models.SlugField(blank=True, help_text="Article URL on the blog")
+    meta_description = models.TextField(blank=True, help_text="SEO description for the article")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["website", "slug"],
+                condition=models.Q(website__isnull=False),
+                name="uniq_article_slug_per_site",
+            )
+        ]
 
     def __str__(self):
         return self.title or (self.body[:50] if self.body else f"{self.get_kind_display()} #{self.pk}")

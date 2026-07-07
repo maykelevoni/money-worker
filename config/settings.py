@@ -32,7 +32,8 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h]
 if DEBUG:
-    ALLOWED_HOSTS += ['localhost', '127.0.0.1']
+    # In dev, accept the app host and any site subdomain (e.g. sleeptips.localhost).
+    ALLOWED_HOSTS += ['localhost', '127.0.0.1', '.localhost']
 
 # Comma-separated https origins for CSRF, e.g. "https://app.example.com"
 CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
@@ -55,6 +56,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # money-worker apps
+    'apps.accounts',
+    'apps.sites',
     'apps.dashboard',
     'apps.offers',
     'apps.videos',
@@ -66,10 +69,12 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # serve static files in production
+    'apps.sites.middleware.SiteMiddleware',  # route public website hosts → site urlconf
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.accounts.middleware.WorkspaceMiddleware',  # resolves request.workspace
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -79,6 +84,16 @@ if DEBUG:
     MIDDLEWARE += ['config.middleware.NoCacheMiddleware']
 
 ROOT_URLCONF = 'config.urls'
+
+# Public websites (apps.sites) live on their own hostnames. SITE_HOST is the base
+# that site subdomains hang off (<subdomain>.<SITE_HOST>); the main app answers on
+# SITE_HOST itself. Override in production, e.g. SITE_HOST=moneyworker.io
+SITE_HOST = os.getenv('SITE_HOST', 'localhost:8000')
+SITE_URLCONF = 'config.site_urls'  # urlconf swapped in for requests to a site host
+# Public base URL of the control tower — static sites post opt-ins back here.
+APP_BASE_URL = os.getenv('APP_BASE_URL', f'http://{SITE_HOST}')
+# Where static site exports are written before deploy.
+BUILD_ROOT = os.getenv('BUILD_ROOT', str(BASE_DIR / 'builds'))
 
 TEMPLATES = [
     {

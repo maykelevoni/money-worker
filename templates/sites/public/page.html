@@ -1,0 +1,14 @@
+{% extends "sites/public/base_site.html" %}
+{% block main %}
+  {% if sections %}
+    {% for s in sections %}{% include s.template %}{% endfor %}
+  {% else %}
+    <div class="wrap page-body">
+      <article class="prose">
+        {% if page and not page.is_home %}<h1>{{ page.title }}</h1>{% endif %}
+        {{ body_html }}
+        {% if not page %}<p>This site has no published pages yet.</p>{% endif %}
+      </article>
+    </div>
+  {% endif %}
+{% endblock %}

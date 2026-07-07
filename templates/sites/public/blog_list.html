@@ -1,0 +1,22 @@
+{% extends "sites/public/base_site.html" %}
+{% block main %}
+<div class="wrap" style="padding:56px 22px 72px">
+  <div class="prose-wrap" style="margin:0 auto 34px"><h1 class="prose" style="text-align:center">Blog</h1></div>
+  <ul class="posts">
+    {% for a in articles %}
+    <li class="post-card">
+      <a href="{{ a.url }}">
+        {% if a.image %}<img class="thumb" src="{{ a.image }}" alt="">{% else %}<div class="thumb"></div>{% endif %}
+        <div class="pc-body">
+          <h2>{{ a.title }}</h2>
+          {% if a.excerpt %}<p>{{ a.excerpt }}</p>{% endif %}
+          <time>{{ a.date|date:"M j, Y" }}</time>
+        </div>
+      </a>
+    </li>
+    {% empty %}
+    <li><p>No posts published yet.</p></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

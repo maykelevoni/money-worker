@@ -1,7 +1,9 @@
 from django.db import models
 
+from apps.accounts.models import WorkspaceOwned
 
-class Avatar(models.Model):
+
+class Avatar(WorkspaceOwned):
     """A reusable talking-video character (the Duck Hacker, and future ones).
 
     The same engine that produced the duck: an appearance prompt → ideogram image →
@@ -38,7 +40,7 @@ class Avatar(models.Model):
         return self.name
 
 
-class TopicIdea(models.Model):
+class TopicIdea(WorkspaceOwned):
     """A trending content idea surfaced by the research step, awaiting a pick."""
 
     headline = models.CharField(max_length=300, help_text="The viral topic/title")
@@ -58,7 +60,7 @@ class TopicIdea(models.Model):
         return self.headline
 
 
-class Video(models.Model):
+class Video(WorkspaceOwned):
     """A faceless short-form video moving through the factory pipeline."""
 
     class Status(models.TextChoices):

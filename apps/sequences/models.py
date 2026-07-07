@@ -1,7 +1,9 @@
 from django.db import models
 
+from apps.accounts.models import WorkspaceOwned
 
-class SequenceStep(models.Model):
+
+class SequenceStep(WorkspaceOwned):
     """One email in the nurture drip. Steps fire in `delay_days` order after opt-in."""
 
     order = models.PositiveIntegerField(default=0)
@@ -19,7 +21,7 @@ class SequenceStep(models.Model):
         return f"Day {self.delay_days}: {self.subject}"
 
 
-class SentEmail(models.Model):
+class SentEmail(WorkspaceOwned):
     """Record of a step delivered to a lead (prevents double-sends)."""
 
     lead = models.ForeignKey(
@@ -34,7 +36,7 @@ class SentEmail(models.Model):
         unique_together = ("lead", "step")
 
 
-class AutomationRun(models.Model):
+class AutomationRun(WorkspaceOwned):
     """Log of each engine run, for the Automations page."""
 
     name = models.CharField(max_length=100)

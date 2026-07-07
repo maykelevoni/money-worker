@@ -8,7 +8,8 @@ from .models import Offer
 
 @login_required
 def offer_list(request):
-    return render(request, "offers/list.html", {"offers": Offer.objects.all()})
+    return render(request, "offers/list.html",
+                  {"offers": Offer.objects.for_workspace(request.workspace)})
 
 
 @login_required
@@ -34,6 +35,7 @@ def offer_create(request):
             return redirect("offers:list")
 
     Offer.objects.create(
+        workspace=request.workspace,
         name=name,
         kind=kind,
         vendor=request.POST.get("vendor", "").strip(),
@@ -51,7 +53,7 @@ def offer_create(request):
 @login_required
 @require_POST
 def offer_toggle(request, pk):
-    offer = get_object_or_404(Offer, pk=pk)
+    offer = get_object_or_404(Offer, pk=pk, workspace=request.workspace)
     offer.is_active = not offer.is_active
     offer.save()
     messages.success(request, f"“{offer.name}” is now {'active' if offer.is_active else 'paused'}.")
@@ -61,7 +63,7 @@ def offer_toggle(request, pk):
 @login_required
 @require_POST
 def offer_delete(request, pk):
-    offer = get_object_or_404(Offer, pk=pk)
+    offer = get_object_or_404(Offer, pk=pk, workspace=request.workspace)
     name = offer.name
     offer.delete()
     messages.success(request, f"Deleted “{name}”.")

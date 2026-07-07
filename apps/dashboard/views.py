@@ -15,19 +15,23 @@ def _pct(part, whole):
 @login_required
 def index(request):
     """The command-center dashboard."""
-    videos_total = Video.objects.count()
-    videos_live = Video.objects.filter(status=Video.Status.POSTED).count()
-    pending_approval = Video.objects.filter(
+    ws = request.workspace
+    videos = Video.objects.for_workspace(ws)
+    leads = Lead.objects.for_workspace(ws)
+
+    videos_total = videos.count()
+    videos_live = videos.filter(status=Video.Status.POSTED).count()
+    pending_approval = videos.filter(
         status__in=[Video.Status.RENDERED, Video.Status.VOICED]
     ).count()
 
-    leads_total = Lead.objects.count()
-    leads_converted = Lead.objects.filter(stage=Lead.Stage.CONVERTED).count()
-    leads_clicked = Lead.objects.filter(stage=Lead.Stage.CLICKED).count()
+    leads_total = leads.count()
+    leads_converted = leads.filter(stage=Lead.Stage.CONVERTED).count()
+    leads_clicked = leads.filter(stage=Lead.Stage.CLICKED).count()
 
-    avatars_count = Avatar.objects.count()
-    products_active = Offer.objects.filter(is_active=True).count()
-    pages_active = CapturePage.objects.filter(is_active=True).count()
+    avatars_count = Avatar.objects.for_workspace(ws).count()
+    products_active = Offer.objects.for_workspace(ws).filter(is_active=True).count()
+    pages_active = CapturePage.objects.for_workspace(ws).filter(is_active=True).count()
 
     # The single next action — the guardrail against improvising.
     if products_active == 0:
@@ -67,13 +71,17 @@ def index(request):
 @login_required
 def analytics(request):
     """Funnel performance, conversion rates, and top content."""
-    videos_total = Video.objects.count()
-    videos_posted = Video.objects.filter(status=Video.Status.POSTED).count()
+    ws = request.workspace
+    videos = Video.objects.for_workspace(ws)
+    leads = Lead.objects.for_workspace(ws)
 
-    leads_total = Lead.objects.count()
-    leads_nurturing = Lead.objects.filter(stage=Lead.Stage.NURTURING).count()
-    leads_clicked = Lead.objects.filter(stage=Lead.Stage.CLICKED).count()
-    leads_converted = Lead.objects.filter(stage=Lead.Stage.CONVERTED).count()
+    videos_total = videos.count()
+    videos_posted = videos.filter(status=Video.Status.POSTED).count()
+
+    leads_total = leads.count()
+    leads_nurturing = leads.filter(stage=Lead.Stage.NURTURING).count()
+    leads_clicked = leads.filter(stage=Lead.Stage.CLICKED).count()
+    leads_converted = leads.filter(stage=Lead.Stage.CONVERTED).count()
 
     # Funnel stages with conversion % relative to the previous stage.
     funnel = [
@@ -88,15 +96,17 @@ def analytics(request):
 
     # Top videos by leads generated.
     top_videos = (
-        Video.objects.annotate(n=Count("leads")).filter(n__gt=0).order_by("-n")[:5]
+        videos.annotate(n=Count("leads")).filter(n__gt=0).order_by("-n")[:5]
     )
 
     # Which capture pages actually convert (Lead.source_page).
-    top_pages = CapturePage.objects.annotate(n=Count("leads")).order_by("-n")[:5]
+    top_pages = (
+        CapturePage.objects.for_workspace(ws).annotate(n=Count("leads")).order_by("-n")[:5]
+    )
 
     # Video pipeline breakdown.
     pipeline = (
-        Video.objects.values("status").annotate(n=Count("id")).order_by("status")
+        videos.values("status").annotate(n=Count("id")).order_by("status")
     )
     status_labels = dict(Video.Status.choices)
     pipeline = [
@@ -104,7 +114,7 @@ def analytics(request):
         for p in pipeline
     ]
 
-    products = Offer.objects.filter(is_active=True)
+    products = Offer.objects.for_workspace(ws).filter(is_active=True)
 
     context = {
         "videos_total": videos_total,
@@ -114,8 +124,8 @@ def analytics(request):
         "leads_converted": leads_converted,
         "lead_conv_rate": _pct(leads_converted, leads_total),
         "click_rate": _pct(leads_clicked, leads_total),
-        "emails_sent": SentEmail.objects.count(),
-        "engine_runs": AutomationRun.objects.count(),
+        "emails_sent": SentEmail.objects.for_workspace(ws).count(),
+        "engine_runs": AutomationRun.objects.for_workspace(ws).count(),
         "products_active": products.count(),
         "products_affiliate": products.filter(kind=Offer.Kind.AFFILIATE).count(),
         "products_own": products.filter(kind=Offer.Kind.OWN).count(),

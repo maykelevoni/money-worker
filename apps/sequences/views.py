@@ -16,7 +16,7 @@ def step_list(request):
         request,
         "sequences/list.html",
         {
-            "steps": SequenceStep.objects.all(),
+            "steps": SequenceStep.objects.for_workspace(request.workspace),
             "email_configured": email_svc.is_configured(),
         },
     )
@@ -31,6 +31,7 @@ def step_create(request):
         messages.error(request, "Subject and body are required.")
         return redirect("sequences:list")
     SequenceStep.objects.create(
+        workspace=request.workspace,
         delay_days=int(request.POST.get("delay_days") or 0),
         subject=subject,
         body=body,
@@ -42,7 +43,7 @@ def step_create(request):
 @login_required
 @require_POST
 def step_delete(request, pk):
-    get_object_or_404(SequenceStep, pk=pk).delete()
+    get_object_or_404(SequenceStep, pk=pk, workspace=request.workspace).delete()
     messages.success(request, "Step deleted.")
     return redirect("sequences:list")
 
@@ -50,7 +51,7 @@ def step_delete(request, pk):
 @login_required
 @require_POST
 def step_toggle(request, pk):
-    step = get_object_or_404(SequenceStep, pk=pk)
+    step = get_object_or_404(SequenceStep, pk=pk, workspace=request.workspace)
     step.is_active = not step.is_active
     step.save()
     messages.success(request, f"Step {'activated' if step.is_active else 'paused'}.")
@@ -61,7 +62,7 @@ def step_toggle(request, pk):
 @require_POST
 def load_starter(request):
     """One-click starter 3-email drip."""
-    if SequenceStep.objects.exists():
+    if SequenceStep.objects.for_workspace(request.workspace).exists():
         messages.error(request, "You already have steps — clear them first.")
         return redirect("sequences:list")
     starter = [
@@ -76,22 +77,25 @@ def load_starter(request):
          "<p><a href='#'>Grab it here</a> — you won't regret it.</p>"),
     ]
     for i, (d, s, b) in enumerate(starter):
-        SequenceStep.objects.create(order=i, delay_days=d, subject=s, body=b)
+        SequenceStep.objects.create(
+            workspace=request.workspace, order=i, delay_days=d, subject=s, body=b
+        )
     messages.success(request, "Loaded a 3-email starter sequence. Edit the links!")
     return redirect("sequences:list")
 
 
 @login_required
 def automations(request):
-    runs = AutomationRun.objects.all()[:15]
+    ws = request.workspace
+    runs = AutomationRun.objects.for_workspace(ws)[:15]
     return render(
         request,
         "sequences/automations.html",
         {
             "runs": runs,
             "last_run": runs[0] if runs else None,
-            "leads_total": Lead.objects.count(),
-            "active_steps": SequenceStep.objects.filter(is_active=True).count(),
+            "leads_total": Lead.objects.for_workspace(ws).count(),
+            "active_steps": SequenceStep.objects.for_workspace(ws).filter(is_active=True).count(),
             "email_configured": email_svc.is_configured(),
         },
     )
@@ -100,7 +104,7 @@ def automations(request):
 @login_required
 @require_POST
 def run_now(request):
-    result = process_due_emails()
+    result = process_due_emails(workspace=request.workspace)
     messages.success(request, f"Engine ran — {result['detail']}")
     return redirect("sequences:automations")
 
@@ -110,5 +114,5 @@ def scheduler(request):
     return render(
         request,
         "sequences/scheduler.html",
-        {"steps": SequenceStep.objects.filter(is_active=True)},
+        {"steps": SequenceStep.objects.for_workspace(request.workspace).filter(is_active=True)},
     )

@@ -1,0 +1,55 @@
+{% extends "sites/public/base_site.html" %}
+{% block head_extra %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article",
+ "headline":"{{ article.title|escapejs }}",
+ "datePublished":"{{ article.created_at|date:'c' }}",
+ "author":{"@type":"Organization","name":"{{ site.name|escapejs }}"},
+ "publisher":{"@type":"Organization","name":"{{ site.name|escapejs }}"}}
+</script>
+{% endblock %}
+{% block main %}
+<div class="wrap prose-wrap" style="padding:44px 22px 24px">
+  <a class="back" href="{{ blog_url }}">← All posts</a>
+  <article class="prose">
+    <h1>{{ article.title }}</h1>
+    <time>{{ article.created_at|date:"M j, Y" }}</time>
+    {% if article.media_src %}<img class="featured" src="{{ article.media_src }}" alt="" style="margin-top:20px">{% endif %}
+    <div style="margin-top:22px">{{ body_html }}</div>
+  </article>
+</div>
+
+{# End-of-post email capture #}
+<section class="section sec-optin">
+  <div class="wrap">
+    <div class="optin-card">
+      <h2>Enjoyed this?</h2>
+      <p>Get new posts from {{ site.name }} straight to your inbox.</p>
+      {% if preview %}
+        <form class="optin-form" onsubmit="return false"><input type="email" placeholder="you@email.com"><button class="btn-lg" type="submit">Subscribe</button></form>
+      {% else %}
+        <form class="optin-form" method="post" action="/optin/">{% csrf_token %}
+          <input type="hidden" name="lead_magnet" value="{{ site.name }} newsletter">
+          <input type="hidden" name="success_message" value="You're subscribed — thanks for reading!">
+          <input type="email" name="email" placeholder="you@email.com" required>
+          <button class="btn-lg" type="submit">Subscribe</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% if related %}
+<div class="wrap" style="padding:10px 22px 60px">
+  <h2 class="prose" style="font-size:22px;margin:0 0 20px">More posts</h2>
+  <ul class="posts">
+    {% for a in related %}
+    <li class="post-card"><a href="{{ a.url }}">
+      {% if a.image %}<img class="thumb" src="{{ a.image }}" alt="">{% else %}<div class="thumb"></div>{% endif %}
+      <div class="pc-body"><h2 style="font-size:17px">{{ a.title }}</h2></div>
+    </a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

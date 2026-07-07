@@ -1,7 +1,9 @@
 from django.db import models
 
+from apps.accounts.models import WorkspaceOwned
 
-class Offer(models.Model):
+
+class Offer(WorkspaceOwned):
     """A product the funnel promotes — an affiliate product or Mayke's own.
 
     Kept as `Offer` internally (FKs from videos/leads point here) but presented

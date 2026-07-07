@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}New post · Content{% endblock %}
+
+{% block content %}
+<style>
+  .wb { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .wb { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .canvas { display: flex; flex-direction: column; gap: 14px; }
+
+  .preview { border: 1px dashed var(--line); border-radius: 10px; min-height: 240px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--bg); }
+  .preview img { max-width: 100%; max-height: 460px; display: block; }
+  .preview .ph { color: var(--muted); font-size: 13px; text-align: center; padding: 24px; }
+
+  textarea[name=body] { width: 100%; min-height: 130px; line-height: 1.55; resize: vertical; }
+
+  .promptbar { display: flex; gap: 8px; align-items: center; }
+  .promptbar input { flex: 1; }
+  .promptbar button { white-space: nowrap; }
+  .spin { display: none; font-size: 12px; color: var(--muted); }
+  .aimsg { font-size: 12px; margin-top: 4px; min-height: 16px; }
+  .aimsg.err { color: #ff6b6b; }
+  .aimsg.ok { color: var(--accent); }
+
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+  .sidebar h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+
+  .fmts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .fmt { position: relative; cursor: pointer; border: 1px solid var(--line); border-radius: 9px; padding: 8px 4px; text-align: center; background: var(--bg); font-size: 11px; font-weight: 700; }
+  .fmt input { position: absolute; opacity: 0; pointer-events: none; }
+  .fmt.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+
+  .plats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .plat { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; font-size: 12px; user-select: none; }
+  .plat.off { opacity: .35; pointer-events: none; }
+
+  .sidebar label.fld { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .sidebar input[type=text], .sidebar input[type=datetime-local], .sidebar input[type=file] { width: 100%; }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+</style>
+
+<div class="eyebrow">Content</div>
+<h1>New post</h1>
+<p class="sub">Write or generate with AI on the left, dial in format &amp; platforms on the right, then publish.</p>
+
+{% include "content/_tabs.html" %}
+
+<form method="post" action="{% url 'content:compose' p.pk %}" enctype="multipart/form-data" class="wb" id="wbform">
+  {% csrf_token %}
+
+  <!-- ============ CANVAS ============ -->
+  <div class="canvas">
+    <div class="card">
+      <div class="preview" id="previewWrap">
+        {% if p.media %}<img id="previewImg" src="{{ p.media.url }}" alt="">{% else %}
+        <img id="previewImg" src="" alt="" style="display:none;">
+        <div class="ph" id="previewPh">No image yet — ask the AI for a picture, or upload one in the sidebar.</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <label class="fld">Caption / text</label>
+      <textarea name="body" placeholder="Write your caption… or let the AI draft it below.">{{ p.body }}</textarea>
+
+      <div class="promptbar" style="margin-top:12px;">
+        <input type="text" id="aiPrompt" placeholder="Ask AI…  e.g. “write a hook about X”  or  “an image of a neon duck”">
+        <span class="spin" id="aiSpin">working…</span>
+        <button type="button" class="btn" id="aiSend">✨ Ask AI</button>
+      </div>
+      <div class="aimsg" id="aiMsg"></div>
+      <p class="fld" style="margin-top:4px;">Mentioning a picture/image/photo generates artwork; otherwise it writes the caption.</p>
+    </div>
+  </div>
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="card">
+      <h4>Format</h4>
+      <div class="fmts">
+        <label class="fmt" data-fmt="text"><input type="radio" name="format" value="text" {% if format == 'text' %}checked{% endif %}>Text</label>
+        <label class="fmt" data-fmt="image"><input type="radio" name="format" value="image" {% if format == 'image' %}checked{% endif %}>Image</label>
+        <label class="fmt" data-fmt="everything"><input type="radio" name="format" value="everything">Everything</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Platforms</h4>
+      <div class="plats" id="plats">
+        {% for value, label in platforms %}
+        <label class="plat" data-plat="{{ value }}">
+          <input type="checkbox" name="channels" value="{{ value }}" {% if value in p.channels %}checked{% endif %}> {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card stack">
+      <div>
+        <label class="fld">Title (internal)</label>
+        <input type="text" name="title" value="{{ p.title }}" placeholder="Optional">
+      </div>
+      <div>
+        <label class="fld">Upload image</label>
+        <input type="file" name="media" accept="image/*">
+      </div>
+      <div>
+        <label class="fld">Schedule (blank = publish now)</label>
+        <input type="datetime-local" name="scheduled_at" value="{{ p.scheduled_at|date:'Y-m-d\TH:i' }}">
+      </div>
+    </div>
+
+    <div class="card stack">
+      <button type="submit" name="action" value="publish" class="btn">Publish →</button>
+      <button type="submit" name="action" value="save" class="btn ghost">Save draft</button>
+    </div>
+  </aside>
+</form>
+
+<script>
+  var KIND_CHANNELS = {{ kind_channels_json|safe }};
+
+  function currentFormat() {
+    var el = document.querySelector('input[name="format"]:checked');
+    return el ? el.value : 'image';
+  }
+
+  function refresh() {
+    var fmt = currentFormat();
+    var kind = fmt === 'everything' ? 'image' : fmt;
+    var allowed = KIND_CHANNELS[kind] || [];
+    document.querySelectorAll('.fmt').forEach(function (c) { c.classList.toggle('sel', c.dataset.fmt === fmt); });
+    document.querySelectorAll('.plat').forEach(function (chip) {
+      var ok = allowed.indexOf(chip.dataset.plat) !== -1;
+      chip.classList.toggle('off', !ok);
+      if (!ok) chip.querySelector('input').checked = false;
+    });
+  }
+  document.querySelectorAll('input[name="format"]').forEach(function (r) { r.addEventListener('change', refresh); });
+  refresh();
+
+  // ---- Smart AI prompt ----
+  var csrf = document.querySelector('#wbform [name=csrfmiddlewaretoken]').value;
+  var sendBtn = document.getElementById('aiSend');
+  var promptEl = document.getElementById('aiPrompt');
+  var spin = document.getElementById('aiSpin');
+  var msg = document.getElementById('aiMsg');
+
+  function setImage(url) {
+    var img = document.getElementById('previewImg');
+    var ph = document.getElementById('previewPh');
+    img.src = url + (url.indexOf('?') === -1 ? '?t=' : '&t=') + Date.now();
+    img.style.display = 'block';
+    if (ph) ph.style.display = 'none';
+    // an AI image means this is an image post
+    var r = document.querySelector('.fmt[data-fmt="image"] input'); if (r) { r.checked = true; refresh(); }
+  }
+
+  function askAI() {
+    var prompt = promptEl.value.trim();
+    if (!prompt) { promptEl.focus(); return; }
+    sendBtn.disabled = true; spin.style.display = 'inline'; msg.className = 'aimsg'; msg.textContent = '';
+    var body = new URLSearchParams({ prompt: prompt });
+    fetch("{% url 'content:compose_ai' p.pk %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) { msg.className = 'aimsg err'; msg.textContent = d.error || 'Something went wrong.'; return; }
+      if (d.intent === 'image') { setImage(d.media_url); msg.className = 'aimsg ok'; msg.textContent = 'Image generated 🎨'; }
+      else { document.querySelector('textarea[name=body]').value = d.body; msg.className = 'aimsg ok'; msg.textContent = 'Caption written ✍️'; }
+      promptEl.value = '';
+    }).catch(function (e) { msg.className = 'aimsg err'; msg.textContent = 'Network error: ' + e; })
+      .finally(function () { sendBtn.disabled = false; spin.style.display = 'none'; });
+  }
+  sendBtn.addEventListener('click', askAI);
+  promptEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); askAI(); } });
+</script>
+{% endblock %}

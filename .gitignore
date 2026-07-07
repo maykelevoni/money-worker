@@ -27,3 +27,6 @@ media/*
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# static site exports
+builds/
