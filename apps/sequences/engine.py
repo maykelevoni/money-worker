@@ -11,20 +11,47 @@ def _render(body: str, lead: Lead) -> str:
     return body.replace("{magnet}", lead.lead_magnet or "your free resource")
 
 
-def process_due_emails(lead: Lead | None = None, *, log: bool = True) -> dict:
-    """Send all due steps. If `lead` given, only that lead; else every active lead.
+def process_due_emails(
+    lead: Lead | None = None, *, workspace=None, log: bool = True
+) -> dict:
+    """Send all due steps, scoped to a single workspace.
+
+    - `lead` given → just that lead (workspace taken from the lead).
+    - `workspace` given → every active lead in that workspace.
+    - neither → loop over every workspace (safe for a future cron).
 
     A step is due when (now - opt-in) >= delay_days and it hasn't been sent yet.
     Safe to call repeatedly — SentEmail's unique constraint prevents double-sends.
     """
-    steps = list(SequenceStep.objects.filter(is_active=True))
+    if lead is not None:
+        return _run_for_workspace(lead.workspace, [lead], log=log)
+
+    if workspace is None:
+        # No scope → run each workspace independently.
+        from apps.accounts.models import Workspace
+
+        total_sent, details = 0, []
+        for ws in Workspace.objects.all():
+            r = _run_for_workspace(ws, None, log=log)
+            total_sent += r["sent"]
+            details.append(f"{ws.slug}: {r['sent']}")
+        return {"sent": total_sent, "detail": f"Sent {total_sent} email(s)."}
+
+    return _run_for_workspace(workspace, None, log=log)
+
+
+def _run_for_workspace(workspace, leads, *, log: bool) -> dict:
+    """Core loop for one workspace. `leads` = explicit list, or None = all active."""
+    steps = list(
+        SequenceStep.objects.filter(is_active=True, workspace=workspace)
+    )
     if not steps:
         return {"sent": 0, "detail": "No active sequence steps."}
 
-    if lead is not None:
-        leads = [lead]
-    else:
-        leads = Lead.objects.exclude(stage=Lead.Stage.CONVERTED)
+    if leads is None:
+        leads = Lead.objects.filter(workspace=workspace).exclude(
+            stage=Lead.Stage.CONVERTED
+        )
 
     configured = email_svc.is_configured()
     sent = 0
@@ -49,7 +76,7 @@ def process_due_emails(lead: Lead | None = None, *, log: bool = True) -> dict:
                 )
             except Exception:
                 continue
-            SentEmail.objects.create(lead=ld, step=step)
+            SentEmail.objects.create(lead=ld, step=step, workspace=workspace)
             sent += 1
             if ld.stage == Lead.Stage.NEW:
                 ld.stage = Lead.Stage.NURTURING
@@ -62,6 +89,9 @@ def process_due_emails(lead: Lead | None = None, *, log: bool = True) -> dict:
 
     if log:
         AutomationRun.objects.create(
-            name="Email nurture engine", emails_sent=sent, detail=detail
+            name="Email nurture engine",
+            emails_sent=sent,
+            detail=detail,
+            workspace=workspace,
         )
     return {"sent": sent, "detail": detail}

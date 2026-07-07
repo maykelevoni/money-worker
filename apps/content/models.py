@@ -1,9 +1,10 @@
 from django.db import models
 
+from apps.accounts.models import WorkspaceOwned
 from apps.videos.services import uploadpost
 
 
-class Post(models.Model):
+class Post(WorkspaceOwned):
     """A unit of content in the hub — written here or pulled from the Video
     Factory — that gets organised, scheduled and published to social channels.
 

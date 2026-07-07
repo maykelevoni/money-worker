@@ -23,9 +23,10 @@ def _capture_email(request, page):
     source_video = None
     vid = request.GET.get("v") or request.POST.get("v")
     if vid:
-        source_video = Video.objects.filter(pk=vid).first()
+        source_video = Video.objects.filter(pk=vid, workspace=page.workspace).first()
 
     lead, created = Lead.objects.get_or_create(
+        workspace=page.workspace,
         email=email_addr,
         defaults={
             "lead_magnet": page.lead_magnet,
@@ -75,7 +76,9 @@ def capture(request):
 # ---------------------------------------------------------------------------
 @login_required
 def lead_list(request):
-    leads = Lead.objects.select_related("source_video", "source_page").all()
+    leads = Lead.objects.for_workspace(request.workspace).select_related(
+        "source_video", "source_page"
+    )
     counts = {s.value: leads.filter(stage=s.value).count() for s in Lead.Stage}
     return render(
         request,
@@ -89,11 +92,12 @@ def capture_pages(request):
     return render(
         request,
         "leads/capture_pages.html",
-        {"pages": CapturePage.objects.select_related("offer").all()},
+        {"pages": CapturePage.objects.for_workspace(request.workspace).select_related("offer")},
     )
 
 
 def _save_page(request, page):
+    page.workspace = request.workspace
     page.title = request.POST.get("title", "").strip()
     page.headline = request.POST.get("headline", "").strip()
     page.subheadline = request.POST.get("subheadline", "").strip()
@@ -125,18 +129,18 @@ def capture_page_create(request):
     return render(
         request,
         "leads/capture_page_form.html",
-        {"page": None, "offers": Offer.objects.filter(is_active=True)},
+        {"page": None, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True)},
     )
 
 
 @login_required
 def capture_page_edit(request, pk):
-    page_obj = get_object_or_404(CapturePage, pk=pk)
+    page_obj = get_object_or_404(CapturePage, pk=pk, workspace=request.workspace)
     if request.method == "POST":
         if _save_page(request, page_obj) is not None:
             return redirect("capture_pages")
     return render(
         request,
         "leads/capture_page_form.html",
-        {"page": page_obj, "offers": Offer.objects.filter(is_active=True)},
+        {"page": page_obj, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True)},
     )

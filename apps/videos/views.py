@@ -24,10 +24,11 @@ def _config():
     }
 
 
-def _pickers():
+def _pickers(request):
+    ws = request.workspace
     return {
-        "offers": Offer.objects.filter(is_active=True),
-        "avatars": Avatar.objects.all(),
+        "offers": Offer.objects.for_workspace(ws).filter(is_active=True),
+        "avatars": Avatar.objects.for_workspace(ws),
     }
 
 
@@ -36,10 +37,10 @@ def _pickers():
 @login_required
 def factory(request):
     """Videos phase — the list of videos; each row opens its own page."""
-    videos = Video.objects.select_related("offer", "avatar").all()
+    videos = Video.objects.for_workspace(request.workspace).select_related("offer", "avatar")
     counts = {
         row["status"]: row["n"]
-        for row in Video.objects.values("status").annotate(n=Count("id"))
+        for row in videos.values("status").annotate(n=Count("id"))
     }
     return render(request, "videos/videos_list.html", {
         "videos": videos,
@@ -52,7 +53,7 @@ def factory(request):
         },
         "config": _config(),
         "tab": "videos",
-        **_pickers(),
+        **_pickers(request),
     })
 
 
@@ -65,6 +66,7 @@ def create(request):
         messages.error(request, "Enter a subject/topic for the video.")
         return redirect("videos:factory")
     video = Video.objects.create(
+        workspace=request.workspace,
         tool_featured=tool,
         niche=request.POST.get("niche", "").strip(),
         avatar_id=request.POST.get("avatar") or None,
@@ -78,7 +80,7 @@ def create(request):
 @login_required
 @require_POST
 def delete_video(request, pk):
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     title = str(video)
     video.delete()
     messages.success(request, f"Deleted “{title}”.")
@@ -91,10 +93,10 @@ def delete_video(request, pk):
 def research_page(request):
     """Research phase — trending ideas; they persist and each is deletable."""
     return render(request, "videos/research.html", {
-        "ideas": TopicIdea.objects.filter(selected=False),
+        "ideas": TopicIdea.objects.for_workspace(request.workspace).filter(selected=False),
         "config": _config(),
         "tab": "research",
-        **_pickers(),
+        **_pickers(request),
     })
 
 
@@ -113,6 +115,7 @@ def research_run(request):
         return redirect("videos:research")
     for idea in ideas:
         TopicIdea.objects.create(
+            workspace=request.workspace,
             headline=idea["headline"],
             why_viral=idea.get("why_viral", ""),
             angle=idea.get("angle", ""),
@@ -124,7 +127,7 @@ def research_run(request):
 @login_required
 @require_POST
 def delete_idea(request, pk):
-    get_object_or_404(TopicIdea, pk=pk).delete()
+    get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace).delete()
     messages.success(request, "Idea deleted.")
     return redirect("videos:research")
 
@@ -133,8 +136,9 @@ def delete_idea(request, pk):
 @require_POST
 def pick_idea(request, pk):
     """Turn an idea into a video → land on its page (talking points generated)."""
-    idea = get_object_or_404(TopicIdea, pk=pk)
+    idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
     video = Video.objects.create(
+        workspace=request.workspace,
         topic_idea=idea.headline,
         niche=request.POST.get("niche", "").strip(),
         avatar_id=request.POST.get("avatar") or None,
@@ -159,7 +163,9 @@ def pick_idea(request, pk):
 @login_required
 def video_detail(request, pk):
     """One video's full page: script, assets, actions — like a post editor."""
-    video = get_object_or_404(Video.objects.select_related("offer", "avatar"), pk=pk)
+    video = get_object_or_404(
+        Video.objects.select_related("offer", "avatar"), pk=pk, workspace=request.workspace
+    )
     if request.method == "POST":
         video.title = request.POST.get("title", video.title).strip()
         video.script = request.POST.get("script", video.script)
@@ -176,7 +182,7 @@ def video_detail(request, pk):
         "v": video,
         "config": _config(),
         "share_platforms": uploadpost.PLATFORM_LABELS,
-        **_pickers(),
+        **_pickers(request),
     })
 
 
@@ -188,7 +194,7 @@ def _back(pk):
 @require_POST
 def upload_audio(request, pk):
     """Save the Portuguese voice memo and transcribe it."""
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     audio = request.FILES.get("audio")
     if not audio:
         messages.error(request, "Choose an audio file to upload.")
@@ -211,7 +217,7 @@ def upload_audio(request, pk):
 @login_required
 @require_POST
 def gen_script(request, pk):
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     try:
         if video.transcript_pt:
             data = openrouter.adapt_transcript_to_script(
@@ -243,7 +249,7 @@ def gen_script(request, pk):
 @login_required
 @require_POST
 def gen_voice(request, pk):
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     if not video.script:
         messages.error(request, "Generate or write the script first.")
         return _back(pk)
@@ -268,7 +274,7 @@ def gen_voice(request, pk):
 @login_required
 @require_POST
 def render_video_view(request, pk):
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     try:
         url = talking.render_video(video)
     except talking.NotConfigured as e:
@@ -287,7 +293,7 @@ def render_video_view(request, pk):
 @login_required
 @require_POST
 def approve(request, pk):
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     video.status = Video.Status.APPROVED
     video.save()
     messages.success(request, "Approved ✅ — download it and post to TikTok.")
@@ -297,7 +303,7 @@ def approve(request, pk):
 @login_required
 @require_POST
 def mark_posted(request, pk):
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     video.status = Video.Status.POSTED
     video.posted_at = timezone.now()
     video.save()
@@ -315,7 +321,7 @@ def _video_file_path(video):
 @require_POST
 def share_video(request, pk):
     """Publish the rendered video to the chosen platforms via Upload-Post."""
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     platforms = [p for p in request.POST.getlist("platforms") if p in uploadpost.PLATFORMS]
     if not platforms:
         messages.error(request, "Pick at least one platform to share to.")
@@ -362,7 +368,7 @@ def share_video(request, pk):
 @require_POST
 def share_status(request, pk):
     """Poll Upload-Post for the result of an in-flight share."""
-    video = get_object_or_404(Video, pk=pk)
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     if not video.share_request_id:
         messages.error(request, "No share in progress for this video.")
         return _back(pk)
@@ -396,7 +402,7 @@ def share_status(request, pk):
 @login_required
 def avatar_list(request):
     return render(request, "videos/avatars.html", {
-        "avatars": Avatar.objects.all(),
+        "avatars": Avatar.objects.for_workspace(request.workspace),
         "configured": avatars.is_configured(),
         "tab": "avatars",
     })
@@ -412,6 +418,7 @@ def avatar_create(request):
         return redirect("videos:avatars")
     seed = request.POST.get("seed", "").strip()
     avatar = Avatar.objects.create(
+        workspace=request.workspace,
         name=name, appearance=appearance, seed=int(seed) if seed.isdigit() else None
     )
     try:
@@ -429,7 +436,7 @@ def avatar_create(request):
 @login_required
 @require_POST
 def avatar_regenerate(request, pk):
-    avatar = get_object_or_404(Avatar, pk=pk)
+    avatar = get_object_or_404(Avatar, pk=pk, workspace=request.workspace)
     try:
         avatars.generate_portrait(avatar)
     except avatars.NotConfigured as e:

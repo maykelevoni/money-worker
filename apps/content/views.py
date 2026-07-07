@@ -30,8 +30,8 @@ def _config():
 @login_required
 def library(request):
     """The content hub — every post (video/image/article/text) in one place."""
-    posts = Post.objects.all()
-    counts = {row["status"]: row["n"] for row in Post.objects.values("status").annotate(n=Count("id"))}
+    posts = Post.objects.for_workspace(request.workspace)
+    counts = {row["status"]: row["n"] for row in posts.values("status").annotate(n=Count("id"))}
     return render(request, "content/library.html", {
         "posts": posts,
         "stats": {
@@ -49,7 +49,7 @@ def library(request):
 @login_required
 def calendar(request):
     """Scheduled / upcoming posts — the publishing queue."""
-    scheduled = Post.objects.exclude(scheduled_at=None).order_by("scheduled_at")
+    scheduled = Post.objects.for_workspace(request.workspace).exclude(scheduled_at=None).order_by("scheduled_at")
     return render(request, "content/calendar.html", {
         "scheduled": scheduled,
         "tab": "calendar",
@@ -77,7 +77,8 @@ def image_studio(request):
             messages.error(request, f"Image generation failed: {e}")
             return redirect("content:image_studio")
 
-        post = Post(kind=Post.Kind.IMAGE, title=prompt[:120], body=prompt)
+        post = Post(kind=Post.Kind.IMAGE, title=prompt[:120], body=prompt,
+                    workspace=request.workspace)
         with tmp.open("rb") as fh:
             post.media.save(f"gen_{post.title[:20]}.png", File(fh), save=False)
         post.save()
@@ -170,19 +171,22 @@ def _do_publish(request, post, channels):
 def create(request):
     """New Post → open the workbench on a fresh (or reused-blank) draft."""
     post = (
-        Post.objects.filter(status=Post.Status.DRAFT, title="", body="", media="")
+        Post.objects.for_workspace(request.workspace)
+        .filter(status=Post.Status.DRAFT, title="", body="", media="")
         .order_by("-created_at")
         .first()
     )
     if post is None:
-        post = Post.objects.create(kind=Post.Kind.IMAGE, status=Post.Status.DRAFT)
+        post = Post.objects.create(
+            kind=Post.Kind.IMAGE, status=Post.Status.DRAFT, workspace=request.workspace
+        )
     return redirect("content:compose", pk=post.pk)
 
 
 @login_required
 def compose(request, pk):
     """The workbench: canvas + AI prompt + sidebar widgets for one draft."""
-    post = get_object_or_404(Post, pk=pk)
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
         post.kind = FORMAT_KINDS.get(request.POST.get("format"), post.kind)
         allowed = uploadpost.KIND_CHANNELS.get(post.kind, [])
@@ -221,7 +225,7 @@ def compose(request, pk):
 @require_POST
 def compose_ai(request, pk):
     """Smart AI prompt: write a caption, or generate an image — saved to the draft."""
-    post = get_object_or_404(Post, pk=pk)
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     prompt = request.POST.get("prompt", "").strip()
     if not prompt:
         return JsonResponse({"ok": False, "error": "Type what you want first."})
@@ -255,7 +259,7 @@ def compose_ai(request, pk):
 @login_required
 def post_detail(request, pk):
     """One post's page: edit it, choose channels, publish."""
-    post = get_object_or_404(Post, pk=pk)
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
         post.title = request.POST.get("title", post.title).strip()
         post.body = request.POST.get("body", post.body)
@@ -277,7 +281,7 @@ def post_detail(request, pk):
 @require_POST
 def publish_post(request, pk):
     """Publish the post to the selected channels via Upload-Post."""
-    post = get_object_or_404(Post, pk=pk)
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     channels = [c for c in request.POST.getlist("channels") if c in post.available_channels]
     if not channels:
         messages.error(request, "Pick at least one channel to publish to.")
@@ -290,7 +294,7 @@ def publish_post(request, pk):
 @require_POST
 def post_status(request, pk):
     """Poll Upload-Post for an in-flight publish."""
-    post = get_object_or_404(Post, pk=pk)
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if not post.share_request_id:
         messages.error(request, "Nothing in progress for this post.")
         return _back(pk)
@@ -314,7 +318,7 @@ def post_status(request, pk):
 @login_required
 @require_POST
 def delete_post(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     title = str(post)
     post.delete()
     messages.success(request, f"Deleted “{title}”.")
