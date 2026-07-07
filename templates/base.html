@@ -178,10 +178,10 @@
           </div>
         </div>
 
-        <div class="grp {% if '/capture-pages/' in request.path or '/leads/' in request.path %}active{% endif %}">
-          <a href="/capture-pages/" class="lbl">Assets ▾</a>
+        <div class="grp {% if '/websites/' in request.path or '/capture-pages/' in request.path or '/leads/' in request.path %}active{% endif %}">
+          <a href="/websites/" class="lbl">Assets ▾</a>
           <div class="menu">
-            <span class="soon">Websites <span class="soon-tag">soon</span></span>
+            <a href="/websites/">Websites</a>
             <span class="soon">Social Accounts <span class="soon-tag">soon</span></span>
             <a href="/capture-pages/">Capture Pages</a>
             <a href="/leads/">Email Lists</a>

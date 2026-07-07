@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{% if site %}{{ site.name }}{% else %}New website{% endif %} · Money Worker{% endblock %}
+{% block content %}
+<style>
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:20px; }
+  .panel label { display:block; font-size:12px; color:var(--muted); margin:12px 0 5px; }
+  .panel label:first-child { margin-top:0; }
+  .check { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted);
+    letter-spacing:.4px; padding:8px 10px; border-bottom:1px solid var(--line); }
+  td { padding:11px 10px; border-bottom:1px solid var(--line); font-size:14px; }
+  .actions { display:flex; gap:6px; } .actions form { display:inline; }
+  .small { color:var(--muted); font-size:12px; }
+  .mono { font-family:var(--mono); font-size:13px; }
+  .inline-form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+</style>
+
+<h1>{% if site %}Edit website{% else %}New website{% endif %}</h1>
+{% if site %}<div class="sub mono">{{ site.host }} · <a href="{% url 'sites:preview_home' site.pk %}" target="_blank">preview ↗</a></div>{% endif %}
+
+<div class="panel">
+  <form method="post" enctype="multipart/form-data" action="{% if site %}{% url 'sites:edit' site.pk %}{% else %}{% url 'sites:create' %}{% endif %}">
+    {% csrf_token %}
+    <label>Name *</label>
+    <input name="name" value="{{ site.name|default:'' }}" placeholder="Sleep Tips" required>
+    <label>Subdomain *</label>
+    <input name="subdomain" value="{{ site.subdomain|default:'' }}" placeholder="sleeptips">
+    <label>Theme</label>
+    <select name="theme">
+      {% for val, label in site_themes %}
+      <option value="{{ val }}" {% if site.theme == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label>Tagline</label>
+    <input name="tagline" value="{{ site.tagline|default:'' }}" placeholder="Better sleep, backed by science">
+    <label>Accent colour</label>
+    <input name="accent_color" type="color" value="{{ site.accent_color|default:'#ff7e2e' }}" style="width:64px;height:40px;padding:3px">
+    <label>Logo (optional)</label>
+    {% if site.logo %}<div class="small" style="margin-bottom:6px"><img src="{{ site.logo.url }}" style="height:28px;vertical-align:middle"> current</div>{% endif %}
+    <input name="logo" type="file" accept="image/*">
+    <label>Custom domain (optional — connects in Phase 1b)</label>
+    <input name="custom_domain" value="{{ site.custom_domain|default:'' }}" placeholder="sleeptips.co">
+    <label>SEO title suffix</label>
+    <input name="seo_title_suffix" value="{{ site.seo_title_suffix|default:'' }}" placeholder=" · Sleep Tips">
+    <label>SEO description</label>
+    <textarea name="seo_description" rows="2">{{ site.seo_description|default:'' }}</textarea>
+    <label class="check" style="margin-top:14px">
+      <input type="checkbox" name="status" value="published" {% if site.is_published %}checked{% endif %} style="width:auto"> Published (live on its host)
+    </label>
+    <div style="margin-top:14px"><button class="btn" type="submit">Save</button></div>
+  </form>
+</div>
+
+{% if site %}
+<h2 style="margin:26px 0 12px">Pages</h2>
+<div class="panel">
+  <div style="margin-bottom:12px"><a class="btn" href="{% url 'sites:page_create' site.pk %}">+ Add page</a></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Title</th><th>URL</th><th>Home</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for p in pages %}
+      <tr>
+        <td><strong>{{ p.title }}</strong></td>
+        <td class="mono">{{ p.path }}</td>
+        <td>{% if p.is_home %}★{% else %}<span class="small">—</span>{% endif %}</td>
+        <td>{{ p.get_status_display }}</td>
+        <td><div class="actions">
+          <a class="btn btn-ghost" href="{% url 'sites:page_edit' p.pk %}">Edit</a>
+          <form method="post" action="{% url 'sites:page_delete' p.pk %}" onsubmit="return confirm('Delete this page?')">{% csrf_token %}
+            <button class="btn btn-ghost" type="submit">Delete</button></form>
+        </div></td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="small">No pages yet.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<h2 style="margin:26px 0 12px">Blog</h2>
+<div class="panel">
+  <form method="post" action="{% url 'sites:article_attach' site.pk %}" class="inline-form" style="margin-bottom:14px">
+    {% csrf_token %}
+    <select name="article" style="max-width:340px">
+      <option value="">Attach an existing article…</option>
+      {% for a in articles %}{% if not a.website_id %}<option value="{{ a.pk }}">{{ a }}</option>{% endif %}{% endfor %}
+    </select>
+    <button class="btn" type="submit">Attach</button>
+    <span class="small">Write articles in Studio → New Post (kind: Article).</span>
+  </form>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Article</th><th>URL</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for a in articles %}{% if a.website_id == site.pk %}
+      <tr>
+        <td><strong>{{ a.title|default:a }}</strong></td>
+        <td class="mono">/blog/{{ a.slug }}/</td>
+        <td>{% if a.status == 'posted' %}Published{% else %}Draft{% endif %}</td>
+        <td><form method="post" action="{% url 'sites:article_toggle' a.pk %}">{% csrf_token %}
+          <button class="btn btn-ghost" type="submit">{% if a.status == 'posted' %}Unpublish{% else %}Publish{% endif %}</button></form></td>
+      </tr>
+      {% endif %}{% empty %}<tr><td colspan="4" class="small">No articles attached.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div style="margin-top:20px">
+  <form method="post" action="{% url 'sites:delete' site.pk %}" onsubmit="return confirm('Delete this website and all its pages?')">{% csrf_token %}
+    <button class="btn btn-ghost" type="submit">Delete website</button></form>
+</div>
+{% endif %}
+{% endblock %}

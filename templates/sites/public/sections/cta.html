@@ -1,0 +1,6 @@
+<section class="sec-cta">
+  <div class="wrap">
+    <h2>{{ s.data.headline }}</h2>
+    {% if s.data.button_text %}<a class="btn-lg" href="{{ s.data.button_url|default:'#' }}">{{ s.data.button_text }}</a>{% endif %}
+  </div>
+</section>

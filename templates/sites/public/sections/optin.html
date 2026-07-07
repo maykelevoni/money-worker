@@ -1,0 +1,24 @@
+<section class="section sec-optin">
+  <div class="wrap">
+    <div class="optin-card">
+      <h2>{{ s.data.headline }}</h2>
+      {% if s.data.subtext %}<p>{{ s.data.subtext }}</p>{% endif %}
+      {% if preview %}
+        <form class="optin-form" onsubmit="return false">
+          <input type="email" placeholder="you@email.com">
+          <button class="btn-lg" type="submit">{{ s.data.button_text|default:"Subscribe" }}</button>
+        </form>
+        <div class="optin-note">Collects leads into this workspace on the live site.</div>
+      {% else %}
+        <form class="optin-form" method="post" action="/optin/">
+          {% csrf_token %}
+          <input type="hidden" name="lead_magnet" value="{{ s.data.lead_magnet }}">
+          <input type="hidden" name="success_message" value="{{ s.data.success_message }}">
+          <input type="email" name="email" placeholder="you@email.com" required>
+          <button class="btn-lg" type="submit">{{ s.data.button_text|default:"Subscribe" }}</button>
+        </form>
+        <div class="optin-note">No spam. Unsubscribe anytime.</div>
+      {% endif %}
+    </div>
+  </div>
+</section>

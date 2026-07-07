@@ -1,7 +1,12 @@
 # Phase 1 — Websites (native multi-site)
 
 > Per-phase spec. **Review & approve before any code.**
-> Parent plan: `PLAN.md` · Depends on: Phase 0 (tenancy) ✅ · Status: awaiting approval.
+> Parent plan: `PLAN.md` · Depends on: Phase 0 (tenancy) ✅
+> **Status: 1a BUILT & verified live 2026-07-07** — Website+Page models, host-based
+> routing + in-app preview, pages, blog, sitemap.xml, robots.txt, management UI.
+> Plus a **section builder** (Mayke's add-on): typed blocks Hero/Features/Text/CTA/FAQ,
+> mandatory Hero+CTA scaffolded on new sites, polished theme, add/edit/reorder/delete.
+> 1b (static export → CDN) not started.
 
 ---
 

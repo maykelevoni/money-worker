@@ -1,0 +1,9 @@
+<section class="section">
+  <div class="wrap">
+    <div class="features">
+      {% for item in s.data.items %}
+      <div class="feature"><h3>{{ item.title }}</h3><p>{{ item.body }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

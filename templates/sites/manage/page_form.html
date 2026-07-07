@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{% if page %}{{ page.title }}{% else %}New page{% endif %} · {{ site.name }}{% endblock %}
+{% block content %}
+<style>
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:16px; }
+  .panel label { display:block; font-size:12px; color:var(--muted); margin:12px 0 5px; }
+  .panel label:first-child { margin-top:0; }
+  .check { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); }
+  textarea.body { font-family:var(--mono); font-size:13px; line-height:1.6; }
+  .small { color:var(--muted); font-size:12px; }
+  .sec { border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden; }
+  .sec-head { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--panel2);
+    border-bottom:1px solid var(--line); }
+  .sec-head .k { font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.6px;
+    color:var(--accent); }
+  .sec-head .req { font-size:10px; color:var(--muted); border:1px solid var(--line); border-radius:5px;
+    padding:1px 6px; }
+  .sec-head .tools { margin-left:auto; display:flex; gap:5px; }
+  .sec-head .tools form { display:inline; }
+  .sec-body { padding:14px; }
+  .mini { padding:5px 9px; font-size:12px; }
+  .frow { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .addbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+</style>
+
+<h1>{% if page %}{{ page.title }}{% else %}New page{% endif %}</h1>
+<div class="sub">{{ site.name }}{% if page %} · <a href="{% url 'sites:preview_home' site.pk %}" target="_blank">preview site ↗</a>{% endif %}</div>
+
+<h2 style="margin:8px 0 10px">Page settings</h2>
+<div class="panel">
+  <form method="post" action="{% if page %}{% url 'sites:page_edit' page.pk %}{% else %}{% url 'sites:page_create' site.pk %}{% endif %}">
+    {% csrf_token %}
+    <label>Title *</label>
+    <input name="title" value="{{ page.title|default:'' }}" placeholder="About" required>
+    <label class="check" style="margin-top:12px">
+      <input type="checkbox" name="is_home" value="1" {% if page.is_home %}checked{% endif %} style="width:auto"> Home page (URL is /)
+    </label>
+    <label>Slug (URL) — ignored for the home page</label>
+    <input name="slug" value="{{ page.slug|default:'' }}" placeholder="about">
+    <label>Meta title (optional)</label>
+    <input name="meta_title" value="{{ page.meta_title|default:'' }}">
+    <label>Meta description (optional)</label>
+    <textarea name="meta_description" rows="2">{{ page.meta_description|default:'' }}</textarea>
+    <label>Nav order</label>
+    <input name="nav_order" type="number" value="{{ page.nav_order|default:0 }}" style="width:110px">
+    <label class="check" style="margin-top:12px">
+      <input type="checkbox" name="status" value="published" {% if not page or page.status == 'published' %}checked{% endif %} style="width:auto"> Published
+    </label>
+    <div style="margin-top:14px">
+      <button class="btn" type="submit">Save settings</button>
+      <a class="btn btn-ghost" href="{% url 'sites:edit' site.pk %}">Back to website</a>
+    </div>
+  </form>
+</div>
+
+{% if page %}
+<h2 style="margin:22px 0 10px">Sections</h2>
+
+<div class="panel">
+  <form method="post" action="{% url 'sites:section_add' page.pk %}" class="addbar">
+    {% csrf_token %}
+    <select name="kind" style="max-width:220px">
+      {% for val, label in section_kinds %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">+ Add section</button>
+  </form>
+</div>
+
+{% for s in sections %}
+<div class="sec">
+  <div class="sec-head">
+    <span class="k">{{ s.get_kind_display }}</span>
+    {% if s.is_mandatory %}<span class="req">required</span>{% endif %}
+    <div class="tools">
+      <form method="post" action="{% url 'sites:section_move' s.pk 'up' %}">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">↑</button></form>
+      <form method="post" action="{% url 'sites:section_move' s.pk 'down' %}">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">↓</button></form>
+      <form method="post" action="{% url 'sites:section_delete' s.pk %}" onsubmit="return confirm('Remove this section?')">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">✕</button></form>
+    </div>
+  </div>
+  <div class="sec-body">
+    <form method="post" enctype="multipart/form-data" action="{% url 'sites:section_edit' s.pk %}">
+      {% csrf_token %}
+      {% if s.kind == 'hero' or s.kind == 'cta' %}
+        <label>Headline</label>
+        <input name="headline" value="{{ s.data.headline }}">
+        {% if s.kind == 'hero' %}<label>Subtext</label><textarea name="subtext" rows="2">{{ s.data.subtext }}</textarea>{% endif %}
+        <div class="frow">
+          <div><label>Button text</label><input name="button_text" value="{{ s.data.button_text }}"></div>
+          <div><label>Button link</label><input name="button_url" value="{{ s.data.button_url }}" placeholder="https://… or /about/"></div>
+        </div>
+        {% if s.kind == 'hero' %}
+        <label>Hero image (optional)</label>
+        {% if s.image %}<div class="small"><img src="{{ s.image.url }}" style="height:44px;border-radius:6px;vertical-align:middle"> <label class="check" style="display:inline-flex"><input type="checkbox" name="remove_image" style="width:auto"> remove</label></div>{% endif %}
+        <input name="image" type="file" accept="image/*">
+        {% endif %}
+      {% elif s.kind == 'optin' %}
+        <label>Headline</label><input name="headline" value="{{ s.data.headline }}">
+        <label>Subtext</label><textarea name="subtext" rows="2">{{ s.data.subtext }}</textarea>
+        <div class="frow">
+          <div><label>Lead magnet (freebie name)</label><input name="lead_magnet" value="{{ s.data.lead_magnet }}"></div>
+          <div><label>Button text</label><input name="button_text" value="{{ s.data.button_text }}"></div>
+        </div>
+        <label>Success message</label><input name="success_message" value="{{ s.data.success_message }}">
+      {% elif s.kind == 'testimonial' %}
+        <label>Quote</label><textarea name="quote" rows="2">{{ s.data.quote }}</textarea>
+        <div class="frow">
+          <div><label>Author</label><input name="author" value="{{ s.data.author }}"></div>
+          <div><label>Role / company</label><input name="role" value="{{ s.data.role }}"></div>
+        </div>
+      {% elif s.kind == 'stats' %}
+        <div class="frow"><div><label>Stat 1 value</label><input name="s1_value" value="{{ s.data.items.0.value }}"></div>
+          <div><label>Stat 1 label</label><input name="s1_label" value="{{ s.data.items.0.label }}"></div></div>
+        <div class="frow"><div><label>Stat 2 value</label><input name="s2_value" value="{{ s.data.items.1.value }}"></div>
+          <div><label>Stat 2 label</label><input name="s2_label" value="{{ s.data.items.1.label }}"></div></div>
+        <div class="frow"><div><label>Stat 3 value</label><input name="s3_value" value="{{ s.data.items.2.value }}"></div>
+          <div><label>Stat 3 label</label><input name="s3_label" value="{{ s.data.items.2.label }}"></div></div>
+      {% elif s.kind == 'image' %}
+        <label>Image</label>
+        {% if s.image %}<div class="small"><img src="{{ s.image.url }}" style="height:60px;border-radius:6px"> <label class="check" style="display:inline-flex"><input type="checkbox" name="remove_image" style="width:auto"> remove</label></div>{% endif %}
+        <input name="image" type="file" accept="image/*">
+        <label>Caption (optional)</label><input name="caption" value="{{ s.data.caption }}">
+      {% elif s.kind == 'text' %}
+        <label>Body (Markdown)</label>
+        <textarea class="body" name="body" rows="8">{{ s.data.body }}</textarea>
+      {% elif s.kind == 'features' %}
+        <div class="frow"><div><label>Feature 1 title</label><input name="f1_title" value="{{ s.data.items.0.title }}"></div>
+          <div><label>Feature 1 text</label><input name="f1_body" value="{{ s.data.items.0.body }}"></div></div>
+        <div class="frow"><div><label>Feature 2 title</label><input name="f2_title" value="{{ s.data.items.1.title }}"></div>
+          <div><label>Feature 2 text</label><input name="f2_body" value="{{ s.data.items.1.body }}"></div></div>
+        <div class="frow"><div><label>Feature 3 title</label><input name="f3_title" value="{{ s.data.items.2.title }}"></div>
+          <div><label>Feature 3 text</label><input name="f3_body" value="{{ s.data.items.2.body }}"></div></div>
+      {% elif s.kind == 'faq' %}
+        <div class="frow"><div><label>Q1</label><input name="q1" value="{{ s.data.items.0.q }}"></div>
+          <div><label>A1</label><input name="a1" value="{{ s.data.items.0.a }}"></div></div>
+        <div class="frow"><div><label>Q2</label><input name="q2" value="{{ s.data.items.1.q }}"></div>
+          <div><label>A2</label><input name="a2" value="{{ s.data.items.1.a }}"></div></div>
+        <div class="frow"><div><label>Q3</label><input name="q3" value="{{ s.data.items.2.q }}"></div>
+          <div><label>A3</label><input name="a3" value="{{ s.data.items.2.a }}"></div></div>
+      {% endif %}
+      <div style="margin-top:12px"><button class="btn mini" type="submit">Save section</button></div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

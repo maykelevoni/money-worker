@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Websites · Money Worker{% endblock %}
+{% block content %}
+<style>
+  .site-cards { display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+  .site-cards .card { display:flex; flex-direction:column; gap:10px; }
+  .dom { font-family:var(--mono); font-size:14px; color:var(--text); }
+  .row-meta { display:flex; gap:16px; color:var(--muted); font-size:12.5px; }
+  .pill { align-self:flex-start; font-size:11px; padding:3px 9px; border-radius:99px;
+    background:var(--panel2); border:1px solid var(--line); }
+  .pill.on { color:var(--green); border-color:#1d5235; }
+  .pill.off { color:var(--muted); }
+  .card-actions { display:flex; gap:6px; margin-top:auto; }
+  .small { color:var(--muted); font-size:12px; }
+</style>
+
+<h1>🏗️ Websites</h1>
+<div class="sub">SEO sites you own — a few pages plus a blog, each on its own address.</div>
+<div style="margin:16px 0"><a class="btn" href="{% url 'sites:create' %}">+ New website</a></div>
+
+<div class="site-cards">
+  {% for s in sites %}
+  <div class="card hover">
+    <span class="pill {% if s.is_published %}on{% else %}off{% endif %}">{{ s.get_status_display }}</span>
+    <div><strong>{{ s.name }}</strong><br><span class="dom">{{ s.host }}</span></div>
+    <div class="row-meta">
+      <span>{{ s.pages.count }} page{{ s.pages.count|pluralize }}</span>
+      <span>{{ s.articles.count }} post{{ s.articles.count|pluralize }}</span>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-ghost" href="{% url 'sites:edit' s.pk %}">Edit</a>
+      <a class="btn btn-ghost" href="{% url 'sites:preview_home' s.pk %}" target="_blank">Preview ↗</a>
+    </div>
+  </div>
+  {% empty %}
+  <p class="small">No websites yet — create your first one.</p>
+  {% endfor %}
+</div>
+{% endblock %}
