@@ -20,12 +20,14 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.leads import views as lead_views
+from apps.sites import api_views as sites_api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.dashboard.urls')),
     path('factory/', include('apps.videos.urls')),
     path('websites/', include('apps.sites.urls')),
+    path('api/optin/', sites_api.optin_api, name='api_optin'),
     path('content/', include('apps.content.urls')),
     path('offers/', include('apps.offers.urls')),
     path('', include('apps.sequences.urls')),  # /emails/ /scheduler/ /automations/

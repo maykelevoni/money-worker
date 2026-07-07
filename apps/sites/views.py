@@ -116,6 +116,30 @@ def website_edit(request, pk):
 
 @login_required
 @require_POST
+def publish_site(request, pk):
+    site = get_object_or_404(Website, pk=pk, workspace=request.workspace)
+    if not site.is_published:
+        messages.error(request, "Mark the website Published (in settings) before publishing to the CDN.")
+        return redirect("sites:edit", pk=pk)
+    from django.utils import timezone
+
+    from .deploy import deploy_site
+    from .exporter import export_site
+
+    try:
+        build_dir, count = export_site(site)
+        status = deploy_site(site, build_dir)
+    except Exception as e:
+        messages.error(request, f"Publish failed: {e}")
+        return redirect("sites:edit", pk=pk)
+    site.last_published_at = timezone.now()
+    site.save(update_fields=["last_published_at"])
+    messages.success(request, f"Exported {count} page(s). {status}")
+    return redirect("sites:edit", pk=pk)
+
+
+@login_required
+@require_POST
 def website_delete(request, pk):
     site = get_object_or_404(Website, pk=pk, workspace=request.workspace)
     name = site.name

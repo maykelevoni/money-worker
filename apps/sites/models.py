@@ -1,3 +1,5 @@
+import secrets
+
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
@@ -59,6 +61,9 @@ class Website(WorkspaceOwned):
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.DRAFT
     )
+    # Public key used by static sites to post opt-ins back to /api/optin/.
+    public_key = models.CharField(max_length=40, unique=True, blank=True)
+    last_published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,6 +72,11 @@ class Website(WorkspaceOwned):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.public_key:
+            self.public_key = secrets.token_urlsafe(24)
+        super().save(*args, **kwargs)
 
     @property
     def is_published(self):

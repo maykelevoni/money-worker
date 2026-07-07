@@ -90,6 +90,10 @@ ROOT_URLCONF = 'config.urls'
 # SITE_HOST itself. Override in production, e.g. SITE_HOST=moneyworker.io
 SITE_HOST = os.getenv('SITE_HOST', 'localhost:8000')
 SITE_URLCONF = 'config.site_urls'  # urlconf swapped in for requests to a site host
+# Public base URL of the control tower — static sites post opt-ins back here.
+APP_BASE_URL = os.getenv('APP_BASE_URL', f'http://{SITE_HOST}')
+# Where static site exports are written before deploy.
+BUILD_ROOT = os.getenv('BUILD_ROOT', str(BASE_DIR / 'builds'))
 
 TEMPLATES = [
     {

@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.website_list, name="list"),
     path("new/", views.website_create, name="create"),
     path("<int:pk>/edit/", views.website_edit, name="edit"),
+    path("<int:pk>/publish/", views.publish_site, name="publish"),
     path("<int:pk>/delete/", views.website_delete, name="delete"),
     # Pages
     path("<int:website_pk>/pages/new/", views.page_create, name="page_create"),

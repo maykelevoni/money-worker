@@ -88,6 +88,20 @@ first-class in the app immediately.
 3. **Deploy trigger** → **Manual Publish button**.
 4. **Base domain** → still needed from Mayke (production `SITE_HOST`, e.g. `moneyworker.io`).
 
+## 6b. Build status (2026-07-07)
+
+**Local pieces BUILT & verified** (no accounts needed):
+- Static **exporter** (`apps/sites/exporter.py`) — renders home/pages/blog/sitemap/robots to
+  `builds/<subdomain>/`, reusing the live renderers; rewrites opt-in forms to call the API.
+- **`/api/optin/`** (`apps/sites/api_views.py`) — CORS + csrf-exempt; `public_key` → Lead in the
+  site's workspace + sequences. Verified: valid key → lead created, bad key → 403.
+- **Publish** button + `last_published_at`; `deploy_site()` stub (`deploy.py`) skips until creds.
+- `Website.public_key` (auto) + `APP_BASE_URL` / `BUILD_ROOT` settings.
+
+**Remaining (needs Mayke's accounts):** real Cloudflare Pages push in `deploy.py`, custom-domain
+attach + SSL, production `SITE_HOST` + `APP_BASE_URL` + `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`
+for real domains.
+
 ## 7. What you'll need to provide
 - A CDN account + API token (for the deployer).
 - A base domain (and, per site, the custom domains you'll point at the CDN).
