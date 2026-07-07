@@ -1,96 +1,106 @@
 {% extends "base.html" %}
-{% block title %}Research · Video Factory{% endblock %}
+{% block title %}Topic Explorer · Research{% endblock %}
 {% block nav_factory %}active{% endblock %}
 
 {% block content %}
 <style>
-  .runbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+  .runbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
   .runbar .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
   .runbar .field-row > input { flex: 1; min-width: 180px; }
-  .idea { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-    padding: 16px 18px; margin-bottom: 12px; }
-  .idea .head { display: flex; align-items: flex-start; gap: 12px; }
-  .idea h3 { font-size: 16px; font-weight: 700; flex: 1; }
-  .idea .why { color: var(--muted); font-size: 13px; margin-top: 8px; }
-  .idea .angle { color: var(--beak-2); font-size: 13px; margin-top: 4px; }
-  .idea .make { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px;
-    border-top: 1px solid var(--line-soft); padding-top: 14px; }
-  .idea .make select, .idea .make input { flex: 1; min-width: 150px; }
-  .idea .spawn { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
-    border-top: 1px solid var(--line-soft); padding-top: 14px; align-items: center; }
-  .idea .spawn .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase;
-    letter-spacing: .04em; margin-right: 2px; }
-  .kindbtn { background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
-    border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
-  .kindbtn:hover { color: var(--eyes); border-color: var(--eyes); }
-  .idea .used { color: var(--beak-2); font-size: 12px; font-weight: 600; }
-  .iconbtn { background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
-    border-radius: 8px; padding: 6px 9px; font-size: 13px; cursor: pointer; }
-  .iconbtn:hover { color: var(--eyes); border-color: var(--eyes); }
+  .filterbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .filterbar label { color: var(--muted); font-size: 12px; }
+  .filterbar select, .filterbar input { min-width: 92px; }
+  .filterbar .go { flex: 0 0 auto; }
+
+  .rows { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .rowhead, .trow { display: grid; grid-template-columns: 1fr 82px 120px 92px 96px 40px;
+    gap: 10px; align-items: center; padding: 11px 14px; }
+  .rowhead { background: var(--surface-2); color: var(--muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: .04em; }
+  .trow { border-top: 1px solid var(--line-soft); text-decoration: none; color: var(--text); }
+  .trow:hover { background: var(--surface-2); }
+  .trow .topic { font-weight: 600; }
+  .trow .topic small { display: block; color: var(--muted); font-weight: 400; font-size: 12px;
+    margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+  .trend .up { color: var(--good, #22c55e); } .trend .down { color: var(--bad, #ef4444); }
+  .trend .flat { color: var(--muted); }
+  .diff .dots { color: var(--beak-2); letter-spacing: 1px; } .diff small { color: var(--muted); }
+  .chip { display: inline-block; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--muted); }
+  .used { color: var(--beak-2); font-size: 11px; font-weight: 600; }
+  .empty { color: var(--muted); padding: 22px; text-align: center; }
 </style>
 
-<div class="eyebrow">Create</div>
-<h1>Research</h1>
-<p class="sub">Find trending topics. Turn any one into a post, image, article or video — one idea can feed every format.</p>
+<div class="eyebrow">Research</div>
+<h1>Topic Explorer</h1>
+<p class="sub">Leave it blank for a fresh mix of ideas, or type a topic to dig in. Scan the data, open one to understand it, then create.</p>
 
 {% include "videos/_tabs.html" %}
 
 <div class="runbar">
-  <div class="eyebrow" style="margin-bottom:8px;">Find trending topics</div>
   <form method="post" action="{% url 'videos:research_run' %}" class="field-row">
     {% csrf_token %}
-    <input type="text" name="niche" placeholder="Niche (e.g. AI tools, fitness, finance) — blank = whatever's trending">
-    <input type="text" name="keyword" placeholder="Optional keyword to steer it…">
-    <button class="btn" type="submit" style="flex:0 0 auto;">Find topics</button>
+    <input type="text" name="keyword" placeholder="Optional topic or keyword to explore (blank = surprise me)…">
+    <input type="text" name="niche" placeholder="Niche/context (optional)…">
+    <button class="btn" type="submit" style="flex:0 0 auto;">Get ideas</button>
   </form>
 </div>
 
-{% for idea in ideas %}
-  <div class="idea">
-    <div class="head">
-      <h3>{{ idea.headline }}</h3>
-      {% if idea.post_count or idea.video_count %}
-        <span class="used" title="Content spawned from this idea">✓ used:
-          {% if idea.post_count %}{{ idea.post_count }} post{{ idea.post_count|pluralize }}{% endif %}
-          {% if idea.post_count and idea.video_count %} · {% endif %}
-          {% if idea.video_count %}{{ idea.video_count }} video{{ idea.video_count|pluralize }}{% endif %}
-        </span>
-        <form method="post" action="{% url 'videos:archive_idea' idea.pk %}">
-          {% csrf_token %}
-          <button class="iconbtn" type="submit" title="Archive idea">Archive</button>
-        </form>
-      {% endif %}
-      <form method="post" action="{% url 'videos:delete_idea' idea.pk %}">
-        {% csrf_token %}
-        <button class="iconbtn" type="submit" title="Delete idea">✕</button>
-      </form>
-    </div>
-    {% if idea.why_viral %}<div class="why">{{ idea.why_viral }}</div>{% endif %}
-    {% if idea.angle %}<div class="angle">↳ {{ idea.angle }}</div>{% endif %}
+<form method="get" class="filterbar">
+  <label>Sort
+    <select name="sort" onchange="this.form.submit()">
+      <option value="volume"{% if filters.sort == 'volume' %} selected{% endif %}>Volume</option>
+      <option value="trend"{% if filters.sort == 'trend' %} selected{% endif %}>Momentum</option>
+      <option value="difficulty"{% if filters.sort == 'difficulty' %} selected{% endif %}>Easiest first</option>
+      <option value="newest"{% if filters.sort == 'newest' %} selected{% endif %}>Newest</option>
+    </select>
+  </label>
+  <label>Min volume <input type="number" name="min_volume" value="{{ filters.min_volume }}" placeholder="0" style="width:80px;"></label>
+  <label>Max diff <input type="number" name="max_diff" value="{{ filters.max_diff }}" placeholder="100" style="width:70px;"></label>
+  <label>Trend
+    <select name="trend" onchange="this.form.submit()">
+      <option value="">any</option>
+      <option value="up"{% if filters.trend == 'up' %} selected{% endif %}>↑ rising</option>
+      <option value="flat"{% if filters.trend == 'flat' %} selected{% endif %}>→ steady</option>
+      <option value="down"{% if filters.trend == 'down' %} selected{% endif %}>↓ cooling</option>
+    </select>
+  </label>
+  <label>Intent
+    <select name="intent" onchange="this.form.submit()">
+      <option value="">any</option>
+      {% for val, lbl in intents %}<option value="{{ val }}"{% if filters.intent == val %} selected{% endif %}>{{ lbl }}</option>{% endfor %}
+    </select>
+  </label>
+  <button class="btn ghost go" type="submit">Apply</button>
+</form>
 
-    <form method="post" action="{% url 'videos:spawn_post' idea.pk %}" class="spawn">
-      {% csrf_token %}
-      <span class="lbl">Make</span>
-      <button class="kindbtn" type="submit" name="kind" value="text">Text</button>
-      <button class="kindbtn" type="submit" name="kind" value="image">Image</button>
-      <button class="kindbtn" type="submit" name="kind" value="article">Article</button>
-    </form>
-
-    <form method="post" action="{% url 'videos:pick_idea' idea.pk %}" class="make">
-      {% csrf_token %}
-      <input type="text" name="niche" placeholder="niche (optional)">
-      <select name="avatar">
-        <option value="">— avatar —</option>
-        {% for a in avatars %}<option value="{{ a.pk }}"{% if a.is_default %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
-      </select>
-      <select name="offer">
-        <option value="">— product (optional) —</option>
-        {% for o in offers %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
-      </select>
-      <button class="btn" type="submit" style="flex:0 0 auto;">Create video →</button>
-    </form>
+<div class="rows">
+  <div class="rowhead">
+    <div>Topic</div><div>Volume</div><div>Trend</div><div>Difficulty</div><div>Intent</div><div></div>
   </div>
-{% empty %}
-  <div class="card" style="color:var(--muted);">No ideas yet — run a search above to pull what's trending.</div>
-{% endfor %}
+  {% for idea in ideas %}
+    <a class="trow" href="{% url 'videos:topic_detail' idea.pk %}">
+      <div class="topic">
+        {{ idea.headline }}
+        {% if idea.post_count or idea.video_count %}
+          <span class="used">✓ {{ idea.post_count }}p · {{ idea.video_count }}v</span>
+        {% endif %}
+        {% if idea.description %}<small>{{ idea.description }}</small>{% endif %}
+      </div>
+      <div class="num">{{ idea.volume_display }}<span style="color:var(--muted);font-size:11px;">/mo</span></div>
+      <div class="trend num">
+        {% if idea.trend_dir == 'up' %}<span class="up">↑ {% if idea.trend_pct %}+{{ idea.trend_pct }}%{% else %}rising{% endif %}</span>
+        {% elif idea.trend_dir == 'down' %}<span class="down">↓ {% if idea.trend_pct %}{{ idea.trend_pct }}%{% else %}cooling{% endif %}</span>
+        {% else %}<span class="flat">→ steady</span>{% endif %}
+      </div>
+      <div class="diff"><span class="dots">{{ idea.difficulty_dots }}</span>
+        {% if idea.difficulty is not None %}<small class="num"> {{ idea.difficulty }}</small>{% endif %}</div>
+      <div>{% if idea.intent %}<span class="chip">{{ idea.get_intent_display }}</span>{% endif %}</div>
+      <div style="color:var(--muted);text-align:right;">›</div>
+    </a>
+  {% empty %}
+    <div class="empty">No topics yet — run a search above to explore what's worth making content about.</div>
+  {% endfor %}
+</div>
 {% endblock %}

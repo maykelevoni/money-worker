@@ -11,6 +11,7 @@ urlpatterns = [
     # Research phase
     path("research/", views.research_page, name="research"),
     path("research/run/", views.research_run, name="research_run"),
+    path("topic/<int:pk>/", views.topic_detail, name="topic_detail"),
     path("idea/<int:pk>/pick/", views.pick_idea, name="pick_idea"),
     path("idea/<int:pk>/spawn/", views.spawn_post, name="spawn_post"),
     path("idea/<int:pk>/archive/", views.archive_idea, name="archive_idea"),

@@ -13,7 +13,7 @@ from apps.social import publish as social_publish
 from apps.social.models import SocialAccount
 
 from .models import Avatar, TopicIdea, Video
-from .services import avatars, openrouter, research, stt, talking, uploadpost, voice
+from .services import avatars, openrouter, research, stt, talking, trends, uploadpost, voice
 
 
 def _config():
@@ -89,21 +89,50 @@ def delete_video(request, pk):
     return redirect("videos:factory")
 
 
-# ============================ Factory · Research phase ============================
+# ============================ Research · Topic Explorer ============================
+
+# Whitelisted sort keys → ORM ordering (desc where "more" is more interesting).
+_SORTS = {
+    "volume": "-search_volume",
+    "difficulty": "difficulty",
+    "trend": "-trend_pct",
+    "newest": "-created_at",
+}
+
 
 @login_required
 def research_page(request):
-    """Research phase — trending ideas; they persist and each is deletable."""
+    """Topic Explorer — researched topics with data, in one sortable/filterable list."""
     ideas = (
         TopicIdea.objects.for_workspace(request.workspace)
         .filter(archived=False)
         .annotate(post_count=Count("posts", distinct=True),
                   video_count=Count("videos", distinct=True))
     )
+
+    sort = request.GET.get("sort", "volume")
+    min_volume = request.GET.get("min_volume", "")
+    max_diff = request.GET.get("max_diff", "")
+    trend = request.GET.get("trend", "")
+    intent = request.GET.get("intent", "")
+
+    if min_volume.isdigit():
+        ideas = ideas.filter(search_volume__gte=int(min_volume))
+    if max_diff.isdigit():
+        ideas = ideas.filter(difficulty__lte=int(max_diff))
+    if trend in {"up", "flat", "down"}:
+        ideas = ideas.filter(trend_dir=trend)
+    if intent:
+        ideas = ideas.filter(intent=intent)
+    ideas = ideas.order_by(_SORTS.get(sort, "-search_volume"), "-created_at")
+
     return render(request, "videos/research.html", {
         "ideas": ideas,
         "config": _config(),
         "tab": "research",
+        "filters": {"sort": sort, "min_volume": min_volume, "max_diff": max_diff,
+                    "trend": trend, "intent": intent},
+        "intents": TopicIdea.Intent.choices,
         **_pickers(request),
     })
 
@@ -111,25 +140,52 @@ def research_page(request):
 @login_required
 @require_POST
 def research_run(request):
+    """Explore topics around an optional seed/niche → save them with their data."""
     niche = request.POST.get("niche", "").strip()
-    keyword = request.POST.get("keyword", "").strip()
+    seed = request.POST.get("keyword", "").strip()
     try:
-        ideas = research.find_trending_topics(n=5, niche=niche, keyword=keyword)
+        topics = research.explore_topics(seed=seed, niche=niche, n=10)
     except research.NotConfigured as e:
         messages.error(request, str(e))
         return redirect("videos:research")
     except Exception as e:
         messages.error(request, f"Research failed: {e}")
         return redirect("videos:research")
-    for idea in ideas:
+    for t in topics:
         TopicIdea.objects.create(
             workspace=request.workspace,
-            headline=idea["headline"],
-            why_viral=idea.get("why_viral", ""),
-            angle=idea.get("angle", ""),
+            headline=t["headline"],
+            seed=seed,
+            description=t.get("description", ""),
+            angle=t.get("angle", ""),
+            why_viral=t.get("why_viral", ""),
+            search_volume=t.get("search_volume"),
+            difficulty=t.get("difficulty"),
+            intent=t.get("intent", ""),
+            trend_dir=t.get("trend_dir", ""),
+            trend_pct=t.get("trend_pct"),
+            related=t.get("related", []),
         )
-    messages.success(request, f"Found {len(ideas)} trending ideas 🔎")
+    messages.success(request, f"Explored {len(topics)} topics 🔎")
     return redirect("videos:research")
+
+
+@login_required
+def topic_detail(request, pk):
+    """A researched topic in full — description, data, real Google Trends, create."""
+    idea = get_object_or_404(
+        TopicIdea.objects.annotate(post_count=Count("posts", distinct=True),
+                                   video_count=Count("videos", distinct=True)),
+        pk=pk, workspace=request.workspace,
+    )
+    live = trends.interest(idea.headline)  # best-effort; None if Trends unavailable
+    return render(request, "videos/topic_detail.html", {
+        "idea": idea,
+        "live": live,
+        "config": _config(),
+        "tab": "research",
+        **_pickers(request),
+    })
 
 
 @login_required

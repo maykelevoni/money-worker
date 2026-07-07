@@ -41,20 +41,78 @@ class Avatar(WorkspaceOwned):
 
 
 class TopicIdea(WorkspaceOwned):
-    """A trending content idea surfaced by the research step, awaiting a pick."""
+    """A researched topic surfaced by the Topic Explorer — data + a plain-English
+    description — that you can scan, filter, and turn into content."""
 
-    headline = models.CharField(max_length=300, help_text="The viral topic/title")
+    class Intent(models.TextChoices):
+        HOWTO = "how-to", "How-to"
+        IDEAS = "ideas", "Ideas"
+        QUESTION = "question", "Question"
+        COMMERCIAL = "commercial", "Commercial"
+        NEWS = "news", "News"
+
+    class Trend(models.TextChoices):
+        UP = "up", "Rising"
+        FLAT = "flat", "Steady"
+        DOWN = "down", "Cooling"
+
+    headline = models.CharField(max_length=300, help_text="The topic / keyword phrase")
+    seed = models.CharField(
+        max_length=200, blank=True, help_text="The seed term this topic came from (blank = open)"
+    )
+    description = models.TextField(
+        blank=True, help_text="Plain-English 'what this is' — understand the topic"
+    )
     why_viral = models.TextField(
         blank=True, help_text="Why this is trending / likely to perform"
     )
     angle = models.TextField(
-        blank=True, help_text="Suggested angle for the channel's niche"
+        blank=True, help_text="Suggested content angle for this topic"
     )
+
+    # --- Research data (AI-estimated; trend line enriched from Google Trends) ---
+    search_volume = models.IntegerField(
+        null=True, blank=True, help_text="Estimated monthly searches"
+    )
+    difficulty = models.IntegerField(
+        null=True, blank=True, help_text="Estimated SEO difficulty 0-100"
+    )
+    intent = models.CharField(
+        max_length=20, choices=Intent.choices, blank=True, help_text="Search intent"
+    )
+    trend_dir = models.CharField(
+        max_length=8, choices=Trend.choices, blank=True, help_text="Momentum direction"
+    )
+    trend_pct = models.IntegerField(
+        null=True, blank=True, help_text="Estimated year-over-year interest change (%)"
+    )
+    related = models.JSONField(
+        default=list, blank=True, help_text="Related / rising queries"
+    )
+
     selected = models.BooleanField(default=False, help_text="Legacy: first pick consumed the idea")
     archived = models.BooleanField(
         default=False, help_text="Hidden from research — cleared out after use"
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def volume_display(self) -> str:
+        """Human volume band, e.g. 8100 → '8.1k'."""
+        v = self.search_volume
+        if v is None:
+            return "—"
+        if v >= 1000:
+            return f"{v / 1000:.1f}k".replace(".0k", "k")
+        return str(v)
+
+    @property
+    def difficulty_dots(self) -> str:
+        """Difficulty as a 5-dot meter, e.g. 34 → '●●●○○'."""
+        if self.difficulty is None:
+            return "○○○○○"
+        filled = max(0, min(5, round(self.difficulty / 20)))
+        return "●" * filled + "○" * (5 - filled)
 
     class Meta:
         ordering = ["-created_at"]
