@@ -104,3 +104,27 @@ class Post(WorkspaceOwned):
     @property
     def channel_labels(self):
         return [uploadpost.PLATFORM_LABELS.get(c, c) for c in self.channels]
+
+
+class PostImage(models.Model):
+    """One image in a Post's gallery — generated, edited, or uploaded.
+
+    A post builds up several; exactly one is `is_selected` (the one that publishes),
+    which is mirrored into `Post.media` so the publish flow stays unchanged.
+    """
+
+    post = models.ForeignKey("content.Post", on_delete=models.CASCADE, related_name="images")
+    image = models.FileField(upload_to="content/gallery/")
+    prompt = models.CharField(max_length=500, blank=True, help_text="What made this image")
+    is_selected = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Image #{self.pk} of Post #{self.post_id}"
+
+    @property
+    def url(self):
+        return self.image.url

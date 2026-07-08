@@ -14,11 +14,24 @@ from django.views.decorators.http import require_POST
 
 from apps.social import publish as social_publish
 from apps.social.models import SocialAccount
+from apps.videos.models import Avatar
 from apps.videos.services import images, openrouter, uploadpost
 
-from .models import Post
+from .models import Post, PostImage
 
 IMAGE_STYLES = ["design", "realistic", "render_3D", "anime", "general", "auto"]
+
+
+def _select_image(post, pi):
+    """Mark one gallery image as the post's chosen image and mirror it into
+    Post.media (same stored object, no re-upload) so publishing is unchanged."""
+    post.images.exclude(pk=pi.pk).update(is_selected=False)
+    if not pi.is_selected:
+        pi.is_selected = True
+        pi.save(update_fields=["is_selected"])
+    post.kind = Post.Kind.IMAGE
+    post.media.name = pi.image.name
+    post.save(update_fields=["media", "kind"])
 
 
 def _back(pk):
@@ -60,67 +73,15 @@ def calendar(request):
 
 @login_required
 def image_studio(request):
-    """Generate an image from a prompt → save it into the hub as an Image post."""
-    if request.method == "POST":
-        prompt = request.POST.get("prompt", "").strip()
-        style = request.POST.get("style", "design")
-        if style not in IMAGE_STYLES:
-            style = "design"
-        if not prompt:
-            messages.error(request, "Enter a prompt to generate an image.")
-            return redirect("content:image_studio")
-        tmp = Path(tempfile.gettempdir()) / f"gen_{int(timezone.now().timestamp())}.png"
-        try:
-            images.generate_image(prompt, tmp, style=style)
-        except images.NotConfigured as e:
-            messages.error(request, str(e))
-            return redirect("content:image_studio")
-        except Exception as e:
-            messages.error(request, f"Image generation failed: {e}")
-            return redirect("content:image_studio")
+    """Folded into the New Post workbench — kept only to redirect old links."""
+    return redirect("content:create")
 
-        post = Post(kind=Post.Kind.IMAGE, title=prompt[:120], body=prompt,
-                    workspace=request.workspace)
-        with tmp.open("rb") as fh:
-            post.media.save(f"gen_{post.title[:20]}.png", File(fh), save=False)
-        post.save()
-        tmp.unlink(missing_ok=True)
-        messages.success(request, "Image generated 🎨 — edit the caption and publish.")
-        return redirect("content:post_detail", pk=post.pk)
-
-    return render(request, "content/image_studio.html", {
-        "styles": IMAGE_STYLES,
-        "config": {"images": images.is_configured()},
-        "tab": "images",
-    })
-
-
-# Compose "format" (the user-facing choice) → the underlying Post.kind.
-# "everything" is an image post with a caption promoted alongside it.
-FORMAT_KINDS = {
-    "text": Post.Kind.TEXT,
-    "image": Post.Kind.IMAGE,
-    "everything": Post.Kind.IMAGE,
-}
-KIND_FORMATS = {Post.Kind.TEXT: "text", Post.Kind.IMAGE: "image"}
-
-# Words that mean "make me a picture" → route the AI prompt to image generation.
-_IMAGE_WORDS = (
-    "image", "picture", "photo", "poster", "logo", "illustration", "illustrate",
-    "draw", "render", "visual", "graphic", "thumbnail", "artwork", "photograph",
-)
 
 CAPTION_SYSTEM = (
     "You are a punchy social-media copywriter. Write a single ready-to-post "
     "caption for the user's request. No preamble, no options, no quotes — return "
     "only the caption text itself, with hashtags only if they clearly help."
 )
-
-
-def _route_intent(prompt: str) -> str:
-    """Smart routing: does this prompt want an image, or caption text?"""
-    p = prompt.lower()
-    return "image" if any(w in p for w in _IMAGE_WORDS) else "caption"
 
 
 def _do_publish(request, post, accounts):
@@ -202,14 +163,13 @@ def create(request):
 
 @login_required
 def compose(request, pk):
-    """The workbench: canvas + AI prompt + sidebar widgets for one draft."""
+    """The studio: image gallery + content editor + AI prompt bar for one draft."""
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
-        post.kind = FORMAT_KINDS.get(request.POST.get("format"), post.kind)
+        # Kind is derived, not chosen: a selected image → image post, else text.
+        post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
         post.title = request.POST.get("title", "").strip()
         post.body = request.POST.get("body", "").strip()
-        if request.FILES.get("media") and post.kind == Post.Kind.IMAGE:
-            post.media = request.FILES["media"]
         sched = request.POST.get("scheduled_at", "").strip()
         post.scheduled_at = timezone.datetime.fromisoformat(sched) if sched else None
         post.save()
@@ -230,7 +190,9 @@ def compose(request, pk):
 
     return render(request, "content/workbench.html", {
         "p": post,
-        "format": KIND_FORMATS.get(post.kind, "image"),
+        "gallery": post.images.all(),
+        "styles": IMAGE_STYLES,
+        "avatars": Avatar.objects.for_workspace(request.workspace),
         "publish_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(is_active=True),
         "kind_channels_json": json.dumps(uploadpost.KIND_CHANNELS),
         "config": {"text": openrouter.is_configured(), "images": images.is_configured()},
@@ -238,39 +200,140 @@ def compose(request, pk):
     })
 
 
+def _add_gallery_image(post, tmp_path, prompt, select=True):
+    """Store a temp image file as a new PostImage; optionally select it."""
+    pi = PostImage(post=post, prompt=prompt[:500])
+    with Path(tmp_path).open("rb") as fh:
+        pi.image.save(f"g{post.pk}_{int(timezone.now().timestamp())}.png", File(fh), save=False)
+    pi.save()
+    if select:
+        _select_image(post, pi)
+    return pi
+
+
+def _tile(pi):
+    """JSON shape of one gallery image for the client."""
+    return {"pk": pi.pk, "url": pi.image.url, "prompt": pi.prompt, "selected": pi.is_selected}
+
+
 @login_required
 @require_POST
 def compose_ai(request, pk):
-    """Smart AI prompt: write a caption, or generate an image — saved to the draft."""
+    """The Prompt bar. mode=text writes the caption; mode=image generates a new
+    image, or edits references (uploaded refs and/or an `edit_from` gallery image)."""
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     prompt = request.POST.get("prompt", "").strip()
-    if not prompt:
-        return JsonResponse({"ok": False, "error": "Type what you want first."})
+    mode = request.POST.get("mode", "image")
+    if not prompt and mode != "image":
+        return JsonResponse({"ok": False, "error": "Type a prompt first."})
 
-    if _route_intent(prompt) == "image":
-        if not images.is_configured():
-            return JsonResponse({"ok": False, "error": "Image AI isn't set up (FAL_API_KEY)."})
-        tmp = Path(tempfile.gettempdir()) / f"gen_{int(timezone.now().timestamp())}.png"
+    # ---- TEXT: write / rewrite the caption or body ----
+    if mode == "text":
+        if not openrouter.is_configured():
+            return JsonResponse({"ok": False, "error": "Writing AI isn't set up (OPENROUTER_API_KEY)."})
         try:
-            images.generate_image(prompt, tmp, style="design")
+            text = openrouter._chat(CAPTION_SYSTEM, prompt).strip()
         except Exception as e:
-            return JsonResponse({"ok": False, "error": f"Image generation failed: {e}"})
-        post.kind = Post.Kind.IMAGE
-        with tmp.open("rb") as fh:
-            post.media.save(f"gen_{post.pk}.png", File(fh), save=False)
-        post.save()
-        tmp.unlink(missing_ok=True)
-        return JsonResponse({"ok": True, "intent": "image", "media_url": post.media.url})
+            return JsonResponse({"ok": False, "error": f"Writing failed: {e}"})
+        post.body = text
+        post.save(update_fields=["body"])
+        return JsonResponse({"ok": True, "mode": "text", "body": text})
 
-    if not openrouter.is_configured():
-        return JsonResponse({"ok": False, "error": "Writing AI isn't set up (OPENROUTER_API_KEY)."})
+    # ---- IMAGE: generate fresh, or edit from references ----
+    if not images.is_configured():
+        return JsonResponse({"ok": False, "error": "Image AI isn't set up (FAL_API_KEY)."})
+
+    ref_tmps = []
+    for f in request.FILES.getlist("refs"):
+        rp = Path(tempfile.gettempdir()) / f"ref_{int(timezone.now().timestamp()*1000)}_{f.name}"
+        with rp.open("wb") as out:
+            for chunk in f.chunks():
+                out.write(chunk)
+        ref_tmps.append(rp)
+
+    edit_from = request.POST.get("edit_from")
+    if edit_from:
+        src = post.images.filter(pk=edit_from).first()
+        if src:
+            sp = Path(tempfile.gettempdir()) / f"edit_{src.pk}.png"
+            with src.image.open("rb") as fh:
+                sp.write_bytes(fh.read())
+            ref_tmps.insert(0, sp)
+
+    avatar_id = request.POST.get("avatar")
+    if avatar_id:
+        av = Avatar.objects.filter(pk=avatar_id, workspace=request.workspace).first()
+        if av and av.image:
+            ap = Path(tempfile.gettempdir()) / f"av_{av.pk}.png"
+            with av.image.open("rb") as fh:
+                ap.write_bytes(fh.read())
+            ref_tmps.append(ap)
+
+    out = Path(tempfile.gettempdir()) / f"gen_{int(timezone.now().timestamp())}.png"
     try:
-        text = openrouter._chat(CAPTION_SYSTEM, prompt).strip()
+        if ref_tmps:
+            images.edit_image(prompt or "edit this image", ref_tmps, out)
+        else:
+            style = request.POST.get("style", "design")
+            images.generate_image(prompt, out, style=style if style in IMAGE_STYLES else "design")
     except Exception as e:
-        return JsonResponse({"ok": False, "error": f"Writing failed: {e}"})
-    post.body = text
-    post.save()
-    return JsonResponse({"ok": True, "intent": "caption", "body": text})
+        return JsonResponse({"ok": False, "error": f"Image failed: {e}"})
+    finally:
+        for p in ref_tmps:
+            p.unlink(missing_ok=True)
+
+    pi = _add_gallery_image(post, out, prompt)
+    out.unlink(missing_ok=True)
+    return JsonResponse({"ok": True, "mode": "image", "image": _tile(pi)})
+
+
+@login_required
+@require_POST
+def gallery_upload(request, pk):
+    """＋ tile — the user uploads their own image(s) into the gallery."""
+    post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
+    files = request.FILES.getlist("images")
+    if not files:
+        return JsonResponse({"ok": False, "error": "No file chosen."})
+    tiles = []
+    for f in files:
+        pi = PostImage(post=post, prompt="uploaded")
+        pi.image.save(f.name, f, save=False)
+        pi.save()
+        tiles.append(_tile(pi))
+    # select the first upload if nothing is selected yet
+    if not post.images.filter(is_selected=True).exists():
+        _select_image(post, post.images.get(pk=tiles[0]["pk"]))
+        tiles[0]["selected"] = True
+    return JsonResponse({"ok": True, "images": tiles})
+
+
+@login_required
+@require_POST
+def image_select(request, img_pk):
+    """Mark a gallery image as the one that publishes."""
+    pi = get_object_or_404(PostImage, pk=img_pk, post__workspace=request.workspace)
+    _select_image(pi.post, pi)
+    return JsonResponse({"ok": True, "pk": pi.pk})
+
+
+@login_required
+@require_POST
+def image_delete(request, img_pk):
+    """Remove a gallery image; reselect another if we deleted the selected one."""
+    pi = get_object_or_404(PostImage, pk=img_pk, post__workspace=request.workspace)
+    post, was_selected = pi.post, pi.is_selected
+    pi.delete()
+    new_selected = None
+    if was_selected:
+        nxt = post.images.last()
+        if nxt:
+            _select_image(post, nxt)
+            new_selected = nxt.pk
+        else:
+            post.media = ""
+            post.save(update_fields=["media"])
+    return JsonResponse({"ok": True, "new_selected": new_selected})
 
 
 @login_required

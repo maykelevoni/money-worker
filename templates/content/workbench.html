@@ -1,90 +1,160 @@
 {% extends "base.html" %}
-{% block title %}New post · Content{% endblock %}
+{% block title %}New post · Studio{% endblock %}
 
 {% block content %}
 <style>
-  .wb { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
-  @media (max-width: 900px) { .wb { grid-template-columns: 1fr; } }
+  .wb { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; align-items: start; }
+  @media (max-width: 950px) { .wb { grid-template-columns: 1fr; } }
 
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .canvas { display: flex; flex-direction: column; gap: 14px; }
+  .card h4 { margin: 0 0 10px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .col { display: flex; flex-direction: column; gap: 16px; }
 
-  .preview { border: 1px dashed var(--line); border-radius: 10px; min-height: 240px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--bg); }
-  .preview img { max-width: 100%; max-height: 460px; display: block; }
-  .preview .ph { color: var(--muted); font-size: 13px; text-align: center; padding: 24px; }
+  /* ---- gallery ---- */
+  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tile { position: relative; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; cursor: pointer; background: var(--bg); padding: 0; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .tile .badge { position: absolute; top: 6px; right: 6px; background: var(--accent); color: #fff;
+    width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; }
+  .tile.add { display: flex; align-items: center; justify-content: center; border-style: dashed;
+    color: var(--muted); font-size: 28px; cursor: pointer; }
+  .tile.add:hover { color: var(--accent); border-color: var(--accent); }
+  .tile.add input { display: none; }
+  .gempty { color: var(--muted); font-size: 13px; padding: 22px 6px; text-align: center; grid-column: 1 / -1; }
 
-  textarea[name=body] { width: 100%; min-height: 130px; line-height: 1.55; resize: vertical; }
-
-  .promptbar { display: flex; gap: 8px; align-items: center; }
-  .promptbar input { flex: 1; }
-  .promptbar button { white-space: nowrap; }
+  /* ---- prompt bar ---- */
+  .modes { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .modes button { padding: 7px 12px; font-size: 13px; font-weight: 600; background: var(--bg); border: 0;
+    cursor: pointer; color: var(--muted); }
+  .modes button.on { background: var(--accent); color: #fff; }
+  .promptrow { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .promptrow textarea { flex: 1; min-width: 200px; min-height: 46px; resize: vertical; line-height: 1.5; }
+  .editnote { display: none; align-items: center; gap: 8px; font-size: 12px; color: var(--accent);
+    margin-top: 8px; }
+  .editnote.show { display: flex; }
+  .editnote button { background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  .aimsg { font-size: 12px; margin-top: 8px; min-height: 15px; }
+  .aimsg.err { color: #ff6b6b; } .aimsg.ok { color: var(--accent); }
   .spin { display: none; font-size: 12px; color: var(--muted); }
-  .aimsg { font-size: 12px; margin-top: 4px; min-height: 16px; }
-  .aimsg.err { color: #ff6b6b; }
-  .aimsg.ok { color: var(--accent); }
+  .spin.show { display: inline; }
 
-  .sidebar { display: flex; flex-direction: column; gap: 16px; }
-  .sidebar h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  /* ---- styled file button + chips ---- */
+  .filebtn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; }
+  .filebtn:hover { border-color: var(--accent); color: var(--accent); }
+  .filebtn input { display: none; }
+  .refchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .refchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
+  .refchip b { color: var(--fg); font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .refchip .x { cursor: pointer; }
 
-  .fmts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-  .fmt { position: relative; cursor: pointer; border: 1px solid var(--line); border-radius: 9px; padding: 8px 4px; text-align: center; background: var(--bg); font-size: 11px; font-weight: 700; }
-  .fmt input { position: absolute; opacity: 0; pointer-events: none; }
-  .fmt.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+  #imgControls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  #imgControls select { min-width: 120px; }
 
   .plats { display: flex; flex-wrap: wrap; gap: 6px; }
-  .plat { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; font-size: 12px; user-select: none; }
+  .plat { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px 10px; cursor: pointer; font-size: 12px; user-select: none; }
   .plat.off { opacity: .35; pointer-events: none; }
 
-  .sidebar label.fld { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .sidebar input[type=text], .sidebar input[type=datetime-local], .sidebar input[type=file] { width: 100%; }
+  .fld { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .col input[type=text], .col input[type=datetime-local], .col textarea { width: 100%; }
+  textarea[name=body] { min-height: 130px; line-height: 1.55; resize: vertical; }
   .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
-  .stack { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---- modal ---- */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center;
+    justify-content: center; z-index: 60; padding: 20px; }
+  .modal.show { display: flex; }
+  .modal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+    max-width: 620px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; gap: 12px; }
+  .modal .box img { max-width: 100%; max-height: 62vh; object-fit: contain; border-radius: 10px; margin: 0 auto; }
+  .modal .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .modal .acts .btn { flex: 1; min-width: 130px; text-align: center; }
+  .modal .del { color: #ff6b6b; border-color: color-mix(in srgb, #ff6b6b 45%, var(--line)); }
+
+  /* ---- toasts ---- */
+  #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 70;
+    display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 9px 14px;
+    font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+  .toast.err { border-color: #ff6b6b; }
 </style>
 
-<div class="eyebrow">Content</div>
+<div class="eyebrow">Studio</div>
 <h1>New post</h1>
-<p class="sub">Write or generate with AI on the left, dial in format &amp; platforms on the right, then publish.</p>
+<p class="sub">Make images on the left, write on the right, drive both with the Prompt bar. Everything lands in one post.</p>
 {% if p.source_idea %}
   <p class="sub" style="margin-top:-6px;">💡 From research: <strong>{{ p.source_idea.headline }}</strong></p>
 {% endif %}
 
-{% include "content/_tabs.html" %}
-
-<form method="post" action="{% url 'content:compose' p.pk %}" enctype="multipart/form-data" class="wb" id="wbform">
-  {% csrf_token %}
-
-  <!-- ============ CANVAS ============ -->
-  <div class="canvas">
+<div class="wb">
+  <!-- ============ LEFT: gallery + prompt ============ -->
+  <div class="col">
     <div class="card">
-      <div class="preview" id="previewWrap">
-        {% if p.media %}<img id="previewImg" src="{{ p.media.url }}" alt="">{% else %}
-        <img id="previewImg" src="" alt="" style="display:none;">
-        <div class="ph" id="previewPh">No image yet — ask the AI for a picture, or upload one in the sidebar.</div>{% endif %}
+      <h4>Image gallery</h4>
+      <div class="gallery" id="gallery">
+        {% for img in gallery %}
+          <button type="button" class="tile{% if img.is_selected %} sel{% endif %}" data-pk="{{ img.pk }}" data-url="{{ img.image.url }}">
+            <img src="{{ img.image.url }}" alt="">
+            {% if img.is_selected %}<span class="badge">✓</span>{% endif %}
+          </button>
+        {% endfor %}
+        <div class="tile add" id="uploadBtn" title="Upload your own image">＋</div>
       </div>
+      <input type="file" id="uploadInput" accept="image/*" multiple style="display:none">
+      {% if not gallery %}<div class="gempty" id="gEmpty">No images yet — describe one in the Prompt bar below, or use ＋ to upload.</div>{% endif %}
     </div>
 
     <div class="card">
-      <label class="fld">Caption / text</label>
-      <textarea name="body" placeholder="Write your caption… or let the AI draft it below.">{{ p.body }}</textarea>
-
-      <div class="promptbar" style="margin-top:12px;">
-        <input type="text" id="aiPrompt" placeholder="Ask AI…  e.g. “write a hook about X”  or  “an image of a neon duck”">
-        <span class="spin" id="aiSpin">working…</span>
-        <button type="button" class="btn" id="aiSend">✨ Ask AI</button>
+      <h4>Prompt</h4>
+      <div class="modes" id="modes">
+        <button type="button" data-mode="image" class="on">🖼 Image</button>
+        <button type="button" data-mode="text">✍️ Text</button>
       </div>
+      <div id="imgControls">
+        <select id="styleSel" title="Image style">
+          {% for s in styles %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+        </select>
+        <select id="avatarSel" title="Use a saved character as a reference">
+          <option value="">— no character —</option>
+          {% for a in avatars %}<option value="{{ a.pk }}">🎭 {{ a.name }}</option>{% endfor %}
+        </select>
+        <button type="button" class="filebtn" id="refBtn" title="Attach reference images">📎 Refs</button>
+        <input type="file" id="refInput" accept="image/*" multiple style="display:none">
+      </div>
+
+      <div class="editnote" id="editNote">
+        ✎ Editing the selected image — describe the change.
+        <button type="button" id="editCancel">cancel</button>
+      </div>
+
+      <div class="promptrow">
+        <textarea id="aiPrompt" placeholder="Describe what you want…  e.g. “a neon duck hacker at a laptop”"></textarea>
+        <button type="button" class="btn" id="aiSend">Send</button>
+        <span class="spin" id="aiSpin">working…</span>
+      </div>
+      <div class="refchips" id="refChips"></div>
       <div class="aimsg" id="aiMsg"></div>
-      <p class="fld" style="margin-top:4px;">Mentioning a picture/image/photo generates artwork; otherwise it writes the caption.</p>
     </div>
   </div>
 
-  <!-- ============ SIDEBAR ============ -->
-  <aside class="sidebar">
-    <div class="card">
-      <h4>Format</h4>
-      <div class="fmts">
-        <label class="fmt" data-fmt="text"><input type="radio" name="format" value="text" {% if format == 'text' %}checked{% endif %}>Text</label>
-        <label class="fmt" data-fmt="image"><input type="radio" name="format" value="image" {% if format == 'image' %}checked{% endif %}>Image</label>
-        <label class="fmt" data-fmt="everything"><input type="radio" name="format" value="everything">Everything</label>
+  <!-- ============ RIGHT: content + post panel ============ -->
+  <form method="post" action="{% url 'content:compose' p.pk %}" class="col" id="wbform">
+    {% csrf_token %}
+    <div class="card stack">
+      <div>
+        <label class="fld">Title (internal)</label>
+        <input type="text" name="title" value="{{ p.title }}" placeholder="Optional">
+      </div>
+      <div>
+        <label class="fld">Caption / body</label>
+        <textarea name="body" placeholder="Write here… or generate it with the Prompt bar (Text mode).">{{ p.body }}</textarea>
       </div>
     </div>
 
@@ -103,83 +173,218 @@
 
     <div class="card stack">
       <div>
-        <label class="fld">Title (internal)</label>
-        <input type="text" name="title" value="{{ p.title }}" placeholder="Optional">
-      </div>
-      <div>
-        <label class="fld">Upload image</label>
-        <input type="file" name="media" accept="image/*">
-      </div>
-      <div>
         <label class="fld">Schedule (blank = publish now)</label>
         <input type="datetime-local" name="scheduled_at" value="{{ p.scheduled_at|date:'Y-m-d\TH:i' }}">
       </div>
-    </div>
-
-    <div class="card stack">
       <button type="submit" name="action" value="publish" class="btn">Publish →</button>
       <button type="submit" name="action" value="save" class="btn ghost">Save draft</button>
     </div>
-  </aside>
-</form>
+  </form>
+</div>
+
+<!-- ============ image modal ============ -->
+<div class="modal" id="modal">
+  <div class="box">
+    <img id="modalImg" src="" alt="">
+    <div class="acts">
+      <button type="button" class="btn" id="mUse">✓ Use for post</button>
+      <button type="button" class="btn ghost" id="mEdit">✎ Edit this</button>
+      <a class="btn ghost" id="mDownload" href="" download>⤓ Download</a>
+      <button type="button" class="btn ghost del" id="mDelete">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
 
 <script>
+  var POST_PK = {{ p.pk }};
+  var URLS = {
+    ai: "{% url 'content:compose_ai' p.pk %}",
+    upload: "{% url 'content:gallery_upload' p.pk %}",
+    select: function (pk) { return "/content/img/" + pk + "/select/"; },
+    del: function (pk) { return "/content/img/" + pk + "/delete/"; }
+  };
   var KIND_CHANNELS = {{ kind_channels_json|safe }};
+  var csrf = document.querySelector('#wbform [name=csrfmiddlewaretoken]').value;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
 
-  function currentFormat() {
-    var el = document.querySelector('input[name="format"]:checked');
-    return el ? el.value : 'image';
+  // ---------- toasts (no alert()) ----------
+  function toast(text, isErr) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (isErr ? ' err' : '');
+    t.textContent = text;
+    $('#toasts').appendChild(t);
+    setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 2600);
   }
 
-  function refresh() {
-    var fmt = currentFormat();
-    var kind = fmt === 'everything' ? 'image' : fmt;
-    var allowed = KIND_CHANNELS[kind] || [];
-    document.querySelectorAll('.fmt').forEach(function (c) { c.classList.toggle('sel', c.dataset.fmt === fmt); });
+  // ---------- kind ↔ channels (kind is derived: got an image → image post, else text) ----------
+  function currentKind() { return document.querySelector('.tile.sel') ? 'image' : 'text'; }
+  function refreshPlats() {
+    var allowed = KIND_CHANNELS[currentKind()] || [];
     document.querySelectorAll('.plat').forEach(function (chip) {
       var ok = allowed.indexOf(chip.dataset.plat) !== -1;
       chip.classList.toggle('off', !ok);
-      if (!ok) chip.querySelector('input').checked = false;
+      if (!ok) { var i = chip.querySelector('input'); if (i) i.checked = false; }
     });
   }
-  document.querySelectorAll('input[name="format"]').forEach(function (r) { r.addEventListener('change', refresh); });
-  refresh();
+  refreshPlats();
 
-  // ---- Smart AI prompt ----
-  var csrf = document.querySelector('#wbform [name=csrfmiddlewaretoken]').value;
-  var sendBtn = document.getElementById('aiSend');
-  var promptEl = document.getElementById('aiPrompt');
-  var spin = document.getElementById('aiSpin');
-  var msg = document.getElementById('aiMsg');
-
-  function setImage(url) {
-    var img = document.getElementById('previewImg');
-    var ph = document.getElementById('previewPh');
-    img.src = url + (url.indexOf('?') === -1 ? '?t=' : '&t=') + Date.now();
-    img.style.display = 'block';
-    if (ph) ph.style.display = 'none';
-    // an AI image means this is an image post
-    var r = document.querySelector('.fmt[data-fmt="image"] input'); if (r) { r.checked = true; refresh(); }
+  // ---------- gallery rendering ----------
+  function tileEl(t) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'tile' + (t.selected ? ' sel' : '');
+    b.dataset.pk = t.pk; b.dataset.url = t.url;
+    b.innerHTML = '<img src="' + t.url + '" alt="">' + (t.selected ? '<span class="badge">✓</span>' : '');
+    return b;
+  }
+  function addTiles(tiles) {
+    var g = $('#gallery'); var addBtn = $('.tile.add');
+    var e = $('#gEmpty'); if (e) e.remove();
+    tiles.forEach(function (t) {
+      if (t.selected) markSelected(t.pk, true);
+      g.insertBefore(tileEl(t), addBtn);
+    });
+  }
+  function markSelected(pk, on) {
+    document.querySelectorAll('.tile').forEach(function (el) {
+      if (!el.dataset.pk) return;
+      var sel = String(el.dataset.pk) === String(pk) && on;
+      el.classList.toggle('sel', sel);
+      var badge = el.querySelector('.badge');
+      if (sel && !badge) { var s = document.createElement('span'); s.className = 'badge'; s.textContent = '✓'; el.appendChild(s); }
+      if (!sel && badge) badge.remove();
+    });
   }
 
-  function askAI() {
-    var prompt = promptEl.value.trim();
-    if (!prompt) { promptEl.focus(); return; }
-    sendBtn.disabled = true; spin.style.display = 'inline'; msg.className = 'aimsg'; msg.textContent = '';
-    var body = new URLSearchParams({ prompt: prompt });
-    fetch("{% url 'content:compose_ai' p.pk %}", {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d.ok) { msg.className = 'aimsg err'; msg.textContent = d.error || 'Something went wrong.'; return; }
-      if (d.intent === 'image') { setImage(d.media_url); msg.className = 'aimsg ok'; msg.textContent = 'Image generated 🎨'; }
-      else { document.querySelector('textarea[name=body]').value = d.body; msg.className = 'aimsg ok'; msg.textContent = 'Caption written ✍️'; }
-      promptEl.value = '';
-    }).catch(function (e) { msg.className = 'aimsg err'; msg.textContent = 'Network error: ' + e; })
-      .finally(function () { sendBtn.disabled = false; spin.style.display = 'none'; });
+  // ---------- prompt bar ----------
+  var mode = 'image', editFrom = null, refs = [];
+  document.querySelectorAll('#modes button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      mode = b.dataset.mode;
+      document.querySelectorAll('#modes button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      $('#imgControls').style.display = (mode === 'image') ? 'flex' : 'none';
+      if (mode === 'text') cancelEdit();
+      $('#aiPrompt').placeholder = mode === 'image'
+        ? 'Describe what you want…  e.g. “a neon duck hacker at a laptop”'
+        : 'Tell the AI what to write…  e.g. “a punchy caption with 3 hashtags”';
+    });
+  });
+
+  // reference images — explicit trigger so the picker reliably opens
+  $('#refBtn').addEventListener('click', function () { $('#refInput').click(); });
+  $('#refInput').addEventListener('change', function (e) {
+    for (var i = 0; i < e.target.files.length; i++) refs.push(e.target.files[i]);
+    e.target.value = ''; renderRefs();
+  });
+  function renderRefs() {
+    var c = $('#refChips'); c.innerHTML = '';
+    refs.forEach(function (f, i) {
+      var chip = document.createElement('span'); chip.className = 'refchip';
+      chip.innerHTML = '<b></b><span class="x">✕</span>';
+      chip.querySelector('b').textContent = f.name;
+      chip.querySelector('.x').addEventListener('click', function () { refs.splice(i, 1); renderRefs(); });
+      c.appendChild(chip);
+    });
   }
-  sendBtn.addEventListener('click', askAI);
-  promptEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); askAI(); } });
+  function startEdit(pk) {
+    editFrom = pk; mode = 'image';
+    document.querySelectorAll('#modes button').forEach(function (x) { x.classList.toggle('on', x.dataset.mode === 'image'); });
+    $('#imgControls').style.display = 'flex';
+    $('#editNote').classList.add('show'); $('#aiPrompt').focus();
+  }
+  function cancelEdit() { editFrom = null; $('#editNote').classList.remove('show'); }
+  $('#editCancel').addEventListener('click', cancelEdit);
+
+  function send() {
+    var prompt = $('#aiPrompt').value.trim();
+    if (mode === 'text' && !prompt) { $('#aiPrompt').focus(); return; }
+    if (mode === 'image' && !prompt && !editFrom && refs.length === 0) { $('#aiPrompt').focus(); return; }
+    var fd = new FormData();
+    fd.append('prompt', prompt); fd.append('mode', mode);
+    if (mode === 'image') {
+      fd.append('style', $('#styleSel').value);
+      fd.append('avatar', $('#avatarSel').value);
+      if (editFrom) fd.append('edit_from', editFrom);
+      refs.forEach(function (f) { fd.append('refs', f); });
+    }
+    $('#aiSend').disabled = true; $('#aiSpin').classList.add('show');
+    $('#aiMsg').className = 'aimsg'; $('#aiMsg').textContent = '';
+    fetch(URLS.ai, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = d.error || 'Something went wrong.'; return; }
+        if (d.mode === 'text') {
+          $('textarea[name=body]').value = d.body;
+          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = 'Caption written ✍️';
+        } else {
+          addTiles([d.image]);
+          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = editFrom ? 'Image edited 🎨' : 'Image generated 🎨';
+          refreshPlats();
+        }
+        $('#aiPrompt').value = ''; refs = []; renderRefs(); cancelEdit();
+      })
+      .catch(function (e) { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = 'Network error.'; })
+      .finally(function () { $('#aiSend').disabled = false; $('#aiSpin').classList.remove('show'); });
+  }
+  $('#aiSend').addEventListener('click', send);
+  $('#aiPrompt').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+  });
+
+  // ---------- upload (＋ tile) ----------
+  $('#uploadBtn').addEventListener('click', function () { $('#uploadInput').click(); });
+  $('#uploadInput').addEventListener('change', function (e) {
+    if (!e.target.files.length) return;
+    var fd = new FormData();
+    for (var i = 0; i < e.target.files.length; i++) fd.append('images', e.target.files[i]);
+    e.target.value = '';
+    fetch(URLS.upload, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { toast(d.error || 'Upload failed.', true); return; }
+        addTiles(d.images); toast('Uploaded ' + d.images.length + ' image' + (d.images.length > 1 ? 's' : ''));
+        refreshPlats();
+      })
+      .catch(function () { toast('Upload failed.', true); });
+  });
+
+  // ---------- modal ----------
+  var modalPk = null;
+  $('#gallery').addEventListener('click', function (e) {
+    var tile = e.target.closest('.tile'); if (!tile || tile.classList.contains('add')) return;
+    openModal(tile.dataset.pk, tile.dataset.url);
+  });
+  function openModal(pk, url) {
+    modalPk = pk; $('#modalImg').src = url; $('#mDownload').href = url;
+    resetDelete(); $('#modal').classList.add('show');
+  }
+  function closeModal() { $('#modal').classList.remove('show'); modalPk = null; }
+  $('#modal').addEventListener('click', function (e) { if (e.target === $('#modal')) closeModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
+  $('#mUse').addEventListener('click', function () {
+    fetch(URLS.select(modalPk), { method: 'POST', headers: { 'X-CSRFToken': csrf } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d.ok) { markSelected(d.pk, true); toast('Set as the post image ✓'); closeModal(); refreshPlats(); } });
+  });
+  $('#mEdit').addEventListener('click', function () { var pk = modalPk; closeModal(); startEdit(pk); });
+
+  // two-click delete confirm (no confirm())
+  var delArmed = false;
+  function resetDelete() { delArmed = false; $('#mDelete').textContent = '🗑 Delete'; $('#mDelete').classList.remove('armed'); }
+  $('#mDelete').addEventListener('click', function () {
+    if (!delArmed) { delArmed = true; $('#mDelete').textContent = 'Click again to confirm'; return; }
+    var pk = modalPk;
+    fetch(URLS.del(pk), { method: 'POST', headers: { 'X-CSRFToken': csrf } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { toast('Delete failed.', true); return; }
+        var el = document.querySelector('.tile[data-pk="' + pk + '"]'); if (el) el.remove();
+        if (d.new_selected) markSelected(d.new_selected, true);
+        toast('Image deleted'); closeModal(); refreshPlats();
+      })
+      .catch(function () { toast('Delete failed.', true); });
+  });
 </script>
 {% endblock %}

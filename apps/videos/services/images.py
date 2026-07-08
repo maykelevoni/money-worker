@@ -1,4 +1,6 @@
-"""fal.ai image generation — one image per scene of the script."""
+"""fal.ai image generation — text-to-image, plus multi-reference image editing."""
+import base64
+import mimetypes
 import os
 from pathlib import Path
 
@@ -9,6 +11,9 @@ RUN_URL = "https://fal.run/{model}"
 # Ideogram v2 respects "no text" instructions; Flux/schnell did not and baked
 # garbled letters into every frame. Override with FAL_IMAGE_MODEL if needed.
 DEFAULT_MODEL = "fal-ai/ideogram/v2"
+# Multi-image editor: takes a prompt + up to ~14 reference images and composes/edits
+# from them. Override with FAL_EDIT_MODEL.
+DEFAULT_EDIT_MODEL = "fal-ai/nano-banana/edit"
 
 
 class NotConfigured(Exception):
@@ -75,6 +80,51 @@ def generate_image(
         },
         json=payload,
         timeout=120,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    url = data["images"][0]["url"]
+
+    img = requests.get(url, timeout=120)
+    img.raise_for_status()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(img.content)
+    return out_path
+
+
+def _data_uri(path: Path) -> str:
+    """Encode a local image file as a base64 data URI (fal accepts these as inputs)."""
+    mime = mimetypes.guess_type(str(path))[0] or "image/png"
+    b64 = base64.b64encode(Path(path).read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
+
+def edit_image(prompt: str, reference_paths: list[Path], out_path: Path) -> Path:
+    """Compose/edit an image from a prompt + one or more reference images.
+
+    Feeds the references to a multi-image model (nano-banana by default) so you can
+    iterate ("make the background purple") or blend several inputs. Save to `out_path`.
+    """
+    if not is_configured():
+        raise NotConfigured("Set FAL_API_KEY in your .env")
+    refs = [p for p in reference_paths if p and Path(p).exists()]
+    if not refs:
+        raise ValueError("edit_image needs at least one reference image.")
+
+    model = os.getenv("FAL_EDIT_MODEL", DEFAULT_EDIT_MODEL)
+    payload = {
+        "prompt": prompt,
+        "image_urls": [_data_uri(p) for p in refs[:14]],
+        "num_images": 1,
+    }
+    resp = requests.post(
+        RUN_URL.format(model=model),
+        headers={
+            "Authorization": f"Key {settings.FAL_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=180,
     )
     resp.raise_for_status()
     data = resp.json()
