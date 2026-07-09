@@ -1,0 +1,2 @@
+{% comment %}Header slot — renders the site's chosen header variety.{% endcomment %}
+{% with hv=site.header_variant|default:"centered" %}{% include "sites/public/headers/"|add:hv|add:".html" %}{% endwith %}

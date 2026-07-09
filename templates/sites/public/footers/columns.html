@@ -1,0 +1,26 @@
+{% comment %}Footer variety: COLUMNS — brand blurb + link columns, then a bottom bar.{% endcomment %}
+<footer class="site-foot foot-columns">
+  <div class="wrap">
+    <div class="fc-top">
+      <div class="fc-brand">
+        <span class="foot-brand">{{ site.name }}{% if not site.logo %}<span class="dot">.</span>{% endif %}</span>
+        {% if site.tagline %}<p>{{ site.tagline }}</p>{% endif %}
+      </div>
+      <div class="fc-cols">
+        <div class="fc-col">
+          <h4>Explore</h4>
+          <a href="{{ home_url }}">Home</a>
+          {% for n in nav %}{% if not n.is_home %}<a href="{{ n.url }}">{{ n.title }}</a>{% endif %}{% endfor %}
+          <a href="{{ blog_url }}">Blog</a>
+        </div>
+        <div class="fc-col">
+          <h4>Follow</h4>
+          <a href="#">Newsletter</a>
+          <a href="#">Instagram</a>
+          <a href="#">X / Twitter</a>
+        </div>
+      </div>
+    </div>
+    <div class="fc-bottom">© {% now "Y" %} {{ site.name }}. All rights reserved.</div>
+  </div>
+</footer>

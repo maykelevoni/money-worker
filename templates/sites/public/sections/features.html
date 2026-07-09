@@ -1,8 +1,19 @@
 <section class="section">
   <div class="wrap">
+    {% if s.data.headline %}
+    <div class="sec-head">
+      {% if s.data.eyebrow %}<span class="eyebrow">{{ s.data.eyebrow }}</span>{% endif %}
+      <h2 class="sec-title">{{ s.data.headline }}</h2>
+      {% if s.data.subtext %}<p class="sec-sub">{{ s.data.subtext }}</p>{% endif %}
+    </div>
+    {% endif %}
     <div class="features">
       {% for item in s.data.items %}
-      <div class="feature"><h3>{{ item.title }}</h3><p>{{ item.body }}</p></div>
+      <div class="feature">
+        <div class="ico" aria-hidden="true">{{ item.icon|default:"✦" }}</div>
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.body }}</p>
+      </div>
       {% endfor %}
     </div>
   </div>

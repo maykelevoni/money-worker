@@ -1,7 +1,18 @@
 <section class="section">
   <div class="wrap">
-    {% for item in s.data.items %}
-    <div class="faq-item"><h3>{{ item.q }}</h3><p>{{ item.a }}</p></div>
-    {% endfor %}
+    {% if s.data.headline %}
+    <div class="sec-head">
+      {% if s.data.eyebrow %}<span class="eyebrow">{{ s.data.eyebrow }}</span>{% endif %}
+      <h2 class="sec-title">{{ s.data.headline }}</h2>
+    </div>
+    {% endif %}
+    <div class="faq">
+      {% for item in s.data.items %}
+      <details{% if forloop.first %} open{% endif %}>
+        <summary>{{ item.q }}<span class="plus" aria-hidden="true"></span></summary>
+        <div class="ans">{{ item.a }}</div>
+      </details>
+      {% endfor %}
+    </div>
   </div>
 </section>

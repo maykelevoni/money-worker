@@ -1,0 +1,2 @@
+{% comment %}Footer slot — renders the site's chosen footer variety.{% endcomment %}
+{% with fv=site.footer_variant|default:"simple" %}{% include "sites/public/footers/"|add:fv|add:".html" %}{% endwith %}

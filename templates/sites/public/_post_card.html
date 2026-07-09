@@ -1,0 +1,37 @@
+{% comment %}Reusable blog post card. Expects `p` = {title, url, image, excerpt, date}.
+Renders the site's chosen card variety (site.card_variant). `compact=True` = smaller
+"related posts" variant (title + date only).{% endcomment %}
+{% with cv=site.card_variant|default:"imagetop" %}
+{% if cv == "overlay" %}
+  <li class="post-card card-overlay">
+    <a href="{{ p.url }}">
+      {% if p.image %}<img class="thumb" src="{{ p.image }}" alt="">{% else %}<div class="thumb no-thumb"></div>{% endif %}
+      <div class="ov-body">
+        <h2{% if compact %} style="font-size:17px"{% endif %}>{{ p.title }}</h2>
+        {% if p.date %}<time>{{ p.date|date:"M j, Y" }}</time>{% endif %}
+      </div>
+    </a>
+  </li>
+{% elif cv == "minimal" %}
+  <li class="post-card card-minimal">
+    <a href="{{ p.url }}">
+      <div class="pc-body">
+        <h2{% if compact %} style="font-size:18px"{% endif %}>{{ p.title }}</h2>
+        {% if not compact and p.excerpt %}<p>{{ p.excerpt }}</p>{% endif %}
+        {% if p.date %}<time>{{ p.date|date:"M j, Y" }}</time>{% endif %}
+      </div>
+    </a>
+  </li>
+{% else %}
+  <li class="post-card">
+    <a href="{{ p.url }}">
+      {% if p.image %}<img class="thumb" src="{{ p.image }}" alt="">{% else %}<div class="thumb no-thumb"></div>{% endif %}
+      <div class="pc-body">
+        <h2{% if compact %} style="font-size:18px"{% endif %}>{{ p.title }}</h2>
+        {% if not compact and p.excerpt %}<p>{{ p.excerpt }}</p>{% endif %}
+        {% if p.date %}<time>{{ p.date|date:"M j, Y" }}</time>{% endif %}
+      </div>
+    </a>
+  </li>
+{% endif %}
+{% endwith %}

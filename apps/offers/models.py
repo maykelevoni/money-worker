@@ -19,6 +19,9 @@ class Offer(WorkspaceOwned):
         max_length=20, choices=Kind.choices, default=Kind.AFFILIATE
     )
     vendor = models.CharField(max_length=200, blank=True)
+    image = models.ImageField(
+        upload_to="offers/", blank=True, help_text="Product image shown in blog CTAs"
+    )
 
     # Affiliate products
     affiliate_url = models.URLField(blank=True, help_text="Your affiliate/referral link")

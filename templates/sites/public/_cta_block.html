@@ -1,0 +1,58 @@
+{% comment %}
+Article CTA hero. `cta.mode` picks the variety:
+  offer  → product card (image · price · buy button)
+  magnet → lead-magnet card (cover · email capture)
+{% endcomment %}
+<section class="section cta-hero band">
+  <div class="wrap">
+    {% if cta.mode == "offer" %}
+      <div class="offer-card">
+        <div class="offer-media">
+          {% if cta.tag %}<span class="tag">{{ cta.tag }}</span>{% endif %}
+          {% if cta.image %}<img src="{{ cta.image }}" alt="{{ cta.name }}">{% endif %}
+        </div>
+        <div class="offer-body">
+          <span class="kick">{{ cta.kick|default:"Recommended" }}</span>
+          <h3>{{ cta.name }}</h3>
+          {% if cta.price_now %}
+          <div class="offer-price">
+            <span class="now">{{ cta.price_now }}</span>
+            {% if cta.price_was %}<span class="was">{{ cta.price_was }}</span>{% endif %}
+          </div>
+          {% endif %}
+          {% if cta.blurb %}<p>{{ cta.blurb }}</p>{% endif %}
+          <a class="btn-lg" href="{{ cta.url|default:'#' }}">{{ cta.button|default:"Get it now" }} →</a>
+          {% if cta.note %}<div class="offer-note"><span class="stars">★★★★★</span> {{ cta.note }}</div>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="magnet-card">
+        {% if cta.cover_img %}
+        <div class="magnet-cover img" aria-hidden="true"><img src="{{ cta.cover_img }}" alt=""></div>
+        {% else %}
+        <div class="magnet-cover" aria-hidden="true">{{ cta.cover|default:"📘" }}</div>
+        {% endif %}
+        <div class="magnet-body">
+          <span class="kick">{{ cta.kick|default:"Free guide" }}</span>
+          <h3>{{ cta.title }}</h3>
+          {% if cta.desc %}<p>{{ cta.desc }}</p>{% endif %}
+          {% if preview %}
+            <form class="optin-form" onsubmit="return false">
+              <input type="email" placeholder="you@email.com">
+              <button class="btn-lg" type="submit">{{ cta.button|default:"Send it to me" }}</button>
+            </form>
+          {% else %}
+            <form class="optin-form" method="post" action="/optin/">{% csrf_token %}
+              <input type="hidden" name="lead_magnet" value="{{ cta.lead_magnet|default:cta.title }}">
+              <input type="hidden" name="success_message" value="{{ cta.success_message|default:'Check your inbox!' }}">
+              <input type="hidden" name="list_id" value="{{ cta.list_id }}">
+              <input type="email" name="email" placeholder="you@email.com" required>
+              <button class="btn-lg" type="submit">{{ cta.button|default:"Send it to me" }}</button>
+            </form>
+          {% endif %}
+          <div class="optin-note">{{ cta.note|default:"No spam. Unsubscribe anytime." }}</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>

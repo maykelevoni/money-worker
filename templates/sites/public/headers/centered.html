@@ -1,0 +1,20 @@
+{% comment %}Header variety: CENTERED — wordmark left, menu centered, search + Subscribe right.{% endcomment %}
+<header class="site-head head-centered">
+  <div class="wrap">
+    <a class="brand" href="{{ home_url }}">
+      {% if site.logo %}<img src="{{ site.logo.url }}" alt="{{ site.name }}">{% else %}{{ site.name }}<span class="dot">.</span>{% endif %}
+    </a>
+    <nav class="site-nav">
+      <a href="{{ home_url }}">Home</a>
+      {% for n in nav %}{% if not n.is_home %}<a href="{{ n.url }}">{{ n.title }}</a>{% endif %}{% endfor %}
+      <a href="{{ blog_url }}">Blog</a>
+    </nav>
+    <div class="head-actions">
+      <form class="head-search" role="search" action="{{ blog_url }}" method="get">
+        <svg class="si" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" name="q" placeholder="Search" aria-label="Search the site">
+      </form>
+      <a class="btn-sub" href="{{ blog_url }}">Subscribe</a>
+    </div>
+  </div>
+</header>

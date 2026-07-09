@@ -1,0 +1,13 @@
+{% comment %}Hero variety: MINIMAL — clean, light, type-forward, centered.{% endcomment %}
+<section class="sec-hero-min">
+  <div class="wrap">
+    {% if s.data.eyebrow %}<span class="eyebrow">{{ s.data.eyebrow }}</span>{% endif %}
+    <h1>{{ s.data.headline }}</h1>
+    {% if s.data.subtext %}<p class="lead">{{ s.data.subtext }}</p>{% endif %}
+    <div class="hero-actions">
+      {% if s.data.button_text %}<a class="btn-lg" href="{{ s.data.button_url|default:'#' }}">{{ s.data.button_text }}</a>{% endif %}
+      <a class="btn-ghost" href="{{ blog_url }}">Explore the blog →</a>
+    </div>
+    {% if s.image %}<img class="hero-img-min" src="{{ s.image.url }}" alt="">{% endif %}
+  </div>
+</section>

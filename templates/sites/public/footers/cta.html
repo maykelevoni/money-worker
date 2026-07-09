@@ -1,0 +1,14 @@
+{% comment %}Footer variety: BIG CTA — accent band with a subscribe prompt, then a bar.{% endcomment %}
+<footer class="site-foot foot-cta">
+  <div class="foot-cta-band">
+    <div class="wrap">
+      <h3>Get better every week.</h3>
+      <p>Join the {{ site.name }} newsletter — the best of the blog, no spam.</p>
+      <a class="btn-lg" href="{{ blog_url }}">Subscribe free →</a>
+    </div>
+  </div>
+  <div class="wrap fc-bar">
+    <span class="foot-brand">{{ site.name }}</span>
+    <span>© {% now "Y" %} {{ site.name }}</span>
+  </div>
+</footer>

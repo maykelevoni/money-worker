@@ -1,0 +1,7 @@
+{% comment %}Footer variety: SIMPLE — one-line brand + copyright bar.{% endcomment %}
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="foot-brand">{{ site.name }}</span>
+    <span>© {% now "Y" %} {{ site.name }}{% if site.tagline %} — {{ site.tagline }}{% endif %}</span>
+  </div>
+</footer>

@@ -58,6 +58,69 @@ class Website(WorkspaceOwned):
     seo_description = models.TextField(blank=True)
     og_image = models.ImageField(upload_to="sites/og/", blank=True)
 
+    # Hero variety — a swappable "part" of the skeleton (site-level).
+    class HeroVariant(models.TextChoices):
+        DARK = "dark", "Dark (premium)"
+        SPLIT = "split", "Split (with image)"
+        MINIMAL = "minimal", "Minimal (type-forward)"
+
+    hero_variant = models.CharField(
+        max_length=12, choices=HeroVariant.choices, default=HeroVariant.DARK
+    )
+
+    # Header variety — a swappable "part" (site-level).
+    class HeaderVariant(models.TextChoices):
+        CENTERED = "centered", "Centered menu"
+        LEFT = "left", "Left menu"
+
+    header_variant = models.CharField(
+        max_length=12, choices=HeaderVariant.choices, default=HeaderVariant.CENTERED
+    )
+
+    # Footer variety.
+    class FooterVariant(models.TextChoices):
+        SIMPLE = "simple", "Simple bar"
+        COLUMNS = "columns", "Columns"
+        CTA = "cta", "Big CTA"
+
+    footer_variant = models.CharField(
+        max_length=12, choices=FooterVariant.choices, default=FooterVariant.SIMPLE
+    )
+
+    # Blog card variety.
+    class CardVariant(models.TextChoices):
+        IMAGETOP = "imagetop", "Image on top"
+        MINIMAL = "minimal", "Minimal (no image)"
+        OVERLAY = "overlay", "Title over image"
+
+    card_variant = models.CharField(
+        max_length=12, choices=CardVariant.choices, default=CardVariant.IMAGETOP
+    )
+
+    # Article CTA — the conversion block shown at the end of every blog post.
+    # The mode makes this site behave like a "product offer" or "lead magnet"
+    # template variety; "newsletter" is the plain subscribe fallback.
+    class CTAMode(models.TextChoices):
+        NEWSLETTER = "newsletter", "Newsletter signup"
+        OFFER = "offer", "Product offer"
+        MAGNET = "magnet", "Lead magnet"
+
+    cta_mode = models.CharField(
+        max_length=12, choices=CTAMode.choices, default=CTAMode.NEWSLETTER
+    )
+    cta_offer = models.ForeignKey(
+        "offers.Offer", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+", help_text="Product shown when CTA mode is 'Product offer'",
+    )
+    cta_magnet_title = models.CharField(max_length=200, blank=True)
+    cta_magnet_desc = models.TextField(blank=True)
+    cta_magnet_cover = models.ImageField(upload_to="sites/magnets/", blank=True)
+    cta_magnet_button = models.CharField(max_length=60, blank=True)
+    cta_magnet_list = models.ForeignKey(
+        "leads.EmailList", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+", help_text="List captured leads join for this magnet",
+    )
+
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.DRAFT
     )

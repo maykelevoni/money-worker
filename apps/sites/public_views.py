@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
 from .markdown_util import render_markdown
-from .rendering import published_articles, site_context
+from .rendering import article_cta, published_articles, site_context
 
 
 # --------------------------------------------------------------------------
@@ -68,6 +68,7 @@ def render_article(request, site, slug, *, preview):
         {"title": a.title, "url": article_url(a.slug), "image": a.media_src}
         for a in published_articles(site).exclude(pk=article.pk)[:3]
     ]
+    ctx["cta"] = article_cta(site)
     return render(request, "sites/public/blog_detail.html", ctx)
 
 

@@ -33,6 +33,36 @@ def _preview_links(site):
     }
 
 
+def article_cta(site):
+    """Build the end-of-article CTA dict from the site's CTA config, or None
+    (None → the template shows the plain newsletter block)."""
+    mode = site.cta_mode
+    if mode == site.CTAMode.OFFER and site.cta_offer_id:
+        o = site.cta_offer
+        return {
+            "mode": "offer",
+            "kick": "Recommended",
+            "name": o.name,
+            "price_now": o.price,
+            "blurb": (o.notes or "")[:180],
+            "url": o.checkout_url or o.affiliate_url or o.landing_url or "#",
+            "button": "Get it now",
+            "image": o.image.url if o.image else "",
+        }
+    if mode == site.CTAMode.MAGNET and site.cta_magnet_title:
+        return {
+            "mode": "magnet",
+            "kick": "Free guide",
+            "title": site.cta_magnet_title,
+            "desc": site.cta_magnet_desc,
+            "cover_img": site.cta_magnet_cover.url if site.cta_magnet_cover else "",
+            "button": site.cta_magnet_button or "Get the guide",
+            "lead_magnet": site.cta_magnet_title,
+            "list_id": site.cta_magnet_list_id or "",
+        }
+    return None
+
+
 def published_articles(site):
     """Articles (content.Post kind=article) attached to this site's blog."""
     return (

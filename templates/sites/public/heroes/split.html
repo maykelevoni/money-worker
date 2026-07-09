@@ -1,0 +1,18 @@
+{% comment %}Hero variety: SPLIT — headline + CTA left, image right (classic conversion hero).{% endcomment %}
+<section class="sec-hero-split">
+  <div class="wrap">
+    <div class="hs-text">
+      {% if s.data.eyebrow %}<span class="eyebrow">{{ s.data.eyebrow }}</span>{% endif %}
+      <h1>{{ s.data.headline }}</h1>
+      {% if s.data.subtext %}<p class="lead">{{ s.data.subtext }}</p>{% endif %}
+      <div class="hero-actions">
+        {% if s.data.button_text %}<a class="btn-lg" href="{{ s.data.button_url|default:'#' }}">{{ s.data.button_text }}</a>{% endif %}
+        <a class="btn-ghost" href="{{ blog_url }}">Explore the blog →</a>
+      </div>
+      {% if s.data.cues %}<div class="hero-cues">{% for c in s.data.cues %}<span>{{ c }}</span>{% endfor %}</div>{% endif %}
+    </div>
+    <div class="hs-media">
+      {% if s.image %}<img src="{{ s.image.url }}" alt="">{% else %}<div class="hs-ph"></div>{% endif %}
+    </div>
+  </div>
+</section>
