@@ -1,90 +1,88 @@
-"""ElevenLabs client — turns the script into an MP3 voiceover.
+"""Voice cloning + TTS via FAL F5-TTS.
 
-Also supports instant voice cloning: clone Mayke's voice once from a few audio
-samples, then narrate every video in his own voice. `eleven_multilingual_v2`
-clones cross-lingually, so Portuguese samples produce English narration.
+Clones a target voice zero-shot from one short reference clip, then narrates any
+script in that voice. Replaces ElevenLabs (which gated cloning behind a paid
+membership). The reference clip lives on the Avatar (`voice_ref`); there is no
+separate "create voice" step — F5-TTS clones from the sample on every call.
+Reuses the existing FAL_API_KEY (same key as images/transcription).
 """
-from pathlib import Path
+import base64
+import mimetypes
 
 import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 
-API_BASE = "https://api.elevenlabs.io/v1/text-to-speech"
-CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
-DEFAULT_VOICE = "pNInz6obpgDQGcFmaJgB"  # ElevenLabs 'Adam' — male default
+RUN_URL = "https://fal.run/fal-ai/f5-tts"
 
 
 class NotConfigured(Exception):
     pass
 
 
-def clone_voice(name: str, sample_paths: list) -> str:
-    """Create an instant-clone voice from local audio samples; return its voice_id.
-
-    Put the returned id in ELEVENLABS_VOICE_ID (.env) to narrate in this voice.
-    """
-    if not is_configured():
-        raise NotConfigured("Set ELEVENLABS_API_KEY in your .env")
-    files = []
-    handles = []
-    try:
-        for p in sample_paths:
-            path = Path(p)
-            if not path.exists():
-                raise FileNotFoundError(f"Sample not found: {path}")
-            fh = path.open("rb")
-            handles.append(fh)
-            files.append(("files", (path.name, fh, "audio/mpeg")))
-        resp = requests.post(
-            CLONE_URL,
-            headers={"xi-api-key": settings.ELEVENLABS_API_KEY},
-            data={
-                "name": name,
-                "description": "Mayke — money-worker faceless channel narrator",
-            },
-            files=files,
-            timeout=180,
-        )
-        resp.raise_for_status()
-        return resp.json()["voice_id"]
-    finally:
-        for fh in handles:
-            fh.close()
-
-
 def is_configured() -> bool:
-    return bool(settings.ELEVENLABS_API_KEY)
+    return bool(settings.FAL_API_KEY)
 
 
-def generate_voiceover(text: str, filename: str, voice_id: str = "") -> str:
-    """Render `text` to an MP3 under MEDIA_ROOT/voices, return the media URL path.
+def _ref_audio_url(ref_audio) -> str:
+    """Something FAL can fetch for the reference clip: its public URL when the file
+    has one (e.g. R2), otherwise an inline data URI (works for local files too)."""
+    try:
+        url = ref_audio.url
+        if isinstance(url, str) and url.startswith("http"):
+            return url
+    except Exception:
+        pass
+    ref_audio.open("rb")
+    try:
+        data = ref_audio.read()
+    finally:
+        ref_audio.close()
+    mime = mimetypes.guess_type(getattr(ref_audio, "name", "ref.mp3"))[0] or "audio/mpeg"
+    return f"data:{mime};base64," + base64.b64encode(data).decode()
 
-    Pass `voice_id` (e.g. the avatar's own cloned/chosen voice). Falls back to the
-    global ELEVENLABS_VOICE_ID, then to a male default — never the female Rachel.
+
+def generate_voiceover(text, filename, ref_audio, ref_text=""):
+    """Render `text` to speech in the reference voice, store it (local ↔ R2), and
+    return the saved file's URL.
+
+    `ref_audio` is the Avatar.voice_ref file (the cloning sample) — required, since
+    F5-TTS needs a reference to clone. `ref_text` is what's spoken in that clip; if
+    omitted, FAL transcribes it automatically.
     """
     if not is_configured():
-        raise NotConfigured("Set ELEVENLABS_API_KEY in your .env")
+        raise NotConfigured("Set FAL_API_KEY in your .env")
+    if not ref_audio:
+        raise NotConfigured(
+            "No voice reference clip set — add one on the avatar (voice_ref) to clone from."
+        )
 
-    voice_id = voice_id or settings.ELEVENLABS_VOICE_ID or DEFAULT_VOICE
+    payload = {
+        "gen_text": text,
+        "ref_audio_url": _ref_audio_url(ref_audio),
+        "model_type": "F5-TTS",
+        "remove_silence": True,
+    }
+    if ref_text:
+        payload["ref_text"] = ref_text
+
     resp = requests.post(
-        f"{API_BASE}/{voice_id}",
+        RUN_URL,
         headers={
-            "xi-api-key": settings.ELEVENLABS_API_KEY,
+            "Authorization": f"Key {settings.FAL_API_KEY}",
             "Content-Type": "application/json",
-            "Accept": "audio/mpeg",
         },
-        json={
-            "text": text,
-            "model_id": "eleven_multilingual_v2",
-            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
-        },
-        timeout=120,
+        json=payload,
+        timeout=300,
     )
     resp.raise_for_status()
+    out = resp.json().get("audio_url") or {}
+    audio_url = out.get("url") if isinstance(out, dict) else out
+    if not audio_url:
+        raise RuntimeError(f"F5-TTS returned no audio (got: {str(resp.text)[:200]})")
 
-    out_dir = Path(settings.MEDIA_ROOT) / "voices"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / filename
-    out_path.write_bytes(resp.content)
-
-    return f"{settings.MEDIA_URL}voices/{filename}"
+    # Pull the rendered audio and persist it through the storage API (local ↔ R2).
+    audio_bytes = requests.get(audio_url, timeout=180).content
+    saved = default_storage.save(f"voices/{filename}", ContentFile(audio_bytes))
+    return default_storage.url(saved)

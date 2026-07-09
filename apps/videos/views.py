@@ -361,9 +361,10 @@ def gen_voice(request, pk):
         messages.error(request, "Generate or write the script first.")
         return _back(pk)
     try:
-        voice_id = video.avatar.voice_id if video.avatar_id and video.avatar else ""
+        avatar = video.avatar if video.avatar_id else None
+        ref = avatar.voice_ref if avatar and avatar.voice_ref else None
         url = voice.generate_voiceover(
-            video.script, filename=f"video_{video.pk}.mp3", voice_id=voice_id
+            video.script, filename=f"video_{video.pk}.wav", ref_audio=ref
         )
     except voice.NotConfigured as e:
         messages.error(request, str(e))
