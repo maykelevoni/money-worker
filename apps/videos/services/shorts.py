@@ -14,6 +14,12 @@ from django.core.files.storage import default_storage
 from ..models import VideoSegment
 from . import images, openrouter, stt
 
+# nano-banana tends to bake words into images; hammer the point in every prompt.
+NO_TEXT = (
+    " Absolutely NO text, words, letters, captions, numbers, signs, labels, logos, "
+    "or writing of any kind anywhere in the image."
+)
+
 
 def _audio_source(video):
     """Return a source `stt.transcribe_timed` can read: an http URL (R2) as-is, or the
@@ -73,9 +79,9 @@ def illustrate_segments(video) -> int:
         prompt = d["prompt"]
         use_avatar = d["uses_avatar"] and bool(avatar and avatar.image)
         if use_avatar:
-            data = images.edit_scene_bytes(prompt, [avatar.image])
+            data = images.edit_scene_bytes(prompt + NO_TEXT, [avatar.image])
         else:
-            data = images.generate_scene_bytes(prompt)
+            data = images.generate_scene_bytes(prompt + NO_TEXT)
 
         seg.image.save(f"seg_{video.pk}_{seg.order}.png", ContentFile(data), save=False)
         seg.image_prompt = prompt
@@ -95,9 +101,9 @@ def regenerate_segment(video, seg, use_avatar=None):
 
     prompt = seg.image_prompt or seg.text
     if use_avatar:
-        data = images.edit_scene_bytes(prompt, [avatar.image])
+        data = images.edit_scene_bytes(prompt + NO_TEXT, [avatar.image])
     else:
-        data = images.generate_scene_bytes(prompt)
+        data = images.generate_scene_bytes(prompt + NO_TEXT)
 
     seg.image.save(f"seg_{video.pk}_{seg.order}.png", ContentFile(data), save=False)
     seg.uses_avatar = use_avatar
