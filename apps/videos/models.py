@@ -28,7 +28,12 @@ class Avatar(WorkspaceOwned):
     voice_id = models.CharField(
         max_length=120,
         blank=True,
-        help_text="ElevenLabs voice id used to narrate as this character",
+        help_text="Legacy ElevenLabs voice id (unused since the F5-TTS swap)",
+    )
+    voice_ref = models.FileField(
+        upload_to="voice_refs/",
+        blank=True,
+        help_text="A short, clean clip of the target voice — the F5-TTS cloning reference",
     )
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -220,3 +225,43 @@ class Video(WorkspaceOwned):
             or self.topic_idea
             or (f"Video on {self.tool_featured}" if self.tool_featured else "Untitled video")
         )
+
+
+class VideoSegment(models.Model):
+    """One beat of a short: a spoken phrase, its time window in the voiceover, and the
+    image shown for it.
+
+    Segments come from splitting the voiceover on natural pauses. Each gets a *conceptual*
+    image (an illustration of what's said, not a literal shot), and some beats feature the
+    avatar character. This is the backbone of the pause-synced slideshow the renderer
+    stitches together.
+    """
+
+    video = models.ForeignKey(
+        "videos.Video", on_delete=models.CASCADE, related_name="segments"
+    )
+    order = models.PositiveIntegerField(default=0)
+    text = models.TextField(blank=True, help_text="The spoken phrase for this beat")
+    start = models.FloatField(default=0.0, help_text="Start time in the voiceover (seconds)")
+    end = models.FloatField(default=0.0, help_text="End time in the voiceover (seconds)")
+
+    image = models.FileField(upload_to="video_segments/", blank=True)
+    image_prompt = models.TextField(
+        blank=True, help_text="Art-director prompt used to generate this beat's image"
+    )
+    uses_avatar = models.BooleanField(
+        default=False, help_text="Whether this beat's image features the avatar character"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["video", "order"]
+
+    def __str__(self):
+        return f"{self.video_id} · #{self.order} · {self.text[:40]}"
+
+    @property
+    def duration(self) -> float:
+        """Seconds this slide is on screen."""
+        return max(0.0, self.end - self.start)
