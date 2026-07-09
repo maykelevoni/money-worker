@@ -29,7 +29,10 @@ def _select_image(post, pi):
     if not pi.is_selected:
         pi.is_selected = True
         pi.save(update_fields=["is_selected"])
-    post.kind = Post.Kind.IMAGE
+    # An article/video keeps its kind when it gains a hero image; only the
+    # auto-derived text↔image kinds flip to IMAGE on selection.
+    if post.kind not in (Post.Kind.ARTICLE, Post.Kind.VIDEO):
+        post.kind = Post.Kind.IMAGE
     post.media.name = pi.image.name
     post.save(update_fields=["media", "kind"])
 
@@ -166,8 +169,10 @@ def compose(request, pk):
     """The studio: image gallery + content editor + AI prompt bar for one draft."""
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
-        # Kind is derived, not chosen: a selected image → image post, else text.
-        post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
+        # Kind is derived for text↔image posts (selected image → image, else
+        # text), but an article/video keeps the kind it was created with.
+        if post.kind not in (Post.Kind.ARTICLE, Post.Kind.VIDEO):
+            post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
         post.title = request.POST.get("title", "").strip()
         post.body = request.POST.get("body", "").strip()
         sched = request.POST.get("scheduled_at", "").strip()

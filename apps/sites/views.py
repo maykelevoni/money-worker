@@ -231,7 +231,11 @@ def article_attach(request, website_pk):
     )
     article.website = site
     if not article.slug:
-        article.slug = slugify(article.title or f"post-{article.pk}")
+        # SlugField is varchar(50); trim on a hyphen boundary so a long title
+        # doesn't overflow the column (or cut a word mid-way).
+        max_len = Post._meta.get_field("slug").max_length
+        slug = slugify(article.title or f"post-{article.pk}")[:max_len]
+        article.slug = slug.rstrip("-") or f"post-{article.pk}"
     article.save(update_fields=["website", "slug"])
     messages.success(request, f"Attached “{article.title}” to the blog.")
     return redirect("sites:edit", pk=site.pk)
