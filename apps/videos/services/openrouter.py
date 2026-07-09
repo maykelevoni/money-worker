@@ -108,6 +108,66 @@ def generate_scene_prompts(script: str, n: int) -> list[str]:
     return prompts[:n]
 
 
+def _extract_json_array(text: str) -> list:
+    """Pull the first JSON array out of an LLM response."""
+    try:
+        value = json.loads(text)
+        if isinstance(value, list):
+            return value
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\[.*\]", text, re.DOTALL)
+    return json.loads(match.group(0)) if match else []
+
+
+BEAT_ART_SYSTEM = (
+    "You are an art director for a faceless short-form video. You receive the video's "
+    "ordered spoken beats (each a phrase said aloud). For EACH beat, write ONE concise "
+    "visual scene that illustrates what's being said. Be CONCEPTUAL and figurative, not "
+    "literal or photoreal — e.g. 'a pile of wasteful gadgets with a big red X over them', "
+    "'a wallet stuffed with cash'. NEVER put words, letters, captions, logos, or UI text "
+    "in the image. For each beat decide whether the channel's recurring avatar character "
+    "should appear — use it for emotional / payoff / personal beats, NOT every beat. Keep "
+    "the avatar and the overall look consistent across beats."
+)
+
+
+def direct_beats(beats: list[str], subject: str = "", avatar_name: str = "") -> list[dict]:
+    """For each spoken beat, return `{"prompt", "uses_avatar"}` — a conceptual image
+    scene and whether the avatar features. Output aligns 1:1 with `beats`."""
+    if not is_configured():
+        raise NotConfigured("Set OPENROUTER_API_KEY in your .env")
+    if not beats:
+        return []
+
+    numbered = "\n".join(f"{i + 1}. {b}" for i, b in enumerate(beats))
+    avatar_clause = (
+        f'The recurring avatar character is "{avatar_name}". '
+        if avatar_name
+        else "There is a recurring avatar character. "
+    )
+    user = (
+        (f'Video subject: "{subject}".\n' if subject else "")
+        + avatar_clause
+        + f"The spoken beats, in order:\n{numbered}\n\n"
+        + f"Return ONLY a JSON array of exactly {len(beats)} objects, one per beat in "
+        "order:\n"
+        '[{"prompt": "visual scene to draw, no words/letters", "uses_avatar": true|false}]'
+    )
+    content = _chat(BEAT_ART_SYSTEM, user, temperature=0.7)
+    arr = _extract_json_array(content)
+    out = []
+    for i in range(len(beats)):
+        item = arr[i] if i < len(arr) and isinstance(arr[i], dict) else {}
+        out.append(
+            {
+                "prompt": (str(item.get("prompt", "")).strip() or beats[i]),
+                "uses_avatar": bool(item.get("uses_avatar", False)),
+            }
+        )
+    return out
+
+
 def _chat(system: str, user: str, temperature: float = 0.8) -> str:
     """Single-turn chat completion; returns the raw assistant text."""
     if not is_configured():

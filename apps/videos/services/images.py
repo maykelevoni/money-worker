@@ -99,6 +99,70 @@ def _data_uri(path: Path) -> str:
     return f"data:{mime};base64,{b64}"
 
 
+# ---- nano-banana, storage-routed (the shorts pipeline) ----
+NANO_MODEL = "fal-ai/nano-banana"
+NANO_EDIT_MODEL = "fal-ai/nano-banana/edit"
+
+
+def _request_image(model: str, payload: dict) -> bytes:
+    """POST to a fal image model, download the first result, return its bytes."""
+    if not is_configured():
+        raise NotConfigured("Set FAL_API_KEY in your .env")
+    resp = requests.post(
+        RUN_URL.format(model=model),
+        headers={
+            "Authorization": f"Key {settings.FAL_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=180,
+    )
+    resp.raise_for_status()
+    url = resp.json()["images"][0]["url"]
+    img = requests.get(url, timeout=120)
+    img.raise_for_status()
+    return img.content
+
+
+def _source_data_uri(src) -> str:
+    """Data URI for a reference image given as a path, FieldFile, or file-like."""
+    if hasattr(src, "read"):
+        try:
+            src.open("rb")
+        except Exception:
+            pass
+        data = src.read()
+        name = getattr(src, "name", "ref.png")
+    else:
+        data = Path(src).read_bytes()
+        name = str(src)
+    mime = mimetypes.guess_type(name)[0] or "image/png"
+    return f"data:{mime};base64," + base64.b64encode(data).decode("ascii")
+
+
+def generate_scene_bytes(prompt: str, aspect_ratio: str = "9:16", seed: int | None = None) -> bytes:
+    """Generate one conceptual scene image with nano-banana; return image bytes."""
+    payload = {"prompt": prompt, "aspect_ratio": aspect_ratio, "num_images": 1}
+    if seed is not None:
+        payload["seed"] = seed
+    return _request_image(NANO_MODEL, payload)
+
+
+def edit_scene_bytes(prompt: str, references: list, aspect_ratio: str = "9:16") -> bytes:
+    """Generate a scene that features reference image(s) — e.g. the avatar character —
+    via nano-banana/edit. `references` may be paths, FieldFiles, or file-likes."""
+    refs = [r for r in references if r]
+    if not refs:
+        raise ValueError("edit_scene_bytes needs at least one reference image.")
+    payload = {
+        "prompt": prompt,
+        "image_urls": [_source_data_uri(r) for r in refs[:14]],
+        "num_images": 1,
+        "aspect_ratio": aspect_ratio,
+    }
+    return _request_image(NANO_EDIT_MODEL, payload)
+
+
 def edit_image(prompt: str, reference_paths: list[Path], out_path: Path) -> Path:
     """Compose/edit an image from a prompt + one or more reference images.
 
