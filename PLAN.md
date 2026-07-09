@@ -93,7 +93,14 @@ extend it everywhere.
 
 ---
 
-## 5. Workstream B — Video refactor (vertical shorts)
+## 5. Workstream B — Video refactor (vertical shorts) — ✅ BUILT
+
+> Status: pipeline built (2026-07-09). Script → **F5-TTS voice clone** → **timed
+> segments** (pause-split) → **nano-banana** art-directed images (avatar on select
+> beats) → **ffmpeg** vertical assembly → rewired UI (Generate slides + per-beat
+> redraw/avatar-toggle), Kling removed. Decisions applied: one image per pause,
+> avatar contextual, no captions, silent. **Blocker to a live test:** upload a
+> ~30–60s voice reference clip on the avatar (`Avatar.voice_ref`) for the clone.
 
 **Scrap** the Kling talking-avatar renderer (`talking.py`). **Keep & extend** script gen,
 STT, images, uploadpost. **Swap** the voice provider.
