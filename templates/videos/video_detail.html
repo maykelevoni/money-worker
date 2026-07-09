@@ -46,6 +46,13 @@
   .share-row { display: flex; align-items: center; gap: 8px; }
   .linklike { background: none; border: none; color: var(--beak-2); cursor: pointer; font-size: 12px;
     text-decoration: underline; padding: 0; }
+  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+  .slide { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface-2); display: flex; flex-direction: column; }
+  .slide img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; display: block; }
+  .slide .noimg { aspect-ratio: 9 / 16; display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 11px; }
+  .slide-cap { font-size: 11px; color: var(--muted); padding: 6px 8px; line-height: 1.35; }
+  .slide-tag { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--beak-2); padding: 6px 8px 0; }
+  .slide-actions { display: flex; gap: 8px; justify-content: space-between; padding: 4px 8px 8px; margin-top: auto; }
 </style>
 
 <a class="backlink" href="{% url 'videos:factory' %}">← Videos</a>
@@ -120,6 +127,25 @@
       <textarea name="caption" style="min-height:70px;">{{ v.caption }}</textarea>
       <div style="margin-top:14px;"><button class="btn" type="submit">Save</button></div>
     </form>
+
+    {% if segments %}
+      <div class="block">
+        <div class="eyebrow">Slides · {{ segments|length }} beat{{ segments|length|pluralize }} synced to your pauses</div>
+        <div class="slides">
+          {% for s in segments %}
+            <div class="slide">
+              {% if s.uses_avatar %}<div class="slide-tag">◐ avatar</div>{% endif %}
+              {% if s.image %}<img src="{{ s.image.url }}" alt="beat {{ s.order|add:1 }}">{% else %}<div class="noimg">no image</div>{% endif %}
+              <div class="slide-cap">{{ s.text }}</div>
+              <div class="slide-actions">
+                <form method="post" action="{% url 'videos:regen_slide' v.pk s.pk %}">{% csrf_token %}<button class="linklike" type="submit">↻ redraw</button></form>
+                <form method="post" action="{% url 'videos:regen_slide' v.pk s.pk %}">{% csrf_token %}<input type="hidden" name="toggle_avatar" value="1"><button class="linklike" type="submit">{% if s.uses_avatar %}– avatar{% else %}+ avatar{% endif %}</button></form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
   </div>
 
   <!-- side column: pipeline + assets -->
@@ -129,6 +155,7 @@
       <div class="actions">
         <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">✍ Generate script</button></form>
         <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎙 Generate voice</button></form>
+        <form method="post" action="{% url 'videos:gen_scenes' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎞 Generate slides</button></form>
         <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎬 Render video</button></form>
         {% if v.status == 'rendered' %}<form method="post" action="{% url 'videos:approve' v.pk %}">{% csrf_token %}<button class="btn" type="submit">✅ Approve</button></form>{% endif %}
         {% if v.status == 'approved' %}<form method="post" action="{% url 'videos:posted' v.pk %}">{% csrf_token %}<button class="btn" type="submit">📲 Mark posted</button></form>{% endif %}

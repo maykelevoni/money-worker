@@ -83,3 +83,23 @@ def illustrate_segments(video) -> int:
         seg.save(update_fields=["image", "image_prompt", "uses_avatar"])
         made += 1
     return made
+
+
+def regenerate_segment(video, seg, use_avatar=None):
+    """Redraw one segment's image (reusing its prompt). Pass `use_avatar` to force the
+    avatar on/off for this beat; None keeps its current setting."""
+    avatar = video.avatar if video.avatar_id else None
+    if use_avatar is None:
+        use_avatar = seg.uses_avatar
+    use_avatar = bool(use_avatar) and bool(avatar and avatar.image)
+
+    prompt = seg.image_prompt or seg.text
+    if use_avatar:
+        data = images.edit_scene_bytes(prompt, [avatar.image])
+    else:
+        data = images.generate_scene_bytes(prompt)
+
+    seg.image.save(f"seg_{video.pk}_{seg.order}.png", ContentFile(data), save=False)
+    seg.uses_avatar = use_avatar
+    seg.save(update_fields=["image", "uses_avatar"])
+    return seg

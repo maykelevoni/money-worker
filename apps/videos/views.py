@@ -12,15 +12,25 @@ from apps.offers.models import Offer
 from apps.social import publish as social_publish
 from apps.social.models import SocialAccount
 
-from .models import Avatar, TopicIdea, Video
-from .services import avatars, openrouter, research, stt, talking, trends, uploadpost, voice
+from .models import Avatar, TopicIdea, Video, VideoSegment
+from .services import (
+    avatars,
+    openrouter,
+    render as render_svc,
+    research,
+    shorts,
+    stt,
+    trends,
+    uploadpost,
+    voice,
+)
 
 
 def _config():
     return {
         "openrouter": openrouter.is_configured(),
         "voice": voice.is_configured(),
-        "render": talking.is_configured(),
+        "render": render_svc.is_configured(),
         "stt": stt.is_configured(),
         "share": uploadpost.is_configured(),
     }
@@ -285,6 +295,7 @@ def video_detail(request, pk):
         return redirect("videos:video_detail", pk=video.pk)
     return render(request, "videos/video_detail.html", {
         "v": video,
+        "segments": video.segments.all(),
         "config": _config(),
         "share_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(
             is_active=True, platform__in=uploadpost.KIND_CHANNELS["video"]
@@ -381,11 +392,47 @@ def gen_voice(request, pk):
 
 @login_required
 @require_POST
+def gen_scenes(request, pk):
+    """Build pause-synced beats from the voiceover and illustrate each with an image."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    if not video.voice_url:
+        messages.error(request, "Generate the voiceover first.")
+        return _back(pk)
+    try:
+        beats = shorts.build_segments(video)
+        made = shorts.illustrate_segments(video)
+    except Exception as e:
+        messages.error(request, f"Slides failed: {e}")
+        return _back(pk)
+    messages.success(request, f"Made {made} slides from {beats} beats 🎞️ — review, then render.")
+    return _back(pk)
+
+
+@login_required
+@require_POST
+def regen_slide(request, pk, seg_id):
+    """Regenerate one beat's image, optionally toggling whether the avatar features."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    seg = get_object_or_404(VideoSegment, pk=seg_id, video=video)
+    use_avatar = None
+    if request.POST.get("toggle_avatar"):
+        use_avatar = not seg.uses_avatar
+    try:
+        shorts.regenerate_segment(video, seg, use_avatar=use_avatar)
+    except Exception as e:
+        messages.error(request, f"Slide regen failed: {e}")
+        return _back(pk)
+    messages.success(request, f"Slide {seg.order + 1} regenerated 🖼️")
+    return _back(pk)
+
+
+@login_required
+@require_POST
 def render_video_view(request, pk):
     video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     try:
-        url = talking.render_video(video)
-    except talking.NotConfigured as e:
+        url = render_svc.render_short(video)
+    except render_svc.RenderError as e:
         messages.error(request, str(e))
         return _back(pk)
     except Exception as e:
@@ -394,7 +441,7 @@ def render_video_view(request, pk):
     video.video_url = url
     video.status = Video.Status.RENDERED
     video.save()
-    messages.success(request, "Talking video rendered 🎬 — review and approve.")
+    messages.success(request, "Short rendered 🎬 — review and approve.")
     return _back(pk)
 
 
