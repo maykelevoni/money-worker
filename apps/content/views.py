@@ -149,8 +149,25 @@ def _do_publish(request, post, accounts):
 
 
 @login_required
+def studio(request):
+    """One entry for everything you can make — pick a kind, it routes to the builder."""
+    return render(request, "content/studio.html", {})
+
+
+@login_required
 def create(request):
-    """New Post → open the workbench on a fresh (or reused-blank) draft."""
+    """New Post → open the workbench on a fresh (or reused-blank) draft.
+
+    Honours ?kind=text|image|article so the launcher can start the right kind
+    (an article stays an article; see compose()'s kind rules)."""
+    kinds = {"text": Post.Kind.TEXT, "image": Post.Kind.IMAGE, "article": Post.Kind.ARTICLE}
+    chosen = kinds.get(request.GET.get("kind", ""))
+    if chosen:
+        post = Post.objects.create(
+            kind=chosen, status=Post.Status.DRAFT, workspace=request.workspace
+        )
+        return redirect("content:compose", pk=post.pk)
+
     post = (
         Post.objects.for_workspace(request.workspace)
         .filter(status=Post.Status.DRAFT, title="", body="", media="")

@@ -167,9 +167,9 @@
         <a href="/factory/research/" class="navlink {% if '/factory/research' in request.path %}active{% endif %}">Research</a>
 
         <div class="grp {% if '/content/' in request.path or request.path == '/factory/' or '/factory/create' in request.path or '/factory/video' in request.path or '/factory/avatars' in request.path %}active{% endif %}">
-          <a href="/content/new/" class="lbl">Studio ▾</a>
+          <a href="/content/studio/" class="lbl">Studio ▾</a>
           <div class="menu">
-            <a href="/content/new/">New Post</a>
+            <a href="/content/studio/">✨ Create</a>
             <a href="/factory/">Video Factory</a>
             <a href="/factory/avatars/">Avatars</a>
             <a href="/content/">Library</a>
@@ -177,19 +177,19 @@
           </div>
         </div>
 
-        <div class="grp {% if '/websites/' in request.path or '/social/' in request.path or '/capture-pages/' in request.path or '/leads/' in request.path %}active{% endif %}">
+        <div class="grp {% if '/websites/' in request.path or '/social/' in request.path or '/capture-pages/' in request.path %}active{% endif %}">
           <a href="/websites/" class="lbl">Assets ▾</a>
           <div class="menu">
             <a href="/websites/">Websites</a>
             <a href="/social/">Social Accounts</a>
             <a href="/capture-pages/">Capture Pages</a>
-            <a href="/leads/">Email Lists</a>
           </div>
         </div>
 
-        <div class="grp {% if '/emails/' in request.path or '/scheduler/' in request.path or '/automations/' in request.path %}active{% endif %}">
+        <div class="grp {% if '/emails/' in request.path or '/scheduler/' in request.path or '/automations/' in request.path or '/leads/' in request.path %}active{% endif %}">
           <a href="/emails/" class="lbl">Grow ▾</a>
           <div class="menu">
+            <a href="/leads/">Email Lists</a>
             <a href="/emails/">Email Sequences</a>
             <a href="/scheduler/">Scheduler</a>
             <a href="/automations/">Automations</a>
