@@ -120,9 +120,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Uses Neon (Postgres) when DATABASE_URL is set, else local SQLite for dev.
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, parse_qs
 
     _u = urlparse(DATABASE_URL)
+    # Neon requires SSL; a local Postgres (docker compose) speaks plain TCP.
+    # Honour ?sslmode=... in the URL, defaulting to 'require' so prod is unchanged.
+    _sslmode = parse_qs(_u.query).get('sslmode', ['require'])[0]
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -131,7 +134,7 @@ if DATABASE_URL:
             'PASSWORD': _u.password,
             'HOST': _u.hostname,
             'PORT': _u.port or 5432,
-            'OPTIONS': {'sslmode': 'require'},  # Neon requires SSL
+            'OPTIONS': {'sslmode': _sslmode},
         }
     }
 else:

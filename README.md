@@ -155,6 +155,19 @@ R2_PUBLIC_URL=
 
 ### Docker
 
+Run the whole app locally — Django + a bundled Postgres, no Neon/R2 needed:
+
+```bash
+cp .env.example .env                    # AI/email keys are read from here
+docker compose up --build               # → http://localhost:8000
+docker compose exec web python manage.py createsuperuser   # first login
+docker compose down                     # stop  (add -v to wipe the DB + media)
+```
+
+Postgres data and generated media persist in named volumes across restarts.
+
+Production uses the same image standalone (DB on Neon, media on R2):
+
 ```bash
 docker build -t money-worker .
 docker run --env-file .env -p 8000:8000 money-worker

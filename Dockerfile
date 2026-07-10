@@ -16,8 +16,11 @@ COPY . .
 # DEBUG=False so the production (hashed/compressed) static backend is used.
 RUN DEBUG=False SECRET_KEY=build-only python manage.py collectstatic --noinput
 
-# Run as a non-root user.
+# Run as a non-root user. Pre-create the mount points (media, static-site
+# builds) so a bind/named volume mounted there inherits appuser ownership and
+# stays writable.
 RUN chmod +x entrypoint.sh \
+    && mkdir -p /app/media /app/builds \
     && useradd --create-home appuser && chown -R appuser /app
 USER appuser
 
