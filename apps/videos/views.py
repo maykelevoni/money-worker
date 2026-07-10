@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -392,6 +393,27 @@ def gen_voice(request, pk):
 
 @login_required
 @require_POST
+def generate_short(request, pk):
+    """One click: run the whole pipeline (script→voice→slides→render) in the background."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    shorts.start_generation(video)
+    messages.success(request, "Generating your short… watch the progress below. ✨")
+    return _back(pk)
+
+
+@login_required
+def short_status(request, pk):
+    """JSON progress for the one-click generation, polled by the page."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    return JsonResponse({
+        "status": video.gen_status,
+        "step": video.gen_step,
+        "video_url": video.video_url,
+    })
+
+
+@login_required
+@require_POST
 def gen_scenes(request, pk):
     """Build pause-synced beats from the voiceover and illustrate each with an image."""
     video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
@@ -612,4 +634,19 @@ def avatar_regenerate(request, pk):
         messages.error(request, f"Regenerate failed: {e}")
         return redirect("videos:avatars")
     messages.success(request, f"“{avatar.name}” regenerated.")
+    return redirect("videos:avatars")
+
+
+@login_required
+@require_POST
+def avatar_voice(request, pk):
+    """Upload the voice-cloning reference clip for this avatar (F5-TTS clones from it)."""
+    avatar = get_object_or_404(Avatar, pk=pk, workspace=request.workspace)
+    clip = request.FILES.get("voice")
+    if not clip:
+        messages.error(request, "Choose an audio file first.")
+        return redirect("videos:avatars")
+    avatar.voice_ref = clip
+    avatar.save(update_fields=["voice_ref"])
+    messages.success(request, f"Voice sample saved for “{avatar.name}” 🎙️ — you can generate voiceovers now.")
     return redirect("videos:avatars")

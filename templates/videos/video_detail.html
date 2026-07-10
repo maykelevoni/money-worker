@@ -53,6 +53,14 @@
   .slide-cap { font-size: 11px; color: var(--muted); padding: 6px 8px; line-height: 1.35; }
   .slide-tag { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--beak-2); padding: 6px 8px 0; }
   .slide-actions { display: flex; gap: 8px; justify-content: space-between; padding: 4px 8px 8px; margin-top: auto; }
+  .gen-progress { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px;
+    color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .gen-progress[data-status="error"] { color: #ff8a8a; border-color: rgba(255,138,138,.35); }
+  .gen-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--beak-2); flex: none; animation: genpulse 1s infinite; }
+  .gen-progress[data-status="error"] .gen-dot { background: #ff8a8a; animation: none; }
+  @keyframes genpulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+  .gen-steps { margin-top: 10px; }
+  .gen-steps summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 </style>
 
 <a class="backlink" href="{% url 'videos:factory' %}">← Videos</a>
@@ -151,12 +159,25 @@
   <!-- side column: pipeline + assets -->
   <div class="side">
     <div class="block">
-      <div class="eyebrow">Pipeline</div>
+      <div class="eyebrow">Make the short</div>
       <div class="actions">
-        <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">✍ Generate script</button></form>
-        <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎙 Generate voice</button></form>
-        <form method="post" action="{% url 'videos:gen_scenes' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎞 Generate slides</button></form>
-        <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎬 Render video</button></form>
+        <form method="post" action="{% url 'videos:generate_short' v.pk %}">{% csrf_token %}<button class="btn" type="submit">✨ Generate short</button></form>
+      </div>
+      <div id="gen-progress" class="gen-progress" data-status="{{ v.gen_status }}"
+           {% if v.gen_status != 'running' and v.gen_status != 'error' %}hidden{% endif %}>
+        <span class="gen-dot"></span><span class="gen-msg">{{ v.gen_step|default:"Working…" }}</span>
+      </div>
+      <p class="small" style="margin-top:8px;">Script → your voice → pause-synced slides → video, in one go. Watch it build.</p>
+      <details class="gen-steps">
+        <summary>Run steps manually</summary>
+        <div class="actions" style="margin-top:8px;">
+          <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">✍ Generate script</button></form>
+          <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎙 Generate voice</button></form>
+          <form method="post" action="{% url 'videos:gen_scenes' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎞 Generate slides</button></form>
+          <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">🎬 Render video</button></form>
+        </div>
+      </details>
+      <div class="actions" style="margin-top:10px;">
         {% if v.status == 'rendered' %}<form method="post" action="{% url 'videos:approve' v.pk %}">{% csrf_token %}<button class="btn" type="submit">✅ Approve</button></form>{% endif %}
         {% if v.status == 'approved' %}<form method="post" action="{% url 'videos:posted' v.pk %}">{% csrf_token %}<button class="btn" type="submit">📲 Mark posted</button></form>{% endif %}
       </div>
@@ -225,6 +246,25 @@
 </div>
 
 <script>
+(function () {
+  var box = document.getElementById('gen-progress');
+  if (!box) return;
+  var statusUrl = "{% url 'videos:short_status' v.pk %}";
+  var msg = box.querySelector('.gen-msg');
+  function poll() {
+    fetch(statusUrl, { headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        box.dataset.status = d.status || '';
+        if (d.status === 'running') { box.hidden = false; msg.textContent = d.step || 'Working…'; setTimeout(poll, 2000); }
+        else if (d.status === 'done') { box.hidden = false; msg.textContent = 'Done ✓ — loading…'; location.reload(); }
+        else if (d.status === 'error') { box.hidden = false; msg.textContent = '⚠ ' + (d.step || 'failed'); }
+      })
+      .catch(function () { setTimeout(poll, 3000); });
+  }
+  if (box.dataset.status === 'running') poll();
+})();
+
 document.querySelectorAll('.rec').forEach(function (group) {
   var form = group.closest('form');
   var fileInput = form.querySelector('input[type=file]');

@@ -202,6 +202,14 @@ class Video(WorkspaceOwned):
 
     posted_at = models.DateTimeField(null=True, blank=True)
 
+    # --- One-click generation progress (watchable pipeline) ---
+    gen_status = models.CharField(
+        max_length=12, blank=True, help_text="'' | running | done | error"
+    )
+    gen_step = models.TextField(
+        blank=True, help_text="Human-readable current step (or the error message)"
+    )
+
     # --- Social sharing (Upload-Post) ---
     share_request_id = models.CharField(
         max_length=120, blank=True, help_text="Upload-Post async request id, for status polling"

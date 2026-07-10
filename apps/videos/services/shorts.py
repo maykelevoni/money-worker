@@ -59,9 +59,10 @@ def build_segments(video, gap: float = 0.4) -> int:
     return len(beats)
 
 
-def illustrate_segments(video) -> int:
+def illustrate_segments(video, on_progress=None) -> int:
     """Art-direct each beat and generate one image per segment (avatar-featuring where
-    the art director chose it). Returns the number of images made."""
+    the art director chose it). Calls `on_progress(done, total)` per image. Returns the
+    number of images made."""
     segments = list(video.segments.all())
     if not segments:
         raise ValueError("Build segments before illustrating them.")
@@ -74,8 +75,11 @@ def illustrate_segments(video) -> int:
         avatar_name=avatar.name if avatar else "",
     )
 
+    total = len(segments)
     made = 0
     for seg, d in zip(segments, directions):
+        if on_progress:
+            on_progress(made + 1, total)
         prompt = d["prompt"]
         use_avatar = d["uses_avatar"] and bool(avatar and avatar.image)
         if use_avatar:
@@ -109,3 +113,64 @@ def regenerate_segment(video, seg, use_avatar=None):
     seg.uses_avatar = use_avatar
     seg.save(update_fields=["image", "uses_avatar"])
     return seg
+
+
+# ---- One-click, watchable generation (runs in a background thread) ----
+
+def _run_pipeline(video_id):
+    """Run the full short pipeline, writing progress onto the Video as it goes so the
+    page can poll and show it. Runs in its own thread."""
+    import threading  # noqa: F401  (kept explicit; import is cheap)
+
+    from django.db import connections
+
+    from ..models import Video
+    from . import openrouter, render as render_svc, voice
+
+    def step(msg):
+        Video.objects.filter(pk=video_id).update(gen_status="running", gen_step=msg)
+
+    try:
+        video = Video.objects.get(pk=video_id)
+
+        if not video.script:
+            step("Writing the script…")
+            subject = video.title or video.topic_idea or video.tool_featured or "this topic"
+            pkg = openrouter.generate_script(subject, niche=video.niche)
+            video.title = video.title or pkg["title"]
+            video.hook, video.script, video.caption = pkg["hook"], pkg["script"], pkg["caption"]
+            video.save()
+
+        step("Cloning your voice…")
+        avatar = video.avatar if video.avatar_id else None
+        ref = avatar.voice_ref if avatar and avatar.voice_ref else None
+        video.voice_url = voice.generate_voiceover(
+            video.script, filename=f"video_{video.pk}.wav", ref_audio=ref
+        )
+        video.status = Video.Status.VOICED
+        video.save(update_fields=["voice_url", "status"])
+
+        step("Finding the beats in your voiceover…")
+        build_segments(video)
+
+        illustrate_segments(video, on_progress=lambda i, n: step(f"Illustrating beat {i} of {n}…"))
+
+        step("Rendering the video…")
+        url = render_svc.render_short(video)
+        Video.objects.filter(pk=video_id).update(
+            video_url=url, status=Video.Status.RENDERED, gen_status="done", gen_step="Done ✓"
+        )
+    except Exception as e:  # surface the reason to the page
+        Video.objects.filter(pk=video_id).update(gen_status="error", gen_step=str(e)[:500])
+    finally:
+        connections.close_all()
+
+
+def start_generation(video):
+    """Kick off the full pipeline in a background thread; the page polls for progress."""
+    import threading
+
+    from ..models import Video
+
+    Video.objects.filter(pk=video.pk).update(gen_status="running", gen_step="Starting…")
+    threading.Thread(target=_run_pipeline, args=(video.pk,), daemon=True).start()
