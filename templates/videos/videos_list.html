@@ -1,14 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Videos · Video Factory{% endblock %}
+{% block title %}Video Factory · Money Worker{% endblock %}
 {% block nav_factory %}active{% endblock %}
 
 {% block content %}
 <style>
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; }
-  .stat .num { font-family: var(--mono); font-size: 26px; font-weight: 600; line-height: 1; }
-  .stat .lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 8px; }
-  .stat.hot .num { color: var(--beak); }
+  .pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 11px; padding: 12px 18px; margin-bottom: 20px; }
+  .pipeline .cap { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint); margin-right: 4px; }
+  .pl-item { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pl-item b { color: var(--text); font-family: var(--mono); font-size: 15px; font-weight: 700; margin-right: 5px; }
+  .pl-item.hot b { color: var(--beak); }
   .newbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
   .newbar .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
   .newbar .field-row > * { flex: 1; min-width: 160px; }
@@ -55,12 +57,13 @@
   </div>
 {% endif %}
 
-<div class="stats">
-  <div class="stat"><div class="num">{{ stats.total }}</div><div class="lbl">Total</div></div>
-  <div class="stat"><div class="num">{{ stats.drafts }}</div><div class="lbl">Drafts</div></div>
-  <div class="stat"><div class="num">{{ stats.in_progress }}</div><div class="lbl">In progress</div></div>
-  <div class="stat hot"><div class="num">{{ stats.awaiting }}</div><div class="lbl">Awaiting approval</div></div>
-  <div class="stat"><div class="num">{{ stats.posted }}</div><div class="lbl">Posted</div></div>
+<div class="pipeline">
+  <span class="cap">Pipeline</span>
+  <span class="pl-item"><b>{{ stats.total }}</b>total</span>
+  <span class="pl-item"><b>{{ stats.drafts }}</b>drafts</span>
+  <span class="pl-item"><b>{{ stats.in_progress }}</b>in progress</span>
+  <span class="pl-item hot"><b>{{ stats.awaiting }}</b>awaiting approval</span>
+  <span class="pl-item"><b>{{ stats.posted }}</b>posted</span>
 </div>
 
 <div class="newbar">
@@ -88,9 +91,9 @@
         <div class="body">
           <div class="vt">{{ v }}</div>
           <div class="meta">
-            {% if v.avatar %}<span class="chip">◐ {{ v.avatar.name }}</span>{% endif %}
+            {% if v.avatar %}<span class="chip">{{ v.avatar.name }}</span>{% endif %}
             {% if v.niche %}<span class="chip">{{ v.niche }}</span>{% endif %}
-            {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
+            {% if v.offer %}<span class="chip warn">{{ v.offer.name }}</span>{% endif %}
           </div>
         </div>
         <span class="pill s-{{ v.status }}">{{ v.get_status_display }}</span>
