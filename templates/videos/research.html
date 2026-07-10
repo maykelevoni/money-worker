@@ -4,48 +4,88 @@
 
 {% block content %}
 <style>
-  .runbar { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .runbar .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
-  .runbar .field-row > input { flex: 1; min-width: 180px; }
+  /* Ubersuggest-style keyword research */
+  .kw-search { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 20px; margin-bottom: 18px; }
+  .kw-search .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .kw-search .field-row > input { flex: 1; min-width: 200px; height: 44px; font-size: 15px; }
+  .kw-search .btn { flex: 0 0 auto; height: 44px; padding-left: 22px; padding-right: 22px; }
+
+  .ov { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 18px; }
+  .ov-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .ov-card .k { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .ov-card .v { font-size: 30px; font-weight: 800; letter-spacing: -1px; margin-top: 8px;
+    font-variant-numeric: tabular-nums; }
+  .ov-card .v small { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: 0; }
+
   .filterbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
   .filterbar label { color: var(--muted); font-size: 12px; }
   .filterbar select, .filterbar input { min-width: 92px; }
   .filterbar .go { flex: 0 0 auto; }
 
-  .rows { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  .rowhead, .trow { display: grid; grid-template-columns: 1fr 82px 120px 92px 96px 40px;
-    gap: 10px; align-items: center; padding: 11px 14px; }
-  .rowhead { background: var(--surface-2); color: var(--muted); font-size: 11px;
-    text-transform: uppercase; letter-spacing: .04em; }
-  .trow { border-top: 1px solid var(--line-soft); text-decoration: none; color: var(--text); }
-  .trow:hover { background: var(--surface-2); }
-  .trow .topic { font-weight: 600; }
-  .trow .topic small { display: block; color: var(--muted); font-weight: 400; font-size: 12px;
-    margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .num { font-variant-numeric: tabular-nums; }
-  .trend .up { color: var(--good, #22c55e); } .trend .down { color: var(--bad, #ef4444); }
-  .trend .flat { color: var(--muted); }
-  .diff .dots { color: var(--beak-2); letter-spacing: 1px; } .diff small { color: var(--muted); }
-  .chip { display: inline-block; background: var(--surface-2); border: 1px solid var(--line);
-    border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--muted); }
-  .used { color: var(--beak-2); font-size: 11px; font-weight: 600; }
-  .empty { color: var(--muted); padding: 22px; text-align: center; }
+  .kwtable-wrap { border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+  .kwtable { width: 100%; min-width: 720px; border-collapse: collapse; }
+  .kwtable thead th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); font-weight: 600; padding: 11px 16px; background: var(--surface-2);
+    border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .kwtable thead th.r { text-align: right; }
+  .kwtable tbody td { padding: 13px 16px; border-top: 1px solid var(--line-soft); font-size: 14px;
+    vertical-align: middle; }
+  .kwtable tbody tr { transition: background .1s; }
+  .kwtable tbody tr:hover { background: var(--surface-2); }
+  .kw { font-weight: 600; }
+  .kw a { color: var(--text); text-decoration: none; }
+  .kw a:hover { color: var(--beak-2); }
+  .kw small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; margin-top: 2px;
+    max-width: 52ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .used { color: var(--beak-2); font-size: 11px; font-weight: 600; margin-left: 6px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .num .u { color: var(--faint); font-size: 11px; }
+  .dash { color: var(--faint); }
+
+  .spark { display: inline-block; vertical-align: middle; }
+  .spark.up   { color: var(--ok); }
+  .spark.down { color: var(--eyes); }
+  .spark.flat { color: var(--faint); }
+  .tpct { font-size: 11px; font-variant-numeric: tabular-nums; margin-left: 6px; }
+  .tpct.up { color: var(--ok); } .tpct.down { color: var(--eyes); } .tpct.flat { color: var(--faint); }
+
+  .sd { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+    border-radius: 50%; font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums;
+    border: 2px solid; }
+  .sd.easy   { color: var(--ok);   border-color: var(--ok);   background: rgba(67,214,160,.10); }
+  .sd.medium { color: var(--loot); border-color: var(--loot); background: rgba(244,192,78,.10); }
+  .sd.hard   { color: var(--eyes); border-color: var(--eyes); background: rgba(255,77,77,.10); }
+  .sdwrap { display: flex; align-items: center; gap: 9px; }
+  .sdwrap .lbl { font-size: 11px; color: var(--muted); text-transform: capitalize; }
+
+  .intent { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 11px;
+    font-weight: 600; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
+  .open { color: var(--beak-2); font-size: 12px; white-space: nowrap; text-decoration: none; }
+  .empty { color: var(--muted); padding: 26px; text-align: center; }
+  .datanote { color: var(--faint); font-size: 12px; margin: 12px 2px 0; }
 </style>
 
-<div class="eyebrow">Research</div>
-<h1>Topic Explorer</h1>
-<p class="sub">Leave it blank for a fresh mix of ideas, or type a topic to dig in. Scan the data, open one to understand it, then create.</p>
+{% include "_pagehead.html" with eyebrow="Research" title="Keyword & Topic Explorer" subtitle="Type a keyword to dig in, or leave it blank for a fresh mix. Scan the metrics, then open one to turn it into content." %}
 
-{% include "videos/_tabs.html" %}
-
-<div class="runbar">
+<div class="kw-search">
   <form method="post" action="{% url 'videos:research_run' %}" class="field-row">
     {% csrf_token %}
-    <input type="text" name="keyword" placeholder="Optional topic or keyword to explore (blank = surprise me)…">
-    <input type="text" name="niche" placeholder="Niche/context (optional)…">
-    <button class="btn" type="submit" style="flex:0 0 auto;">Get ideas</button>
+    <input type="text" name="keyword" placeholder="Enter a keyword or topic to research…  (blank = surprise me)">
+    <input type="text" name="niche" placeholder="Niche / context (optional)">
+    <button class="btn" type="submit">Get ideas</button>
   </form>
 </div>
+
+{% if ideas %}
+<div class="ov">
+  <div class="ov-card"><div class="k">Topics found</div><div class="v">{{ overview.total }}</div></div>
+  <div class="ov-card"><div class="k">Avg. search volume</div><div class="v">{% if overview.avg_volume is not None %}{{ overview.avg_volume }}<small> /mo</small>{% else %}<span class="dash">—</span>{% endif %}</div></div>
+  <div class="ov-card"><div class="k">Avg. SEO difficulty</div><div class="v">{% if overview.avg_difficulty is not None %}{{ overview.avg_difficulty }}<small> /100</small>{% else %}<span class="dash">—</span>{% endif %}</div></div>
+  <div class="ov-card"><div class="k">Rising now</div><div class="v">{{ overview.rising }}<small> topics ↑</small></div></div>
+</div>
+{% endif %}
 
 <form method="get" class="filterbar">
   <label>Sort
@@ -72,35 +112,51 @@
       {% for val, lbl in intents %}<option value="{{ val }}"{% if filters.intent == val %} selected{% endif %}>{{ lbl }}</option>{% endfor %}
     </select>
   </label>
-  <button class="btn ghost go" type="submit">Apply</button>
+  <button class="btn btn-ghost go" type="submit">Apply</button>
 </form>
 
-<div class="rows">
-  <div class="rowhead">
-    <div>Topic</div><div>Volume</div><div>Trend</div><div>Difficulty</div><div>Intent</div><div></div>
-  </div>
-  {% for idea in ideas %}
-    <a class="trow" href="{% url 'videos:topic_detail' idea.pk %}">
-      <div class="topic">
-        {{ idea.headline }}
-        {% if idea.post_count or idea.video_count %}
-          <span class="used">✓ {{ idea.post_count }}p · {{ idea.video_count }}v</span>
-        {% endif %}
-        {% if idea.description %}<small>{{ idea.description }}</small>{% endif %}
-      </div>
-      <div class="num">{{ idea.volume_display }}<span style="color:var(--muted);font-size:11px;">/mo</span></div>
-      <div class="trend num">
-        {% if idea.trend_dir == 'up' %}<span class="up">↑ {% if idea.trend_pct %}+{{ idea.trend_pct }}%{% else %}rising{% endif %}</span>
-        {% elif idea.trend_dir == 'down' %}<span class="down">↓ {% if idea.trend_pct %}{{ idea.trend_pct }}%{% else %}cooling{% endif %}</span>
-        {% else %}<span class="flat">→ steady</span>{% endif %}
-      </div>
-      <div class="diff"><span class="dots">{{ idea.difficulty_dots }}</span>
-        {% if idea.difficulty is not None %}<small class="num"> {{ idea.difficulty }}</small>{% endif %}</div>
-      <div>{% if idea.intent %}<span class="chip">{{ idea.get_intent_display }}</span>{% endif %}</div>
-      <div style="color:var(--muted);text-align:right;">›</div>
-    </a>
-  {% empty %}
-    <div class="empty">No topics yet — run a search above to explore what's worth making content about.</div>
-  {% endfor %}
+<div class="kwtable-wrap">
+  <table class="kwtable">
+    <thead>
+      <tr>
+        <th>Keyword / topic</th>
+        <th class="r">Volume</th>
+        <th>Trend</th>
+        <th>SEO difficulty</th>
+        <th>Intent</th>
+        <th class="r"></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for idea in ideas %}
+      <tr>
+        <td class="kw">
+          <a href="{% url 'videos:topic_detail' idea.pk %}">{{ idea.headline }}</a>
+          {% if idea.post_count or idea.video_count %}<span class="used">✓ {{ idea.post_count }}p · {{ idea.video_count }}v</span>{% endif %}
+          {% if idea.description %}<small>{{ idea.description }}</small>{% endif %}
+        </td>
+        <td class="num">{% if idea.search_volume is not None %}{{ idea.volume_display }} <span class="u">/mo</span>{% else %}<span class="dash">—</span>{% endif %}</td>
+        <td>
+          <svg class="spark {{ idea.trend_dir|default:'flat' }}" width="60" height="20" viewBox="0 0 60 20" fill="none" aria-hidden="true">
+            <polyline points="{{ idea.spark }}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {% if idea.trend_dir == 'up' %}<span class="tpct up">{% if idea.trend_pct %}+{{ idea.trend_pct }}%{% else %}rising{% endif %}</span>
+          {% elif idea.trend_dir == 'down' %}<span class="tpct down">{% if idea.trend_pct %}{{ idea.trend_pct }}%{% else %}cooling{% endif %}</span>
+          {% else %}<span class="tpct flat">steady</span>{% endif %}
+        </td>
+        <td>
+          {% if idea.difficulty is not None %}
+            <div class="sdwrap"><span class="sd {{ idea.sd_band }}">{{ idea.difficulty }}</span><span class="lbl">{{ idea.sd_band }}</span></div>
+          {% else %}<span class="dash">—</span>{% endif %}
+        </td>
+        <td>{% if idea.intent %}<span class="intent">{{ idea.get_intent_display }}</span>{% else %}<span class="dash">—</span>{% endif %}</td>
+        <td class="num"><a class="open" href="{% url 'videos:topic_detail' idea.pk %}">Open →</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6" class="empty">No topics yet — run a search above to explore what's worth making content about.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
 </div>
+{% if ideas %}<p class="datanote">Volume, difficulty &amp; intent come from live search data when available; AI-suggested topics show <span class="dash">—</span> until it's fetched. The trend line shows momentum direction — open a topic to generate content from it either way.</p>{% endif %}
 {% endblock %}

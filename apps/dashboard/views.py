@@ -35,17 +35,33 @@ def index(request):
 
     # The single next action — the guardrail against improvising.
     if products_active == 0:
-        next_action = "Add your first product to promote (Products → add)."
+        next_action = "Add your first product to promote."
+        next_action_url, next_action_cta = "/offers/", "Add a product"
     elif videos_total == 0:
         next_action = "Generate your first video in the Video Factory."
+        next_action_url, next_action_cta = "/factory/", "Make a video"
     elif pending_approval:
         next_action = f"Approve {pending_approval} video(s) waiting in the queue."
+        next_action_url, next_action_cta = "/factory/", "Review the queue"
     elif pages_active == 0:
         next_action = "Create a capture page so your videos can collect leads."
+        next_action_url, next_action_cta = "/capture-pages/", "Build a capture page"
     elif leads_total == 0:
         next_action = "Post a video and share its capture-page link to get your first leads."
+        next_action_url, next_action_cta = "/factory/", "Open the Video Factory"
     else:
         next_action = "Keep the funnel fed: generate + post the next video."
+        next_action_url, next_action_cta = "/factory/", "Make the next video"
+
+    # Setup checklist — a friendlier first-run than a wall of zeros.
+    setup_steps = [
+        {"label": "Add a product to promote", "done": products_active > 0, "url": "/offers/"},
+        {"label": "Create a reusable avatar", "done": avatars_count > 0, "url": "/factory/avatars/"},
+        {"label": "Generate your first video", "done": videos_total > 0, "url": "/factory/"},
+        {"label": "Build a capture page", "done": pages_active > 0, "url": "/capture-pages/"},
+    ]
+    setup_done = sum(1 for s in setup_steps if s["done"])
+    show_setup = setup_done < len(setup_steps)
 
     context = {
         "videos_live": videos_live,
@@ -58,6 +74,11 @@ def index(request):
         "pages_active": pages_active,
         "videos_total": videos_total,
         "next_action": next_action,
+        "next_action_url": next_action_url,
+        "next_action_cta": next_action_cta,
+        "setup_steps": setup_steps,
+        "setup_done": setup_done,
+        "show_setup": show_setup,
         "funnel": {
             "videos": videos_total,
             "leads": leads_total,
@@ -85,14 +106,20 @@ def analytics(request):
 
     # Funnel stages with conversion % relative to the previous stage.
     funnel = [
-        {"label": "Videos posted", "icon": "🎬", "n": videos_posted, "rate": None},
-        {"label": "Leads captured", "icon": "📥", "n": leads_total,
+        {"label": "Videos posted", "icon": "", "n": videos_posted, "rate": None},
+        {"label": "Leads captured", "icon": "", "n": leads_total,
          "rate": _pct(leads_total, videos_posted) if videos_posted else None},
-        {"label": "Clicked product", "icon": "🔗", "n": leads_clicked,
+        {"label": "Clicked product", "icon": "", "n": leads_clicked,
          "rate": _pct(leads_clicked, leads_total)},
-        {"label": "Converted", "icon": "💰", "n": leads_converted,
+        {"label": "Converted", "icon": "", "n": leads_converted,
          "rate": _pct(leads_converted, leads_total)},
     ]
+
+    # Bar width is proportional to the stage's own count (0 → empty bar), so an
+    # empty funnel reads as empty instead of full.
+    funnel_max = max((s["n"] for s in funnel), default=0)
+    for s in funnel:
+        s["width"] = round(s["n"] / funnel_max * 100) if funnel_max else 0
 
     # Top videos by leads generated.
     top_videos = (

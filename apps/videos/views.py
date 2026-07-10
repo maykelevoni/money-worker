@@ -135,10 +135,27 @@ def research_page(request):
         ideas = ideas.filter(trend_dir=trend)
     if intent:
         ideas = ideas.filter(intent=intent)
-    ideas = ideas.order_by(_SORTS.get(sort, "-search_volume"), "-created_at")
+    ideas = list(ideas.order_by(_SORTS.get(sort, "-search_volume"), "-created_at"))
+
+    # Enrich each row for the Ubersuggest-style table: an SEO-difficulty band
+    # (colour) and a small momentum sparkline derived from trend direction.
+    for idea in ideas:
+        d = idea.difficulty
+        idea.sd_band = None if d is None else ("easy" if d < 34 else "medium" if d < 67 else "hard")
+        idea.spark = _momentum_spark(idea)
+
+    vols = [i.search_volume for i in ideas if i.search_volume is not None]
+    diffs = [i.difficulty for i in ideas if i.difficulty is not None]
+    overview = {
+        "total": len(ideas),
+        "avg_volume": round(sum(vols) / len(vols)) if vols else None,
+        "avg_difficulty": round(sum(diffs) / len(diffs)) if diffs else None,
+        "rising": sum(1 for i in ideas if i.trend_dir == "up"),
+    }
 
     return render(request, "videos/research.html", {
         "ideas": ideas,
+        "overview": overview,
         "config": _config(),
         "tab": "research",
         "filters": {"sort": sort, "min_volume": min_volume, "max_diff": max_diff,
@@ -146,6 +163,27 @@ def research_page(request):
         "intents": TopicIdea.Intent.choices,
         **_pickers(request),
     })
+
+
+def _momentum_spark(idea) -> str:
+    """A 12-point SVG polyline (viewBox 0 0 60 20) showing momentum direction.
+
+    Derived from trend_dir/trend_pct — it visualises direction, not real monthly
+    search history (which we don't store). Deterministic per topic so it's stable.
+    """
+    n = 12
+    slope = {"up": 1, "down": -1}.get(idea.trend_dir, 0)
+    amp = min(abs(idea.trend_pct or 0), 60) / 60.0
+    seed = (idea.pk * 2654435761) & 0x7FFFFFFF
+    pts = []
+    for i in range(n):
+        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+        jitter = (seed / 0x7FFFFFFF - 0.5) * 3.4
+        base = 10 - slope * (i - (n - 1) / 2) * (0.55 + amp * 0.9)
+        y = max(2.0, min(18.0, base + jitter))
+        x = i * (60 / (n - 1))
+        pts.append(f"{x:.1f},{y:.1f}")
+    return " ".join(pts)
 
 
 @login_required
@@ -177,7 +215,7 @@ def research_run(request):
             trend_pct=t.get("trend_pct"),
             related=t.get("related", []),
         )
-    messages.success(request, f"Explored {len(topics)} topics 🔎")
+    messages.success(request, f"Explored {len(topics)} topics ")
     return redirect("videos:research")
 
 
@@ -231,7 +269,7 @@ def pick_idea(request, pk):
         video.save(update_fields=["talking_points"])
     except Exception as e:
         messages.warning(request, f"Video created, but talking points failed: {e}")
-    messages.success(request, "Video created from idea 🎯")
+    messages.success(request, "Video created from idea ")
     return redirect("videos:video_detail", pk=video.pk)
 
 
@@ -259,7 +297,7 @@ def spawn_post(request, pk):
         title=idea.headline[:300],
         body=idea.angle or idea.why_viral or "",
     )
-    messages.success(request, f"{post.get_kind_display()} started from idea ✍️")
+    messages.success(request, f"{post.get_kind_display()} started from idea ")
     return redirect("content:compose", pk=post.pk)
 
 
@@ -329,7 +367,7 @@ def upload_audio(request, pk):
     except Exception as e:
         messages.error(request, f"Transcription failed: {e}")
         return _back(pk)
-    messages.success(request, "Audio transcribed 📝 — generate the script next.")
+    messages.success(request, "Audio transcribed  — generate the script next.")
     return _back(pk)
 
 
@@ -361,7 +399,7 @@ def gen_script(request, pk):
     video.caption = data["caption"]
     video.status = Video.Status.SCRIPTED
     video.save()
-    messages.success(request, "Script generated ✍️")
+    messages.success(request, "Script generated ")
     return _back(pk)
 
 
@@ -387,7 +425,7 @@ def gen_voice(request, pk):
     video.voice_url = url
     video.status = Video.Status.VOICED
     video.save()
-    messages.success(request, "Voiceover generated 🎙️")
+    messages.success(request, "Voiceover generated ")
     return _back(pk)
 
 
@@ -397,7 +435,7 @@ def generate_short(request, pk):
     """One click: run the whole pipeline (script→voice→slides→render) in the background."""
     video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     shorts.start_generation(video)
-    messages.success(request, "Generating your short… watch the progress below. ✨")
+    messages.success(request, "Generating your short… watch the progress below. ")
     return _back(pk)
 
 
@@ -426,7 +464,7 @@ def gen_scenes(request, pk):
     except Exception as e:
         messages.error(request, f"Slides failed: {e}")
         return _back(pk)
-    messages.success(request, f"Made {made} slides from {beats} beats 🎞️ — review, then render.")
+    messages.success(request, f"Made {made} slides from {beats} beats  — review, then render.")
     return _back(pk)
 
 
@@ -444,7 +482,7 @@ def regen_slide(request, pk, seg_id):
     except Exception as e:
         messages.error(request, f"Slide regen failed: {e}")
         return _back(pk)
-    messages.success(request, f"Slide {seg.order + 1} regenerated 🖼️")
+    messages.success(request, f"Slide {seg.order + 1} regenerated ")
     return _back(pk)
 
 
@@ -463,7 +501,7 @@ def render_video_view(request, pk):
     video.video_url = url
     video.status = Video.Status.RENDERED
     video.save()
-    messages.success(request, "Short rendered 🎬 — review and approve.")
+    messages.success(request, "Short rendered  — review and approve.")
     return _back(pk)
 
 
@@ -473,7 +511,7 @@ def approve(request, pk):
     video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     video.status = Video.Status.APPROVED
     video.save()
-    messages.success(request, "Approved ✅ — download it and post to TikTok.")
+    messages.success(request, "Approved  — download it and post to TikTok.")
     return _back(pk)
 
 
@@ -484,7 +522,7 @@ def mark_posted(request, pk):
     video.status = Video.Status.POSTED
     video.posted_at = timezone.now()
     video.save()
-    messages.success(request, "Marked as posted 📲")
+    messages.success(request, "Marked as posted ")
     return _back(pk)
 
 
@@ -548,7 +586,7 @@ def share_video(request, pk):
         messages.warning(request, "Some posts failed — " + "; ".join(errors))
     if results or last_id:
         handles = ", ".join(a.handle for a in accounts)
-        messages.success(request, f"Sharing to {handles} 🚀")
+        messages.success(request, f"Sharing to {handles} ")
     return _back(pk)
 
 
@@ -578,7 +616,7 @@ def share_status(request, pk):
         if video.status != Video.Status.POSTED:
             video.status = Video.Status.POSTED
             video.posted_at = timezone.now()
-        messages.success(request, "Share complete ✅")
+        messages.success(request, "Share complete ")
     else:
         messages.success(request, "Still processing — check again in a moment.")
     video.save()
@@ -617,7 +655,7 @@ def avatar_create(request):
     except Exception as e:
         messages.error(request, f"Avatar image failed: {e}")
         return redirect("videos:avatars")
-    messages.success(request, f"Avatar “{name}” created 🎭")
+    messages.success(request, f"Avatar “{name}” created ")
     return redirect("videos:avatars")
 
 
@@ -648,5 +686,5 @@ def avatar_voice(request, pk):
         return redirect("videos:avatars")
     avatar.voice_ref = clip
     avatar.save(update_fields=["voice_ref"])
-    messages.success(request, f"Voice sample saved for “{avatar.name}” 🎙️ — you can generate voiceovers now.")
+    messages.success(request, f"Voice sample saved for “{avatar.name}”  — you can generate voiceovers now.")
     return redirect("videos:avatars")

@@ -9,21 +9,36 @@
   .check { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); }
   textarea.body { font-family:var(--mono); font-size:13px; line-height:1.6; }
   .small { color:var(--muted); font-size:12px; }
-  .sec { border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden; }
-  .sec-head { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--panel2);
+  .sec { border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden;
+    background:var(--surface); position:relative; }
+  .sec::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--beak); opacity:.5; }
+  .sec-head { display:flex; align-items:center; gap:10px; padding:11px 14px 11px 18px; background:var(--panel2);
     border-bottom:1px solid var(--line); }
-  .sec-head .k { font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.6px;
-    color:var(--accent); }
+  .sec-head .bnum { width:22px; height:22px; border-radius:6px; background:var(--beak-soft); color:var(--beak-2);
+    font-family:var(--mono); font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+  .sec-head .k { font-weight:700; font-size:14px; color:var(--text); }
   .sec-head .req { font-size:10px; color:var(--muted); border:1px solid var(--line); border-radius:5px;
-    padding:1px 6px; }
+    padding:1px 6px; text-transform:uppercase; letter-spacing:.4px; }
   .sec-head .tools { margin-left:auto; display:flex; gap:5px; }
   .sec-head .tools form { display:inline; }
-  .sec-body { padding:14px; }
+  .sec-body { padding:16px 18px; }
   .mini { padding:5px 9px; font-size:12px; }
   .frow { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .addbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  /* OptimizePress-style block palette */
+  .palette { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; }
+  .palette form { display:block; }
+  .pblock { width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:10px; padding:12px 13px; cursor:pointer; transition:border-color .12s, transform .04s; color:var(--text); }
+  .pblock:hover { border-color:var(--beak); transform:translateY(-1px); }
+  .pblock:active { transform:translateY(0); }
+  .pblock .pn { font-weight:700; font-size:13px; }
+  .pblock .pd { display:block; color:var(--muted); font-size:11px; margin-top:3px; line-height:1.35; }
+  .builder-hd { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:22px 0 10px; }
+  .builder-hd h2 { margin:0; } .builder-hd .small { }
 </style>
 
+<div class="eyebrow">Assets</div>
 <h1>{% if page %}{{ page.title }}{% else %}New page{% endif %}</h1>
 <div class="sub">{{ site.name }}{% if page %} · <a href="{% url 'sites:preview_home' site.pk %}" target="_blank">preview site ↗</a>{% endif %}</div>
 
@@ -55,27 +70,35 @@
 </div>
 
 {% if page %}
-<h2 style="margin:22px 0 10px">Sections</h2>
+<div class="builder-hd">
+  <h2>Build the page</h2>
+  <span class="small">Click a block to add it, then edit &amp; reorder the stack below.</span>
+</div>
 
 <div class="panel">
-  <form method="post" action="{% url 'sites:section_add' page.pk %}" class="addbar">
-    {% csrf_token %}
-    <select name="kind" style="max-width:220px">
-      {% for val, label in section_kinds %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
-    </select>
-    <button class="btn" type="submit">+ Add section</button>
-  </form>
+  <div class="palette">
+    {% for val, label in section_kinds %}
+    <form method="post" action="{% url 'sites:section_add' page.pk %}">{% csrf_token %}
+      <input type="hidden" name="kind" value="{{ val }}">
+      <button class="pblock" type="submit">
+        <span class="pn">{{ label }}</span>
+        <span class="pd">{% if val == 'hero' %}Headline + button{% elif val == 'features' %}Three benefits{% elif val == 'testimonial' %}Customer quote{% elif val == 'stats' %}Three key numbers{% elif val == 'cta' %}Call-to-action band{% elif val == 'optin' %}Email capture form{% elif val == 'image' %}A single image{% elif val == 'text' %}Rich text block{% elif val == 'faq' %}Question &amp; answer list{% else %}Content block{% endif %}</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
 </div>
 
 {% for s in sections %}
 <div class="sec">
   <div class="sec-head">
+    <span class="bnum">{{ forloop.counter }}</span>
     <span class="k">{{ s.get_kind_display }}</span>
     {% if s.is_mandatory %}<span class="req">required</span>{% endif %}
     <div class="tools">
       <form method="post" action="{% url 'sites:section_move' s.pk 'up' %}">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">↑</button></form>
       <form method="post" action="{% url 'sites:section_move' s.pk 'down' %}">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">↓</button></form>
-      <form method="post" action="{% url 'sites:section_delete' s.pk %}" onsubmit="return confirm('Remove this section?')">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">✕</button></form>
+      <form method="post" action="{% url 'sites:section_delete' s.pk %}" data-confirm="Remove this section?">{% csrf_token %}<button class="btn btn-ghost mini" type="submit">✕</button></form>
     </div>
   </div>
   <div class="sec-body">

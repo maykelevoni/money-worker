@@ -33,6 +33,7 @@
 
 <a class="backlink" href="{% url 'content:library' %}">← Content</a>
 <div class="vhead">
+  <div class="eyebrow">Studio</div>
   <h1>{{ p.title|default:p|truncatechars:60 }}</h1>
   <span class="chip">{{ p.get_kind_display }}</span>
   <span class="pill s-{{ p.status }}">{{ p.get_status_display }}</span>
@@ -83,7 +84,7 @@
                 {{ a.platform_label }} · {{ a.handle }}</label>
             {% endfor %}
           </div>
-          <button class="btn" type="submit">🚀 Publish now</button>
+          <button class="btn" type="submit"> Publish now</button>
         </form>
         {% if p.status == 'publishing' %}
           <div class="small" style="margin-top:10px;">⏳ Publishing…

@@ -87,7 +87,16 @@ class Post(WorkspaceOwned):
         ]
 
     def __str__(self):
-        return self.title or (self.body[:50] if self.body else f"{self.get_kind_display()} #{self.pk}")
+        if self.title:
+            return self.title
+        if self.body:
+            return self.body[:60]
+        # Image posts with no caption yet: name them by what made the image.
+        if self.kind == self.Kind.IMAGE and self.pk:
+            img = self.images.filter(is_selected=True).first() or self.images.first()
+            if img and img.prompt:
+                return img.prompt[:60]
+        return f"{self.get_kind_display()} #{self.pk}"
 
     @property
     def media_src(self):

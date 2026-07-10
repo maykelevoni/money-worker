@@ -6,66 +6,86 @@
 <style>
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     gap: 14px; margin-bottom: 24px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+    display: block; text-decoration: none; color: inherit; transition: border-color .12s, transform .04s; }
+  a.card:hover { border-color: #39414f; }
+  a.card:active { transform: translateY(1px); }
+  a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
   .card .v { font-size: 28px; font-weight: 700; margin-top: 6px; }
-  .next { background: linear-gradient(90deg, #1c2440, #181b24); border: 1px solid var(--accent);
+  .next { display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    background: linear-gradient(90deg, #1c2440, #181b24); border: 1px solid var(--accent);
     border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; }
+  .next .txt { flex: 1 1 320px; }
   .next .k { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
   .next .v { font-size: 18px; font-weight: 600; margin-top: 4px; }
-  .funnel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-  .funnel h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 16px; }
-  .stages { display: flex; align-items: center; gap: 8px; }
-  .stage { flex: 1; text-align: center; background: var(--panel2); border-radius: 10px; padding: 16px 8px; }
-  .stage .n { font-size: 24px; font-weight: 700; }
-  .stage .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .arrow { color: var(--muted); font-size: 18px; }
-  @media (max-width: 820px) {
-    .stages { flex-wrap: wrap; }
-    .stage { flex: 1 1 40%; }
-    .arrow { display: none; }
-  }
+  .next .btn { flex: none; }
+  /* setup checklist */
+  .setup { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; margin-bottom: 24px; }
+  .setup h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .setup .prog { font-family: var(--mono); font-size: 12px; color: var(--faint); margin: 4px 0 16px; }
+  .steps { display: grid; gap: 8px; }
+  .step { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;
+    background: var(--panel2); border: 1px solid var(--line); text-decoration: none; color: var(--text);
+    font-size: 14px; transition: border-color .12s; }
+  .step:hover { border-color: #39414f; }
+  .step.on { color: var(--muted); }
+  .step .box { width: 20px; height: 20px; border-radius: 6px; flex: none; display: grid;
+    place-items: center; border: 1px solid var(--line); font-size: 12px; }
+  .step.on .box { background: rgba(67,214,160,.14); border-color: transparent; color: var(--ok); }
+  .step .go { margin-left: auto; color: var(--faint); font-family: var(--mono); font-size: 12px; }
+  .analytics-link { display: inline-block; color: var(--muted); text-decoration: none; font-size: 14px;
+    font-weight: 600; }
+  .analytics-link:hover { color: var(--accent); }
 </style>
 
-<h1>Command Center</h1>
-<div class="sub">Talking-avatar videos → leads → product sales</div>
+{% include "_pagehead.html" with eyebrow="Overview" title="Command Center" subtitle="Talking-avatar videos → leads → product sales" %}
 
 <div class="next">
-  <div class="k">👉 The one next action</div>
-  <div class="v">{{ next_action }}</div>
+  <div class="txt">
+    <div class="k"> The one next action</div>
+    <div class="v">{{ next_action }}</div>
+  </div>
+  <a class="btn" href="{{ next_action_url }}">{{ next_action_cta }} →</a>
+</div>
+
+{% if show_setup %}
+<div class="setup">
+  <h3>Get set up</h3>
+  <div class="prog">{{ setup_done }} of {{ setup_steps|length }} done — finish these to start the funnel.</div>
+  <div class="steps">
+    {% for s in setup_steps %}
+    <a class="step {% if s.done %}on{% endif %}" href="{{ s.url }}">
+      <span class="box">{% if s.done %}✓{% endif %}</span>
+      <span>{{ s.label }}</span>
+      {% if not s.done %}<span class="go">Do it →</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="cards">
+  <a class="card" href="/factory/?status=posted"><div class="k">Videos live</div><div class="v">{{ videos_live }}</div></a>
+  <a class="card" href="/factory/"><div class="k">Awaiting approval</div><div class="v" style="color:var(--amber)">{{ pending_approval }}</div></a>
+  <a class="card" href="/leads/"><div class="k">Leads</div><div class="v">{{ leads_total }}</div></a>
+  <a class="card" href="/analytics/"><div class="k">Conversions</div><div class="v" style="color:var(--green)">{{ leads_converted }}</div></a>
 </div>
 
 <div class="cards">
-  <div class="card"><div class="k">Videos live</div><div class="v">{{ videos_live }}</div></div>
-  <div class="card"><div class="k">Awaiting approval</div><div class="v" style="color:var(--amber)">{{ pending_approval }}</div></div>
-  <div class="card"><div class="k">Leads</div><div class="v">{{ leads_total }}</div></div>
-  <div class="card"><div class="k">Conversions</div><div class="v" style="color:var(--green)">{{ leads_converted }}</div></div>
-</div>
-
-<div class="cards">
-  <a class="card" href="/factory/avatars/" style="text-decoration:none;color:inherit;">
-    <div class="k">🎭 Avatars</div><div class="v">{{ avatars_count }}</div></a>
-  <a class="card" href="/offers/" style="text-decoration:none;color:inherit;">
-    <div class="k">🛒 Products</div><div class="v">{{ products_active }}</div>
+  <a class="card" href="/factory/avatars/">
+    <div class="k"> Avatars</div><div class="v">{{ avatars_count }}</div></a>
+  <a class="card" href="/offers/">
+    <div class="k"> Products</div><div class="v">{{ products_active }}</div>
     {% if products_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">add one to promote</div>{% endif %}</a>
-  <a class="card" href="/factory/" style="text-decoration:none;color:inherit;">
-    <div class="k">🏭 Videos</div><div class="v">{{ videos_total }}</div>
+  <a class="card" href="/factory/">
+    <div class="k"> All videos</div><div class="v">{{ videos_total }}</div>
     {% if videos_total == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">make your first</div>{% endif %}</a>
-  <a class="card" href="/capture-pages/" style="text-decoration:none;color:inherit;">
-    <div class="k">🛬 Capture pages</div><div class="v">{{ pages_active }}</div>
+  <a class="card" href="/capture-pages/">
+    <div class="k"> Capture pages</div><div class="v">{{ pages_active }}</div>
     {% if pages_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">build one to collect leads</div>{% endif %}</a>
 </div>
 
-<div class="funnel">
-  <h3>The funnel</h3>
-  <div class="stages">
-    <div class="stage"><div class="n">{{ funnel.videos }}</div><div class="l">🎬 Videos</div></div>
-    <div class="arrow">→</div>
-    <div class="stage"><div class="n">{{ funnel.leads }}</div><div class="l">📥 Leads</div></div>
-    <div class="arrow">→</div>
-    <div class="stage"><div class="n">{{ funnel.clicked }}</div><div class="l">🔗 Clicked</div></div>
-    <div class="arrow">→</div>
-    <div class="stage"><div class="n">{{ funnel.converted }}</div><div class="l">💰 Sales</div></div>
-  </div>
-</div>
+<a class="analytics-link" href="/analytics/">See the full funnel &amp; performance in Analytics →</a>
 {% endblock %}

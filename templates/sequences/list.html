@@ -14,74 +14,152 @@
   textarea { min-height: 90px; resize: vertical; }
   .inline { display: flex; gap: 12px; flex-wrap: wrap; }
   .inline .field { flex: 1; min-width: 120px; }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
-    letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
-  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
-    border: 1px solid var(--line); white-space: nowrap; }
+  .small { color: var(--muted); font-size: 12px; }
+
+  /* ActiveCampaign-style vertical automation flow */
+  .flow { max-width: 640px; margin: 6px auto 30px; }
+  .fnode { text-align: center; }
+  .cap { display: inline-flex; align-items: center; gap: 9px; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 9px 18px; font-size: 13px;
+    color: var(--text); font-weight: 600; }
+  .cap .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .cap.start .dot { background: var(--ok); box-shadow: 0 0 0 4px rgba(67,214,160,.15); }
+  .cap.end { color: var(--muted); font-weight: 500; }
+  .cap.end .dot { background: var(--faint); }
+  .conn { width: 2px; height: 38px; background: var(--line); margin: 0 auto; position: relative; }
+  .conn .wait { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    white-space: nowrap; background: var(--ink); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 12px; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  .ecard { border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+    overflow: hidden; text-align: left; }
+  .ecard.paused { opacity: .62; }
+  .ecard .top { display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    border-bottom: 1px solid var(--line-soft); }
+  .ecard .badge { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--beak-2); background: var(--beak-soft); border-radius: 6px;
+    padding: 3px 9px; }
+  .ecard .step-n { font-size: 12px; color: var(--faint); }
+  .pill { font-size: 11px; padding: 3px 10px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; margin-left: auto; }
   .pill.on { color: var(--green); border-color: #1d5235; }
   .pill.off { color: var(--muted); }
-  .day { font-weight: 700; color: var(--accent); }
-  .actions { display: flex; gap: 6px; }
-  .actions form { display: inline; }
-  .small { color: var(--muted); font-size: 12px; }
-  @media (max-width: 820px) { table { min-width: 560px; } }
+  .ecard .bd { padding: 14px 16px; }
+  .ecard .subj { font-weight: 700; font-size: 15.5px; }
+  .ecard .prev { color: var(--muted); font-size: 13px; margin-top: 5px; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ecard .ft { display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+    border-top: 1px solid var(--line-soft); flex-wrap: wrap; }
+  .ecard .to { font-size: 12px; color: var(--muted); }
+  .ecard .acts { margin-left: auto; display: flex; gap: 6px; }
+  .ecard .acts form { display: inline; }
+  .addbtn { display: block; margin: 0 auto; border: 1px dashed var(--line); background: transparent;
+    color: var(--muted); border-radius: 10px; padding: 9px 16px; font-size: 13px; cursor: pointer; }
+  .addbtn:hover { border-color: var(--beak); color: var(--text); }
+
+  .form-head { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 8px; }
+  .form-head h2 { font-size: 16px; }
 </style>
 
-<h1>📧 Email Sequences</h1>
-<div class="sub">The nurture drip that turns leads into sales. Steps fire by days after opt-in.</div>
+{% include "_pagehead.html" with eyebrow="Grow" title="Email Sequences" subtitle="The nurture drip that turns leads into sales. Steps fire by days after opt-in." %}
 
 {% if not email_configured %}
-  <div class="warn">⚠️ Resend not configured — add <code>RESEND_API_KEY</code> + <code>RESEND_FROM_EMAIL</code> to .env to actually send. You can still design the sequence now.</div>
+  <div class="warn">Resend not configured — add <code>RESEND_API_KEY</code> + <code>RESEND_FROM_EMAIL</code> to .env to actually send. You can still design the sequence now.</div>
 {% endif %}
 
-<div class="panel">
+<div class="flow">
+  <div class="fnode"><span class="cap start"><span class="dot"></span>Contact opts in</span></div>
+
+  {% for s in steps %}
+    <div class="conn"><span class="wait">{% if s.delay_days == 0 %}Immediately{% else %}Wait {{ s.delay_days }} day{{ s.delay_days|pluralize }}{% endif %}</span></div>
+    <div class="fnode">
+      <div class="ecard {% if not s.is_active %}paused{% endif %}">
+        <div class="top">
+          <span class="badge">Send email</span>
+          <span class="step-n">Step {{ forloop.counter }} · Day {{ s.delay_days }}</span>
+          <span class="pill {% if s.is_active %}on{% else %}off{% endif %}">{% if s.is_active %}Active{% else %}Paused{% endif %}</span>
+        </div>
+        <div class="bd">
+          <div class="subj">{{ s.subject }}</div>
+          <div class="prev">{{ s.body|striptags|truncatechars:150 }}</div>
+        </div>
+        <div class="ft">
+          <span class="to">To: {% if s.email_list %}{{ s.email_list.name }}{% else %}Everyone in the workspace{% endif %}</span>
+          <span class="acts">
+            <form method="post" action="{% url 'sequences:toggle' s.pk %}">{% csrf_token %}
+              <button class="btn btn-ghost" type="submit">{% if s.is_active %}Pause{% else %}Activate{% endif %}</button></form>
+            <form method="post" action="{% url 'sequences:delete' s.pk %}" data-confirm="Delete this email step?">{% csrf_token %}
+              <button class="btn btn-ghost" type="submit">Delete</button></form>
+          </span>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="conn"></div>
+    <div class="fnode panel" style="text-align:center">
+      <p class="small" style="margin-bottom:12px">No emails in this sequence yet. Add your first below, or start from a proven 3-email welcome sequence.</p>
+      <form method="post" action="{% url 'sequences:starter' %}">{% csrf_token %}
+        <button class="btn btn-ghost" type="submit">Load 3-email starter</button></form>
+    </div>
+  {% endfor %}
+
+  <div class="conn"></div>
+  <div class="fnode"><button type="button" class="addbtn" id="addToggle">+ Add an email step</button></div>
+  <div class="conn"></div>
+  <div class="fnode"><span class="cap end"><span class="dot"></span>Sequence ends</span></div>
+</div>
+
+<div class="panel" id="addPanel" {% if steps %}style="display:none"{% endif %}>
+  <div class="form-head">
+    <h2>Add an email step</h2>
+    {% if steps %}<button type="button" class="btn btn-ghost" id="addClose" style="padding:4px 11px;font-size:12px">Close</button>{% endif %}
+  </div>
   <form method="post" action="{% url 'sequences:create' %}">
     {% csrf_token %}
     <div class="inline">
-      <div class="field" style="max-width:140px"><label>Send after (days)</label>
+      <div class="field" style="max-width:160px"><label>Send after (days)</label>
         <input type="number" name="delay_days" value="0" min="0"></div>
       <div class="field"><label>Subject *</label>
-        <input name="subject" placeholder="Your free cheat sheet 🎁" required></div>
+        <input name="subject" placeholder="Your free cheat sheet" required></div>
     </div>
-    <div class="field"><label>Body * (HTML ok, use {magnet} for the freebie name)</label>
-      <textarea name="body" placeholder="<p>Hey! Here's your free guide…</p>" required></textarea></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span>Body * — write it like a normal email</span>
+        <button type="button" class="btn btn-ghost" id="insertMagnet" style="padding:3px 9px;font-size:12px">Insert {magnet}</button>
+      </label>
+      <textarea id="bodyField" name="body" placeholder="Hey!&#10;&#10;Here's {magnet} as promised — grab it here: [link]&#10;&#10;Over the next few days I'll send you my best tips." required></textarea>
+      <div class="small" style="margin-top:4px">Plain text is fine — line breaks are kept. Type <code>{magnet}</code> anywhere to drop in the freebie's name.</div>
+    </div>
     <div class="field" style="max-width:280px"><label>Send to list</label>
       <select name="email_list">
         <option value="">Everyone in the workspace</option>
         {% for l in lists %}<option value="{{ l.pk }}">{{ l.name }}</option>{% endfor %}
       </select></div>
     <button class="btn" type="submit">+ Add email step</button>
-    {% if not steps %}
-      <form method="post" action="{% url 'sequences:starter' %}" style="display:inline">{% csrf_token %}
-        <button class="btn btn-ghost" type="submit">✨ Load 3-email starter</button></form>
-    {% endif %}
   </form>
 </div>
 
-<div class="panel table-wrap">
-  <table>
-    <thead><tr><th>When</th><th>Subject</th><th>List</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody>
-    {% for s in steps %}
-      <tr>
-        <td><span class="day">Day {{ s.delay_days }}</span></td>
-        <td><strong>{{ s.subject }}</strong><br><span class="small">{{ s.body|striptags|truncatechars:90 }}</span></td>
-        <td class="small">{% if s.email_list %}{{ s.email_list.name }}{% else %}Everyone{% endif %}</td>
-        <td>{% if s.is_active %}<span class="pill on">active</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
-        <td><div class="actions">
-          <form method="post" action="{% url 'sequences:toggle' s.pk %}">{% csrf_token %}
-            <button class="btn btn-ghost" type="submit">{% if s.is_active %}Pause{% else %}Activate{% endif %}</button></form>
-          <form method="post" action="{% url 'sequences:delete' s.pk %}" onsubmit="return confirm('Delete step?')">{% csrf_token %}
-            <button class="btn btn-ghost" type="submit">Delete</button></form>
-        </div></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="5" class="small">No steps yet — add one above or load the starter.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</div>
+<script>
+  (function () {
+    var panel = document.getElementById('addPanel');
+    var toggle = document.getElementById('addToggle');
+    var close = document.getElementById('addClose');
+    if (toggle && panel) toggle.addEventListener('click', function () {
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var f = panel.querySelector('input[name="subject"]'); if (f) f.focus();
+    });
+    if (close && panel) close.addEventListener('click', function () { panel.style.display = 'none'; });
+
+    var btn = document.getElementById('insertMagnet');
+    var ta = document.getElementById('bodyField');
+    if (btn && ta) btn.addEventListener('click', function () {
+      var s = ta.selectionStart, e = ta.selectionEnd, tok = '{magnet}';
+      ta.value = ta.value.slice(0, s) + tok + ta.value.slice(e);
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = s + tok.length;
+    });
+  })();
+</script>
 {% endblock %}

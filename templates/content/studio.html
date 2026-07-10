@@ -8,8 +8,7 @@
     background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--text);
     transition: border-color .15s, transform .15s, background .15s; }
   .mk-card:hover { border-color: var(--beak); transform: translateY(-2px); background: var(--surface-2); }
-  .mk-ico { font-size: 30px; line-height: 1; }
-  .mk-name { font-weight: 700; font-size: 16px; margin-top: 6px; }
+  .mk-name { font-weight: 700; font-size: 16px; }
   .mk-desc { color: var(--muted); font-size: 13px; line-height: 1.45; flex: 1; }
   .mk-go { color: var(--beak-2); font-family: var(--mono); font-size: 12px; margin-top: 8px; }
   .mk-card.feat { border-color: rgba(255,126,46,.35); background: var(--beak-soft); }
@@ -17,31 +16,25 @@
     color: var(--muted); font-size: 14px; }
 </style>
 
-<div class="eyebrow">Studio</div>
-<h1>What do you want to make?</h1>
-<p class="sub">Research feeds any of these. Everything you make lands in your Library, ready to publish.</p>
+{% include "_pagehead.html" with eyebrow="Studio" title="What do you want to make?" subtitle="Research feeds any of these. Everything you make lands in your Library, ready to publish." %}
 
 <div class="mk-grid">
   <a class="mk-card" href="{% url 'content:create' %}?kind=article">
-    <div class="mk-ico">📝</div>
     <div class="mk-name">Article / blog</div>
     <div class="mk-desc">Long-form post for your conversion website's blog — the SEO engine.</div>
-    <div class="mk-go">Write →</div>
+    <div class="mk-go">Write an article →</div>
   </a>
   <a class="mk-card" href="{% url 'content:create' %}?kind=image">
-    <div class="mk-ico">🖼️</div>
     <div class="mk-name">Image post</div>
     <div class="mk-desc">Generate an on-brand image with your character, caption it, post to social.</div>
     <div class="mk-go">Design →</div>
   </a>
   <a class="mk-card" href="{% url 'content:create' %}?kind=text">
-    <div class="mk-ico">✍️</div>
     <div class="mk-name">Text post</div>
     <div class="mk-desc">A quick written post — hook, caption, or thread for social.</div>
-    <div class="mk-go">Write →</div>
+    <div class="mk-go">Write a post →</div>
   </a>
   <a class="mk-card feat" href="{% url 'videos:factory' %}">
-    <div class="mk-ico">🎬</div>
     <div class="mk-name">Short video</div>
     <div class="mk-desc">A vertical short in your voice — script → voice → pause-synced slides → video.</div>
     <div class="mk-go">Make a short →</div>
@@ -49,7 +42,7 @@
 </div>
 
 <div class="mk-hint">
-  <span>💡 Not sure yet?</span>
+  <span> Not sure yet?</span>
   <a class="btn btn-ghost" href="{% url 'videos:research' %}">Start from Research →</a>
 </div>
 {% endblock %}

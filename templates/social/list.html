@@ -22,8 +22,7 @@
   .mono { font-family:var(--mono); font-size:13px; }
 </style>
 
-<h1>📣 Social Accounts</h1>
-<div class="sub">The accounts your content publishes to. Posting runs through an Upload-Post profile — you can have several accounts, even multiple per platform.</div>
+{% include "_pagehead.html" with eyebrow="Assets" title="Social Accounts" subtitle="The accounts your content publishes to. You can connect several, even more than one per platform." %}
 
 <div class="panel">
   <form method="post" action="{% url 'social:create' %}" class="grid-form">
@@ -33,30 +32,34 @@
     </div>
     <div><label>Handle *</label><input name="handle" placeholder="@sleeptips" required></div>
     <div><label>Display name</label><input name="display_name" placeholder="Sleep Tips"></div>
-    <div><label>Upload-Post profile *</label><input name="up_profile" placeholder="e.g. sleeptips" required></div>
-    <div><label class="check"><input type="checkbox" name="connected" style="width:auto"> Connected</label></div>
+    <div><label>Posting profile *</label><input name="up_profile" placeholder="e.g. sleeptips" required>
+      <div class="small" style="margin-top:4px">Your Upload-Post profile name.</div></div>
+    <div><label class="check"><input type="checkbox" name="connected" style="width:auto"> Connected &amp; ready to post</label></div>
     <div><button class="btn" type="submit">+ Add account</button></div>
   </form>
 </div>
 
 <div class="panel table-wrap">
   <table>
-    <thead><tr><th>Account</th><th>Platform</th><th>Upload-Post profile</th><th>Connection</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Account</th><th>Platform</th><th>Posting profile</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
     {% for a in accounts %}
       <tr>
         <td><strong>{{ a.handle }}</strong>{% if a.display_name %}<br><span class="small">{{ a.display_name }}</span>{% endif %}</td>
         <td>{{ a.platform_label }}</td>
         <td class="mono">{{ a.up_profile }}</td>
-        <td>{% if a.status == 'connected' %}<span class="pill on">connected</span>{% else %}<span class="pill off">{{ a.get_status_display }}</span>{% endif %}</td>
-        <td>{% if a.is_active %}<span class="pill on">active</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
+        <td>
+          {% if a.status != 'connected' %}<span class="pill off">Not connected</span>
+          {% elif a.is_active %}<span class="pill on">Active</span>
+          {% else %}<span class="pill off">Paused</span>{% endif %}
+        </td>
         <td><div class="actions">
           <form method="post" action="{% url 'social:toggle' a.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">{% if a.is_active %}Pause{% else %}Activate{% endif %}</button></form>
-          <form method="post" action="{% url 'social:delete' a.pk %}" onsubmit="return confirm('Remove this account?')">{% csrf_token %}<button class="btn btn-ghost" type="submit">Delete</button></form>
+          <form method="post" action="{% url 'social:delete' a.pk %}" data-confirm="Remove this account?">{% csrf_token %}<button class="btn btn-ghost" type="submit">Delete</button></form>
         </div></td>
       </tr>
     {% empty %}
-      <tr><td colspan="6" class="small">No accounts yet — add the accounts you publish to above.</td></tr>
+      <tr><td colspan="5" class="small">No accounts yet — add the accounts you publish to above.</td></tr>
     {% endfor %}
     </tbody>
   </table>

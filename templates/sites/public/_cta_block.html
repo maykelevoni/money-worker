@@ -30,7 +30,7 @@ Article CTA hero. `cta.mode` picks the variety:
         {% if cta.cover_img %}
         <div class="magnet-cover img" aria-hidden="true"><img src="{{ cta.cover_img }}" alt=""></div>
         {% else %}
-        <div class="magnet-cover" aria-hidden="true">{{ cta.cover|default:"📘" }}</div>
+        <div class="magnet-cover" aria-hidden="true">{{ cta.cover|default:"" }}</div>
         {% endif %}
         <div class="magnet-body">
           <span class="kick">{{ cta.kick|default:"Free guide" }}</span>

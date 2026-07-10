@@ -31,8 +31,7 @@
   @media (max-width: 820px) { table { min-width: 700px; } }
 </style>
 
-<h1>🛒 Products</h1>
-<div class="sub">The products your funnel promotes — affiliate products or your own.</div>
+{% include "_pagehead.html" with eyebrow="Products" title="Products" subtitle="The products your funnel promotes — affiliate products or your own." %}
 
 <div class="panel">
   <form method="post" action="{% url 'offers:create' %}" class="grid-form" id="product-form">
@@ -83,7 +82,7 @@
           <div class="actions">
             <form method="post" action="{% url 'offers:toggle' o.pk %}">{% csrf_token %}
               <button class="btn btn-ghost" type="submit">{% if o.is_active %}Pause{% else %}Activate{% endif %}</button></form>
-            <form method="post" action="{% url 'offers:delete' o.pk %}" onsubmit="return confirm('Delete this product?')">{% csrf_token %}
+            <form method="post" action="{% url 'offers:delete' o.pk %}" data-confirm="Delete this product?">{% csrf_token %}
               <button class="btn btn-ghost" type="submit">Delete</button></form>
           </div>
         </td>

@@ -1,0 +1,11 @@
+{% comment %}Unified page header used across the whole app.
+Usage: {% include "_pagehead.html" with eyebrow="Studio" title="Library" subtitle="…" action_url="/x/" action_label="+ New" %}
+Only `title` is required.{% endcomment %}
+<div class="pagehead">
+  <div class="pagehead-text">
+    {% if eyebrow %}<div class="eyebrow">{{ eyebrow }}</div>{% endif %}
+    <h1>{{ title }}</h1>
+    {% if subtitle %}<p class="sub">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if action_url %}<a class="btn ph-action" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+</div>

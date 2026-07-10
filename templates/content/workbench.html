@@ -57,10 +57,27 @@
   #imgControls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
   #imgControls select { min-width: 120px; }
 
-  .plats { display: flex; flex-wrap: wrap; gap: 6px; }
-  .plat { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px;
-    padding: 5px 10px; cursor: pointer; font-size: 12px; user-select: none; }
+  .plats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plat { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 11px;
+    padding: 6px 13px 6px 7px; cursor: pointer; user-select: none; background: var(--surface-2);
+    position: relative; transition: border-color .12s, background .12s; }
+  .plat:hover { border-color: #39414f; }
+  .plat input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .plat .av { width: 27px; height: 27px; border-radius: 50%; flex: none; display: inline-flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff;
+    background: var(--faint); text-transform: uppercase; }
+  .plat .hn { line-height: 1.2; }
+  .plat .hn b { display: block; font-size: 12.5px; font-weight: 700; }
+  .plat .hn span { color: var(--muted); font-size: 11px; }
+  .plat:has(input:checked) { border-color: var(--beak); background: var(--beak-soft); }
+  .plat:has(input:checked) .av { box-shadow: 0 0 0 2px var(--beak); }
   .plat.off { opacity: .35; pointer-events: none; }
+  .plat[data-plat="youtube"] .av { background: #ff0033; }
+  .plat[data-plat="instagram"] .av { background: linear-gradient(45deg,#f09433,#dc2743,#bc1888); }
+  .plat[data-plat="tiktok"] .av { background: #111; box-shadow: inset 0 0 0 1px var(--line); }
+  .plat[data-plat="facebook"] .av { background: #1877f2; }
+  .plat[data-plat="linkedin"] .av { background: #0a66c2; }
+  .plat[data-plat="x"] .av, .plat[data-plat="twitter"] .av { background: #000; box-shadow: inset 0 0 0 1px var(--line); }
 
   .fld { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
   .col input[type=text], .col input[type=datetime-local], .col textarea { width: 100%; }
@@ -86,11 +103,9 @@
   .toast.err { border-color: #ff6b6b; }
 </style>
 
-<div class="eyebrow">Studio</div>
-<h1>New post</h1>
-<p class="sub">Make images on the left, write on the right, drive both with the Prompt bar. Everything lands in one post.</p>
+{% include "_pagehead.html" with eyebrow="Studio" title="New post" subtitle="Make images on the left, write on the right, drive both with the Prompt bar. Everything lands in one post." %}
 {% if p.source_idea %}
-  <p class="sub" style="margin-top:-6px;">💡 From research: <strong>{{ p.source_idea.headline }}</strong></p>
+  <p class="sub" style="margin-top:-6px;"> From research: <strong>{{ p.source_idea.headline }}</strong></p>
 {% endif %}
 
 <div class="wb">
@@ -114,8 +129,8 @@
     <div class="card">
       <h4>Prompt</h4>
       <div class="modes" id="modes">
-        <button type="button" data-mode="image" class="on">🖼 Image</button>
-        <button type="button" data-mode="text">✍️ Text</button>
+        <button type="button" data-mode="image" class="on"> Image</button>
+        <button type="button" data-mode="text"> Text</button>
       </div>
       <div id="imgControls">
         <select id="styleSel" title="Image style">
@@ -123,9 +138,9 @@
         </select>
         <select id="avatarSel" title="Use a saved character as a reference">
           <option value="">— no character —</option>
-          {% for a in avatars %}<option value="{{ a.pk }}">🎭 {{ a.name }}</option>{% endfor %}
+          {% for a in avatars %}<option value="{{ a.pk }}"> {{ a.name }}</option>{% endfor %}
         </select>
-        <button type="button" class="filebtn" id="refBtn" title="Attach reference images">📎 Refs</button>
+        <button type="button" class="filebtn" id="refBtn" title="Attach reference images"> Refs</button>
         <input type="file" id="refInput" accept="image/*" multiple style="display:none">
       </div>
 
@@ -136,7 +151,7 @@
 
       <div class="promptrow">
         <textarea id="aiPrompt" placeholder="Describe what you want…  e.g. “a neon duck hacker at a laptop”"></textarea>
-        <button type="button" class="btn" id="aiSend">Send</button>
+        <button type="button" class="btn" id="aiSend"> Generate</button>
         <span class="spin" id="aiSpin">working…</span>
       </div>
       <div class="refchips" id="refChips"></div>
@@ -160,22 +175,25 @@
 
     {% if p.kind == 'article' %}
     <div class="card" style="border-color: rgba(255,126,46,.35); background: var(--beak-soft);">
-      <h4>📝 Next: publish to a blog</h4>
+      <h4> Next: publish to a blog</h4>
       <p class="sub" style="margin:0 0 10px;">Articles publish to a website's blog, not social. Save this draft, then attach it on one of your sites.</p>
       <a class="btn ghost" href="/websites/" style="width:100%; justify-content:center;">Go to Websites →</a>
     </div>
     {% else %}
     <div class="card">
-      <h4>Accounts</h4>
+      <h4>Publish to</h4>
       <div class="plats" id="plats">
         {% for a in publish_accounts %}
         <label class="plat" data-plat="{{ a.platform }}">
-          <input type="checkbox" name="accounts" value="{{ a.pk }}"> {{ a.platform_label }} · {{ a.handle }}
+          <input type="checkbox" name="accounts" value="{{ a.pk }}">
+          <span class="av">{{ a.platform_label|slice:":1" }}</span>
+          <span class="hn"><b>{{ a.handle }}</b><span>{{ a.platform_label }}</span></span>
         </label>
         {% empty %}
         <p class="sub" style="margin:0">No accounts yet — add them in <a href="/social/">Social Accounts</a>.</p>
         {% endfor %}
       </div>
+      {% if publish_accounts %}<p class="sub" id="platHint" style="margin:10px 0 0; font-size:12px;">Greyed-out channels don't fit this post's type — add an image to unlock image channels.</p>{% endif %}
     </div>
     {% endif %}
 
@@ -198,7 +216,7 @@
       <button type="button" class="btn" id="mUse">✓ Use for post</button>
       <button type="button" class="btn ghost" id="mEdit">✎ Edit this</button>
       <a class="btn ghost" id="mDownload" href="" download>⤓ Download</a>
-      <button type="button" class="btn ghost del" id="mDelete">🗑 Delete</button>
+      <button type="button" class="btn ghost del" id="mDelete"> Delete</button>
     </div>
   </div>
 </div>
@@ -324,10 +342,10 @@
         if (!d.ok) { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = d.error || 'Something went wrong.'; return; }
         if (d.mode === 'text') {
           $('textarea[name=body]').value = d.body;
-          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = 'Caption written ✍️';
+          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = 'Caption written ';
         } else {
           addTiles([d.image]);
-          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = editFrom ? 'Image edited 🎨' : 'Image generated 🎨';
+          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = editFrom ? 'Image edited ' : 'Image generated ';
           refreshPlats();
         }
         $('#aiPrompt').value = ''; refs = []; renderRefs(); cancelEdit();
@@ -380,7 +398,7 @@
 
   // two-click delete confirm (no confirm())
   var delArmed = false;
-  function resetDelete() { delArmed = false; $('#mDelete').textContent = '🗑 Delete'; $('#mDelete').classList.remove('armed'); }
+  function resetDelete() { delArmed = false; $('#mDelete').textContent = ' Delete'; $('#mDelete').classList.remove('armed'); }
   $('#mDelete').addEventListener('click', function () {
     if (!delArmed) { delArmed = true; $('#mDelete').textContent = 'Click again to confirm'; return; }
     var pk = modalPk;

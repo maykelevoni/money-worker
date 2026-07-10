@@ -68,7 +68,7 @@ def load_starter(request):
         messages.error(request, "You already have steps — clear them first.")
         return redirect("sequences:list")
     starter = [
-        (0, "Your free AI tools cheat sheet 🎁",
+        (0, "Your free AI tools cheat sheet ",
          "<p>Hey!</p><p>Here's <strong>{magnet}</strong> as promised: <a href='#'>download</a>.</p>"
          "<p>I'll send you the best AI tools for creators over the next few days.</p>"),
         (2, "The one AI tool I'd start with",
@@ -90,6 +90,7 @@ def load_starter(request):
 def automations(request):
     ws = request.workspace
     runs = AutomationRun.objects.for_workspace(ws)[:15]
+    active_steps = SequenceStep.objects.for_workspace(ws).filter(is_active=True)
     return render(
         request,
         "sequences/automations.html",
@@ -97,7 +98,8 @@ def automations(request):
             "runs": runs,
             "last_run": runs[0] if runs else None,
             "leads_total": Lead.objects.for_workspace(ws).count(),
-            "active_steps": SequenceStep.objects.for_workspace(ws).filter(is_active=True).count(),
+            "steps": active_steps.order_by("delay_days"),
+            "active_steps": active_steps.count(),
             "email_configured": email_svc.is_configured(),
         },
     )
@@ -113,8 +115,5 @@ def run_now(request):
 
 @login_required
 def scheduler(request):
-    return render(
-        request,
-        "sequences/scheduler.html",
-        {"steps": SequenceStep.objects.for_workspace(request.workspace).filter(is_active=True)},
-    )
+    # Scheduler and Automations were near-duplicates — merged into one page.
+    return redirect("sequences:automations")

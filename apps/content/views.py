@@ -1,12 +1,14 @@
+import calendar as _cal
 import json
 import os
 import tempfile
+from datetime import date, timedelta
 from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -48,8 +50,20 @@ def _config():
 @login_required
 def library(request):
     """The content hub — every post (video/image/article/text) in one place."""
-    posts = Post.objects.for_workspace(request.workspace)
-    counts = {row["status"]: row["n"] for row in posts.values("status").annotate(n=Count("id"))}
+    all_posts = Post.objects.for_workspace(request.workspace)
+    counts = {row["status"]: row["n"] for row in all_posts.values("status").annotate(n=Count("id"))}
+
+    q = request.GET.get("q", "").strip()
+    kind = request.GET.get("kind", "")
+    status = request.GET.get("status", "")
+    posts = all_posts
+    if q:
+        posts = posts.filter(Q(title__icontains=q) | Q(body__icontains=q))
+    if kind:
+        posts = posts.filter(kind=kind)
+    if status:
+        posts = posts.filter(status=status)
+
     return render(request, "content/library.html", {
         "posts": posts,
         "stats": {
@@ -59,6 +73,9 @@ def library(request):
             "posted": counts.get("posted", 0),
         },
         "kinds": Post.Kind.choices,
+        "statuses": Post.Status.choices,
+        "filters": {"q": q, "kind": kind, "status": status},
+        "is_filtered": bool(q or kind or status),
         "config": _config(),
         "tab": "library",
     })
@@ -66,10 +83,45 @@ def library(request):
 
 @login_required
 def calendar(request):
-    """Scheduled / upcoming posts — the publishing queue."""
-    scheduled = Post.objects.for_workspace(request.workspace).exclude(scheduled_at=None).order_by("scheduled_at")
+    """A month calendar of scheduled posts, plus an upcoming list."""
+    ws = request.workspace
+    today = timezone.localdate()
+
+    try:
+        year, month = (int(x) for x in request.GET.get("month", "").split("-"))
+        base = date(year, month, 1)
+    except (ValueError, TypeError):
+        base = today.replace(day=1)
+
+    scheduled = list(
+        Post.objects.for_workspace(ws).exclude(scheduled_at=None).order_by("scheduled_at")
+    )
+    by_day = {}
+    for p in scheduled:
+        d = timezone.localtime(p.scheduled_at).date()
+        by_day.setdefault(d, []).append(p)
+
+    weeks = []
+    for week in _cal.Calendar(firstweekday=6).monthdatescalendar(base.year, base.month):
+        weeks.append([
+            {"date": d, "day": d.day, "in_month": d.month == base.month,
+             "today": d == today, "posts": by_day.get(d, [])}
+            for d in week
+        ])
+
+    prev_month = (base - timedelta(days=1)).replace(day=1)
+    next_month = (base + timedelta(days=32)).replace(day=1)
+    upcoming = [p for p in scheduled if timezone.localtime(p.scheduled_at).date() >= today][:6]
+
     return render(request, "content/calendar.html", {
-        "scheduled": scheduled,
+        "weeks": weeks,
+        "month_label": base.strftime("%B %Y"),
+        "prev_month": prev_month.strftime("%Y-%m"),
+        "next_month": next_month.strftime("%Y-%m"),
+        "is_current": base == today.replace(day=1),
+        "weekday_names": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        "upcoming": upcoming,
+        "has_scheduled": bool(scheduled),
         "tab": "calendar",
     })
 
@@ -144,7 +196,7 @@ def _do_publish(request, post, accounts):
     if errors:
         messages.warning(request, "Some posts failed — " + "; ".join(errors))
     if results or last_id:
-        messages.success(request, f"Publishing to {', '.join(a.handle for a in accounts)} 🚀")
+        messages.success(request, f"Publishing to {', '.join(a.handle for a in accounts)} ")
     return bool(results or last_id)
 
 
@@ -414,7 +466,7 @@ def post_status(request, pk):
         post.share_results = results
     if data.get("status") in ("completed", "done") or results:
         post.status = Post.Status.POSTED
-        messages.success(request, "Publish complete ✅")
+        messages.success(request, "Publish complete ")
     else:
         messages.success(request, "Still processing — check again in a moment.")
     post.save()

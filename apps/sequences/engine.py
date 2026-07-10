@@ -1,5 +1,6 @@
 """The nurture engine — sends any sequence steps that are now due, per lead."""
 from django.utils import timezone
+from django.utils.html import escape
 
 from apps.leads.models import Lead
 from apps.leads.services import email as email_svc
@@ -8,7 +9,16 @@ from .models import AutomationRun, SentEmail, SequenceStep
 
 
 def _render(body: str, lead: Lead) -> str:
-    return body.replace("{magnet}", lead.lead_magnet or "your free resource")
+    body = body.replace("{magnet}", lead.lead_magnet or "your free resource")
+    # Authors can write plain text; if there are no HTML tags, turn it into safe
+    # HTML (escape, blank line → paragraph, single newline → <br>) so the email
+    # doesn't collapse onto one line.
+    if "<" not in body:
+        paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
+        body = "".join(
+            "<p>" + escape(p).replace("\n", "<br>") + "</p>" for p in paragraphs
+        )
+    return body
 
 
 def process_due_emails(

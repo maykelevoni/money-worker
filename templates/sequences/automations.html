@@ -20,10 +20,17 @@
     letter-spacing: .4px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   td { padding: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
   code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+  .timeline { list-style: none; }
+  .timeline li { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .timeline li:last-child { border-bottom: none; }
+  .day { flex-shrink: 0; width: 56px; text-align: center; font-weight: 700; color: var(--accent); }
+  details.adv { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  details.adv summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  details.adv summary:hover { color: var(--text); }
+  details.adv[open] summary { margin-bottom: 8px; }
 </style>
 
-<h1>⚙️ Automations</h1>
-<div class="sub">The background engine that runs your funnel.</div>
+{% include "_pagehead.html" with eyebrow="Grow" title="Automation" subtitle="When your funnel runs — and the engine that sends your nurture emails on time." %}
 
 <div class="stat-row">
   <div class="stat"><div class="k">Total leads</div><div class="v">{{ leads_total }}</div></div>
@@ -34,15 +41,31 @@
 <div class="panel">
   <div class="auto">
     <div>
-      <h3>📧 Email nurture engine</h3>
+      <h3>Email nurture engine</h3>
       <div class="small">Sends any sequence emails that are now due to your leads.
         {% if not email_configured %}<span style="color:var(--amber)">(needs RESEND key to actually send)</span>{% endif %}</div>
     </div>
     <form method="post" action="{% url 'sequences:run_now' %}">{% csrf_token %}
-      <button class="btn" type="submit">▶ Run now</button></form>
+      <button class="btn" type="submit">Run now</button></form>
   </div>
-  <p class="small" style="margin-top:14px">To run automatically, schedule this with cron:
-    <br><code>*/10 * * * * cd {{ request.META.PWD|default:"/path/to/money-worker" }} && python3 manage.py run_engine</code></p>
+  <p class="small" style="margin-top:14px">Due emails send automatically in the background. Use <strong>Run now</strong> any time to send everything that's currently due.</p>
+  <details class="adv">
+    <summary>Advanced: run automatically on your own server</summary>
+    <p class="small">If you're self-hosting, add this to your crontab to process due emails every 10 minutes:</p>
+    <p style="margin-top:8px"><code>*/10 * * * * cd {{ request.META.PWD|default:"/path/to/money-worker" }} &amp;&amp; python3 manage.py run_engine</code></p>
+  </details>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:14px">Email drip timeline</h3>
+  <ul class="timeline">
+    {% for s in steps %}
+      <li><div class="day">Day {{ s.delay_days }}</div>
+        <div><strong>{{ s.subject }}</strong><br><span class="small">Sends {{ s.delay_days }} day{{ s.delay_days|pluralize }} after opt-in</span></div></li>
+    {% empty %}
+      <li><span class="small">No active email steps. Build them in <a href="/emails/">Email Sequences</a>.</span></li>
+    {% endfor %}
+  </ul>
 </div>
 
 <div class="panel">

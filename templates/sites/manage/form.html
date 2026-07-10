@@ -18,6 +18,7 @@
   .inline-form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 </style>
 
+<div class="eyebrow">Assets</div>
 <h1>{% if site %}Edit website{% else %}New website{% endif %}</h1>
 {% if site %}<div class="sub mono">{{ site.host }} · <a href="{% url 'sites:preview_home' site.pk %}" target="_blank">preview ↗</a></div>{% endif %}
 
@@ -41,28 +42,33 @@
     <label>Logo (optional)</label>
     {% if site.logo %}<div class="small" style="margin-bottom:6px"><img src="{{ site.logo.url }}" style="height:28px;vertical-align:middle"> current</div>{% endif %}
     <input name="logo" type="file" accept="image/*">
-    <label>Custom domain (optional — connects in Phase 1b)</label>
+    <label>Custom domain (optional — coming soon)</label>
     <input name="custom_domain" value="{{ site.custom_domain|default:'' }}" placeholder="sleeptips.co">
     <label>SEO title suffix</label>
     <input name="seo_title_suffix" value="{{ site.seo_title_suffix|default:'' }}" placeholder=" · Sleep Tips">
     <label>SEO description</label>
     <textarea name="seo_description" rows="2">{{ site.seo_description|default:'' }}</textarea>
     <label class="check" style="margin-top:14px">
-      <input type="checkbox" name="status" value="published" {% if site.is_published %}checked{% endif %} style="width:auto"> Published (live on its host)
+      <input type="checkbox" name="status" value="published" {% if site.is_published %}checked{% endif %} style="width:auto"> Live — visitors can see this site
     </label>
-    <div style="margin-top:14px"><button class="btn" type="submit">Save</button></div>
+    <div class="small" style="margin-top:6px">This is the on/off switch. It controls visibility; it doesn't push your latest edits — use <em>Publish changes</em> below for that.</div>
+    <div style="margin-top:14px"><button class="btn" type="submit">Save settings</button></div>
   </form>
 </div>
 
 {% if site %}
-<div class="panel" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-  <form method="post" action="{% url 'sites:publish' site.pk %}">{% csrf_token %}
-    <button class="btn" type="submit">⏫ Publish site</button>
-  </form>
-  <span class="small">
-    {% if site.last_published_at %}Last published {{ site.last_published_at|date:"M j, Y H:i" }}{% else %}Not published to the CDN yet{% endif %}
-    · exports static HTML{% if not site.is_published %} — mark <em>Published</em> above first{% endif %}
-  </span>
+<div class="panel">
+  <h2 style="margin:0 0 4px;font-size:15px">Publish changes</h2>
+  <p class="small" style="margin:0 0 12px">Rebuilds this site and deploys the static pages. Do this after editing pages, settings, or attaching articles — otherwise the live site keeps the old version.</p>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <form method="post" action="{% url 'sites:publish' site.pk %}">{% csrf_token %}
+      <button class="btn" type="submit">Publish changes to the web</button>
+    </form>
+    <span class="small">
+      {% if site.last_published_at %}Last published {{ site.last_published_at|date:"M j, Y H:i" }}{% else %}Not published yet{% endif %}
+      {% if not site.is_published %} ·  turn on <em>Live</em> above first, or visitors get a 404{% endif %}
+    </span>
+  </div>
 </div>
 
 <h2 style="margin:26px 0 12px">Pages</h2>
@@ -79,7 +85,7 @@
         <td>{{ p.get_status_display }}</td>
         <td><div class="actions">
           <a class="btn btn-ghost" href="{% url 'sites:page_edit' p.pk %}">Edit</a>
-          <form method="post" action="{% url 'sites:page_delete' p.pk %}" onsubmit="return confirm('Delete this page?')">{% csrf_token %}
+          <form method="post" action="{% url 'sites:page_delete' p.pk %}" data-confirm="Delete this page?">{% csrf_token %}
             <button class="btn btn-ghost" type="submit">Delete</button></form>
         </div></td>
       </tr>
@@ -116,7 +122,7 @@
 </div>
 
 <div style="margin-top:20px">
-  <form method="post" action="{% url 'sites:delete' site.pk %}" onsubmit="return confirm('Delete this website and all its pages?')">{% csrf_token %}
+  <form method="post" action="{% url 'sites:delete' site.pk %}" data-confirm="Delete this website and all its pages?">{% csrf_token %}
     <button class="btn btn-ghost" type="submit">Delete website</button></form>
 </div>
 {% endif %}

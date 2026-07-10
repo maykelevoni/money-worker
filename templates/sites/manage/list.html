@@ -14,9 +14,7 @@
   .small { color:var(--muted); font-size:12px; }
 </style>
 
-<h1>🏗️ Websites</h1>
-<div class="sub">SEO sites you own — a few pages plus a blog, each on its own address.</div>
-<div style="margin:16px 0"><a class="btn" href="{% url 'sites:create' %}">+ New website</a></div>
+{% include "_pagehead.html" with eyebrow="Assets" title="Websites" subtitle="SEO sites you own — a few pages plus a blog, each on its own address." action_url="/websites/new/" action_label="+ New website" %}
 
 <div class="site-cards">
   {% for s in sites %}

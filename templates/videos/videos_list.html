@@ -45,11 +45,7 @@
   .btn-danger:hover { filter: brightness(1.08); }
 </style>
 
-<div class="eyebrow">Create</div>
-<h1>Videos</h1>
-<p class="sub">Every video is its own page — open one to write the script, generate the voice and render it.</p>
-
-{% include "videos/_tabs.html" %}
+{% include "_pagehead.html" with eyebrow="Studio" title="Video Factory" subtitle="Every video is its own page — open one to write the script, generate the voice and render it." %}
 
 {% if not config.openrouter or not config.stt or not config.voice %}
   <div class="messages">

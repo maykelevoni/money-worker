@@ -26,8 +26,7 @@
   .num { text-align: right; font-weight: 600; }
 </style>
 
-<h1>📊 Analytics</h1>
-<div class="sub">How your funnel is performing.</div>
+{% include "_pagehead.html" with eyebrow="Analytics" title="Analytics" subtitle="How your funnel is performing." %}
 
 <div class="cards">
   <div class="card"><div class="k">Videos posted</div><div class="v">{{ videos_posted }}</div></div>
@@ -45,10 +44,10 @@
     {% for s in funnel %}
       <div class="funnel-row">
         <div class="top">
-          <span>{{ s.icon }} {{ s.label }} — <strong>{{ s.n }}</strong></span>
+          <span>{{ s.label }} — <strong>{{ s.n }}</strong></span>
           {% if s.rate is not None %}<span class="rate">{{ s.rate }}% of prev</span>{% endif %}
         </div>
-        <div class="fbar"><span style="width: {% if s.rate is not None %}{{ s.rate }}{% else %}100{% endif %}%"></span></div>
+        <div class="fbar"><span style="width: {{ s.width }}%"></span></div>
       </div>
     {% endfor %}
     {% if videos_posted == 0 and leads_total == 0 %}
