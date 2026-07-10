@@ -27,6 +27,12 @@
   .av-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 9px; }
   .av-name { font-weight: 700; font-size: 14px; }
   .av-form textarea { min-height: 96px; resize: vertical; }
+  .av-voice { margin-top: 8px; display: grid; gap: 6px; }
+  .av-voice .small { font-size: 11px; }
+  .av-voice .ok { color: var(--ok); }
+  .av-voice .muted { color: var(--faint); }
+  .av-voice input[type=file] { font-size: 11px; width: 100%; }
+  .av-voice-form { display: grid; gap: 6px; }
   .av-empty { color: var(--muted); }
   @media (max-width: 760px) { .av-wrap { grid-template-columns: 1fr; } }
 </style>
@@ -48,6 +54,15 @@
                 {% csrf_token %}
                 <button class="btn btn-ghost" style="width:100%;">↻ Regenerate</button>
               </form>
+              <div class="av-voice">
+                {% if a.voice_ref %}<span class="small ok">🎙️ voice set</span>
+                {% else %}<span class="small muted">no voice yet</span>{% endif %}
+                <form method="post" action="{% url 'videos:avatar_voice' a.pk %}" enctype="multipart/form-data" class="av-voice-form">
+                  {% csrf_token %}
+                  <input type="file" name="voice" accept="audio/*" required>
+                  <button class="btn btn-ghost" type="submit">{% if a.voice_ref %}Replace voice{% else %}Upload voice{% endif %}</button>
+                </form>
+              </div>
             </div>
           </div>
         {% endfor %}
