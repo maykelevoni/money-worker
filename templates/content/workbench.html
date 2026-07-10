@@ -158,6 +158,13 @@
       </div>
     </div>
 
+    {% if p.kind == 'article' %}
+    <div class="card" style="border-color: rgba(255,126,46,.35); background: var(--beak-soft);">
+      <h4>📝 Next: publish to a blog</h4>
+      <p class="sub" style="margin:0 0 10px;">Articles publish to a website's blog, not social. Save this draft, then attach it on one of your sites.</p>
+      <a class="btn ghost" href="/websites/" style="width:100%; justify-content:center;">Go to Websites →</a>
+    </div>
+    {% else %}
     <div class="card">
       <h4>Accounts</h4>
       <div class="plats" id="plats">
@@ -170,6 +177,7 @@
         {% endfor %}
       </div>
     </div>
+    {% endif %}
 
     <div class="card stack">
       <div>

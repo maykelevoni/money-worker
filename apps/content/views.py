@@ -29,7 +29,10 @@ def _select_image(post, pi):
     if not pi.is_selected:
         pi.is_selected = True
         pi.save(update_fields=["is_selected"])
-    post.kind = Post.Kind.IMAGE
+    # An article/video keeps its kind when it gains a hero image; only the
+    # auto-derived text↔image kinds flip to IMAGE on selection.
+    if post.kind not in (Post.Kind.ARTICLE, Post.Kind.VIDEO):
+        post.kind = Post.Kind.IMAGE
     post.media.name = pi.image.name
     post.save(update_fields=["media", "kind"])
 
@@ -146,8 +149,25 @@ def _do_publish(request, post, accounts):
 
 
 @login_required
+def studio(request):
+    """One entry for everything you can make — pick a kind, it routes to the builder."""
+    return render(request, "content/studio.html", {})
+
+
+@login_required
 def create(request):
-    """New Post → open the workbench on a fresh (or reused-blank) draft."""
+    """New Post → open the workbench on a fresh (or reused-blank) draft.
+
+    Honours ?kind=text|image|article so the launcher can start the right kind
+    (an article stays an article; see compose()'s kind rules)."""
+    kinds = {"text": Post.Kind.TEXT, "image": Post.Kind.IMAGE, "article": Post.Kind.ARTICLE}
+    chosen = kinds.get(request.GET.get("kind", ""))
+    if chosen:
+        post = Post.objects.create(
+            kind=chosen, status=Post.Status.DRAFT, workspace=request.workspace
+        )
+        return redirect("content:compose", pk=post.pk)
+
     post = (
         Post.objects.for_workspace(request.workspace)
         .filter(status=Post.Status.DRAFT, title="", body="", media="")
@@ -166,8 +186,10 @@ def compose(request, pk):
     """The studio: image gallery + content editor + AI prompt bar for one draft."""
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
-        # Kind is derived, not chosen: a selected image → image post, else text.
-        post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
+        # Kind is derived for text↔image posts (selected image → image, else
+        # text), but an article/video keeps the kind it was created with.
+        if post.kind not in (Post.Kind.ARTICLE, Post.Kind.VIDEO):
+            post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
         post.title = request.POST.get("title", "").strip()
         post.body = request.POST.get("body", "").strip()
         sched = request.POST.get("scheduled_at", "").strip()

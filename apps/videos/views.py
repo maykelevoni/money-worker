@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -12,15 +13,25 @@ from apps.offers.models import Offer
 from apps.social import publish as social_publish
 from apps.social.models import SocialAccount
 
-from .models import Avatar, TopicIdea, Video
-from .services import avatars, openrouter, research, stt, talking, trends, uploadpost, voice
+from .models import Avatar, TopicIdea, Video, VideoSegment
+from .services import (
+    avatars,
+    openrouter,
+    render as render_svc,
+    research,
+    shorts,
+    stt,
+    trends,
+    uploadpost,
+    voice,
+)
 
 
 def _config():
     return {
         "openrouter": openrouter.is_configured(),
         "voice": voice.is_configured(),
-        "render": talking.is_configured(),
+        "render": render_svc.is_configured(),
         "stt": stt.is_configured(),
         "share": uploadpost.is_configured(),
     }
@@ -285,6 +296,7 @@ def video_detail(request, pk):
         return redirect("videos:video_detail", pk=video.pk)
     return render(request, "videos/video_detail.html", {
         "v": video,
+        "segments": video.segments.all(),
         "config": _config(),
         "share_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(
             is_active=True, platform__in=uploadpost.KIND_CHANNELS["video"]
@@ -361,9 +373,10 @@ def gen_voice(request, pk):
         messages.error(request, "Generate or write the script first.")
         return _back(pk)
     try:
-        voice_id = video.avatar.voice_id if video.avatar_id and video.avatar else ""
+        avatar = video.avatar if video.avatar_id else None
+        ref = avatar.voice_ref if avatar and avatar.voice_ref else None
         url = voice.generate_voiceover(
-            video.script, filename=f"video_{video.pk}.mp3", voice_id=voice_id
+            video.script, filename=f"video_{video.pk}.wav", ref_audio=ref
         )
     except voice.NotConfigured as e:
         messages.error(request, str(e))
@@ -380,11 +393,68 @@ def gen_voice(request, pk):
 
 @login_required
 @require_POST
+def generate_short(request, pk):
+    """One click: run the whole pipeline (script→voice→slides→render) in the background."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    shorts.start_generation(video)
+    messages.success(request, "Generating your short… watch the progress below. ✨")
+    return _back(pk)
+
+
+@login_required
+def short_status(request, pk):
+    """JSON progress for the one-click generation, polled by the page."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    return JsonResponse({
+        "status": video.gen_status,
+        "step": video.gen_step,
+        "video_url": video.video_url,
+    })
+
+
+@login_required
+@require_POST
+def gen_scenes(request, pk):
+    """Build pause-synced beats from the voiceover and illustrate each with an image."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    if not video.voice_url:
+        messages.error(request, "Generate the voiceover first.")
+        return _back(pk)
+    try:
+        beats = shorts.build_segments(video)
+        made = shorts.illustrate_segments(video)
+    except Exception as e:
+        messages.error(request, f"Slides failed: {e}")
+        return _back(pk)
+    messages.success(request, f"Made {made} slides from {beats} beats 🎞️ — review, then render.")
+    return _back(pk)
+
+
+@login_required
+@require_POST
+def regen_slide(request, pk, seg_id):
+    """Regenerate one beat's image, optionally toggling whether the avatar features."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    seg = get_object_or_404(VideoSegment, pk=seg_id, video=video)
+    use_avatar = None
+    if request.POST.get("toggle_avatar"):
+        use_avatar = not seg.uses_avatar
+    try:
+        shorts.regenerate_segment(video, seg, use_avatar=use_avatar)
+    except Exception as e:
+        messages.error(request, f"Slide regen failed: {e}")
+        return _back(pk)
+    messages.success(request, f"Slide {seg.order + 1} regenerated 🖼️")
+    return _back(pk)
+
+
+@login_required
+@require_POST
 def render_video_view(request, pk):
     video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
     try:
-        url = talking.render_video(video)
-    except talking.NotConfigured as e:
+        url = render_svc.render_short(video)
+    except render_svc.RenderError as e:
         messages.error(request, str(e))
         return _back(pk)
     except Exception as e:
@@ -393,7 +463,7 @@ def render_video_view(request, pk):
     video.video_url = url
     video.status = Video.Status.RENDERED
     video.save()
-    messages.success(request, "Talking video rendered 🎬 — review and approve.")
+    messages.success(request, "Short rendered 🎬 — review and approve.")
     return _back(pk)
 
 
@@ -564,4 +634,19 @@ def avatar_regenerate(request, pk):
         messages.error(request, f"Regenerate failed: {e}")
         return redirect("videos:avatars")
     messages.success(request, f"“{avatar.name}” regenerated.")
+    return redirect("videos:avatars")
+
+
+@login_required
+@require_POST
+def avatar_voice(request, pk):
+    """Upload the voice-cloning reference clip for this avatar (F5-TTS clones from it)."""
+    avatar = get_object_or_404(Avatar, pk=pk, workspace=request.workspace)
+    clip = request.FILES.get("voice")
+    if not clip:
+        messages.error(request, "Choose an audio file first.")
+        return redirect("videos:avatars")
+    avatar.voice_ref = clip
+    avatar.save(update_fields=["voice_ref"])
+    messages.success(request, f"Voice sample saved for “{avatar.name}” 🎙️ — you can generate voiceovers now.")
     return redirect("videos:avatars")
