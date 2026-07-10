@@ -9,21 +9,6 @@
 #   docker compose down                  # stop (add -v to wipe the DB + media)
 
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: moneyworker
-      POSTGRES_PASSWORD: moneyworker
-      POSTGRES_DB: moneyworker
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U moneyworker -d moneyworker"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    restart: unless-stopped
-
   web:
     build: .
     # API keys (OpenRouter, FAL, Resend, …) come from your .env. The vars set
