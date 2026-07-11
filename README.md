@@ -92,7 +92,7 @@ flowchart LR
 |---|---|---|
 | Text / LLM | **OpenRouter** | Scripts, captions, article bodies |
 | Images | **FAL** (Ideogram / **nano-banana**) | Character-consistent generation |
-| Voice | **ElevenLabs** → **FAL F5-TTS** | Voice cloning; migrating to F5-TTS (no membership) — see [PLAN.md](PLAN.md) |
+| Voice | **FAL F5-TTS** | Zero-shot voice cloning from one reference clip (reuses `FAL_API_KEY`) |
 | Speech-to-text | **FAL Whisper** | Transcribe voice memos / caption timing |
 | Email | **Resend** | Sequences & broadcasts |
 | Social publishing | **Upload-Post** | Push content to social accounts |
@@ -134,10 +134,6 @@ DATABASE_URL=postgres://user:pass@host:5432/dbname
 OPENROUTER_API_KEY=...
 OPENROUTER_MODEL=...
 FAL_API_KEY=...
-
-# Voice (migrating ElevenLabs → FAL F5-TTS)
-ELEVENLABS_API_KEY=...
-ELEVENLABS_VOICE_ID=...
 
 # Email + social
 RESEND_API_KEY=...

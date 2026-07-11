@@ -244,9 +244,7 @@ LOGIN_URL = 'admin:login'
 # ---------------------------------------------------------------------------
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'anthropic/claude-opus-4-8')
-FAL_API_KEY = os.getenv('FAL_API_KEY', '')
-ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', '')
-ELEVENLABS_VOICE_ID = os.getenv('ELEVENLABS_VOICE_ID', '')
+FAL_API_KEY = os.getenv('FAL_API_KEY', '')  # images, speech-to-text, and F5-TTS voice
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', '')
 
