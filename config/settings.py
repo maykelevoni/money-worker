@@ -123,8 +123,8 @@ if DATABASE_URL:
     from urllib.parse import urlparse, parse_qs
 
     _u = urlparse(DATABASE_URL)
-    # Neon requires SSL; a local Postgres (docker compose) speaks plain TCP.
-    # Honour ?sslmode=... in the URL, defaulting to 'require' so prod is unchanged.
+    # Neon requires SSL. Honour an explicit ?sslmode=... in the URL, else default
+    # to 'require'.
     _sslmode = parse_qs(_u.query).get('sslmode', ['require'])[0]
     DATABASES = {
         'default': {

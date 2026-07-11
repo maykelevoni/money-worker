@@ -155,23 +155,22 @@ R2_PUBLIC_URL=
 
 ### Docker
 
-Run the whole app locally — Django + a bundled Postgres, no Neon/R2 needed:
+One `web` container, built from the `Dockerfile`. DB is Neon and media is R2 —
+both external — so no other services are needed. All settings/keys live in a
+single `.env` file that the container reads (`env_file`).
 
 ```bash
-cp .env.example .env                    # AI/email keys are read from here
-docker compose up --build               # → http://localhost:8000
-docker compose exec web python manage.py createsuperuser   # first login
-docker compose down                     # stop  (add -v to wipe the DB + media)
+cp .env.example .env          # fill in DATABASE_URL (Neon), R2_*, API keys
+docker compose up -d --build  # build + start  → http://localhost:8000
+docker compose logs -f web    # watch it boot (migrations, then gunicorn)
+docker compose down           # stop
 ```
 
-Postgres data and generated media persist in named volumes across restarts.
-
-Production uses the same image standalone (DB on Neon, media on R2):
-
-```bash
-docker build -t money-worker .
-docker run --env-file .env -p 8000:8000 money-worker
-```
+**On Hostinger:** create a Docker Compose project from this repo, put your `.env`
+in the project folder (File Manager or SSH — it's gitignored, so it isn't in the
+repo), then deploy. Hostinger builds the image, runs migrations, and serves
+gunicorn on port **8000** — point your domain/proxy at it. For a public deploy
+set `DEBUG=False`, `ALLOWED_HOSTS`, and `CSRF_TRUSTED_ORIGINS` in that `.env`.
 
 ---
 

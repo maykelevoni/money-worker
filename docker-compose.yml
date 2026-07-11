@@ -1,34 +1,28 @@
-# Local, self-contained stack. `docker compose up` builds the app image and
-# runs it against a bundled Postgres with persistent media — no Neon or R2
-# needed. Production deploys the *same* Dockerfile on Coolify against Neon + R2;
-# this file is for running the whole thing on your machine.
+# Deploy the app. One web container; DB is Neon and media is R2 (both external).
+# All settings/keys live in a single .env file next to this one.
 #
-#   docker compose up --build            # start (Ctrl-C to stop)
-#   docker compose exec web python manage.py createsuperuser   # first login
-#   open http://localhost:8000/
-#   docker compose down                  # stop (add -v to wipe the DB + media)
+#   cp .env.example .env    # fill it in (Neon DATABASE_URL, R2_*, API keys)
+#   docker compose up -d --build
+#   docker compose logs -f web
+#   docker compose down
+#
+# On Hostinger: put the .env file in the project folder (File Manager or SSH),
+# then deploy. Entrypoint runs migrations, gunicorn serves on :8000.
 
 services:
   web:
     build: .
-    # API keys (OpenRouter, FAL, Resend, …) come from your .env. The vars set
-    # below override .env so the container talks to the bundled Postgres and
-    # runs in dev mode (plain-HTTP cookies, permissive hosts).
+    image: money-worker
+    restart: unless-stopped
     env_file:
       - .env
-    environment:
-      # sslmode=disable: the local Postgres container speaks plain TCP.
-      DATABASE_URL: postgresql://moneyworker:moneyworker@db:5432/moneyworker?sslmode=disable
-      DEBUG: "True"
     ports:
       - "8000:8000"
-    volumes:
-      - media:/app/media          # generated images/video/audio persist across restarts
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  media:
+    healthcheck:
+      # Confirm gunicorn is accepting connections (a full HTTP request would hit
+      # Django's ALLOWED_HOSTS check and 400 on the 127.0.0.1 Host header).
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 5).close()"]
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 40s
