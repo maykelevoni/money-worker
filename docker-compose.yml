@@ -1,26 +1,45 @@
-# Deploy the app. One web container; DB is Neon and media is R2 (both external).
-# All settings/keys live in a single .env file next to this one.
+# Deploy on Hostinger's Docker Manager (Compose-from-URL / paste).
 #
-#   cp .env.example .env    # fill it in (Neon DATABASE_URL, R2_*, API keys)
-#   docker compose up -d --build
-#   docker compose logs -f web
-#   docker compose down
+# Hostinger does NOT build here — it pulls the prebuilt image that GitHub Actions
+# publishes to GHCR on every push to main (.github/workflows/publish-image.yml).
+# All keys come from the panel's "Environment variables" section (${VAR} below);
+# nothing secret lives in this file.
 #
-# On Hostinger: put the .env file in the project folder (File Manager or SSH),
-# then deploy. Entrypoint runs migrations, gunicorn serves on :8000.
+# DB is Neon and media is R2 (both external), so this is the only container.
+# It serves gunicorn on :8000 — point Hostinger's domain/port at that.
 
 services:
   web:
-    build: .
-    image: money-worker
+    image: ghcr.io/maykelevoni/money-worker:latest
     restart: unless-stopped
-    env_file:
-      - .env
     ports:
       - "8000:8000"
+    environment:
+      # --- Django core (set these for a public deploy) ---
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
+      SITE_HOST: ${SITE_HOST}
+      APP_BASE_URL: ${APP_BASE_URL}
+      # --- Database (Neon) ---
+      DATABASE_URL: ${DATABASE_URL}
+      # --- AI / content (FAL key also drives F5-TTS voice) ---
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-opus-4-8}
+      FAL_API_KEY: ${FAL_API_KEY}
+      # --- Email + publishing ---
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
+      UPLOAD_POST_API_KEY: ${UPLOAD_POST_API_KEY}
+      UPLOAD_POST_USER: ${UPLOAD_POST_USER}
+      # --- Media storage (Cloudflare R2) ---
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_BUCKET: ${R2_BUCKET}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL}
     healthcheck:
-      # Confirm gunicorn is accepting connections (a full HTTP request would hit
-      # Django's ALLOWED_HOSTS check and 400 on the 127.0.0.1 Host header).
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 5).close()"]
       interval: 30s
       timeout: 6s
