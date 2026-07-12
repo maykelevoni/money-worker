@@ -1,28 +1,29 @@
-# Deploy on Hostinger's Docker Manager (Compose-from-URL / paste).
+# Deploy on Hostinger's Docker Manager (it git-clones this repo and builds the
+# Dockerfile — confirmed from the deploy log).
 #
-# Hostinger does NOT build here — it pulls the prebuilt image that GitHub Actions
-# publishes to GHCR on every push to main (.github/workflows/publish-image.yml).
-# All keys come from the panel's "Environment variables" section (${VAR} below);
-# nothing secret lives in this file.
+# The clone does NOT include .env (it's gitignored), so every secret comes from
+# the panel's "Environment variables" section — the ${VAR} refs below read them.
+# You MUST set at least SECRET_KEY, ALLOWED_HOSTS and DATABASE_URL, or the app
+# 400s on every request / falls back to throwaway SQLite.
 #
 # DB is Neon and media is R2 (both external), so this is the only container.
 # It serves gunicorn on :8000 — point Hostinger's domain/port at that.
 
 services:
   web:
-    image: ghcr.io/maykelevoni/money-worker:latest
+    build: .
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      # --- Django core (set these for a public deploy) ---
+      # --- Django core (REQUIRED for a working deploy) ---
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}          # e.g. yourdomain.com  (blank -> 400 on every request)
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
       SITE_HOST: ${SITE_HOST}
       APP_BASE_URL: ${APP_BASE_URL}
-      # --- Database (Neon) ---
+      # --- Database (Neon) — REQUIRED, else it uses throwaway SQLite ---
       DATABASE_URL: ${DATABASE_URL}
       # --- AI / content (FAL key also drives F5-TTS voice) ---
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
