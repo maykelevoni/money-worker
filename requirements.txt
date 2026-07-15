@@ -3,6 +3,7 @@ psycopg[binary]
 python-dotenv
 requests
 markdown
+Pillow
 django-storages[s3]
 boto3
 gunicorn
