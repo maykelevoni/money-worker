@@ -5,11 +5,15 @@
 SSH into the VPS (or use Hostinger hPanel → VPS → Browser terminal), then run:
 
 ```bash
-cd /docker/money-worker/src && git pull && cp -rf . .. && cd .. && docker compose build --no-cache web && docker compose up -d
+cd /docker/money-worker/src && git pull && cd /docker/money-worker && rm -rf Caddyfile && cp -rf src/. . && docker compose build --no-cache web && docker compose up -d
 ```
 
 This pulls the latest code from GitHub, copies it into the build folder,
 rebuilds the `web` image, and restarts the containers.
+
+The `rm -rf Caddyfile` step clears a stale directory left over from the old
+Caddyfile bind-mount — the Caddyfile is baked into the image now, so this is
+safe and just stops `cp` from erroring out. Leave it in every time.
 
 Check it worked: open https://getpostforge.cloud/ — should load (HTTP 200).
 
