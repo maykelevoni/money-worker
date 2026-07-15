@@ -237,7 +237,9 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Login / redirects
-LOGIN_URL = 'admin:login'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = 'login'
 
 # ---------------------------------------------------------------------------
 # Third-party API keys (set these in .env — never commit real keys)
@@ -247,6 +249,15 @@ OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'anthropic/claude-opus-4-8')
 FAL_API_KEY = os.getenv('FAL_API_KEY', '')  # images, speech-to-text, and F5-TTS voice
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', '')
+
+# Email backend for Django's built-in mail (password reset, etc.). When Resend
+# is configured we route through it (same key as the rest of the app); otherwise
+# fall back to printing emails to the console so local dev still works.
+if RESEND_API_KEY and RESEND_FROM_EMAIL:
+    EMAIL_BACKEND = 'apps.accounts.email_backend.ResendEmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = RESEND_FROM_EMAIL or 'noreply@getpostforge.cloud'
 
 # Upload-Post — one API to publish a rendered video to YouTube/TikTok/Instagram.
 # UPLOAD_POST_USER is the profile name created in the Upload-Post dashboard.

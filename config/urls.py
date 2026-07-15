@@ -24,6 +24,8 @@ from apps.sites import api_views as sites_api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('apps.accounts.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('', include('apps.dashboard.urls')),
     path('factory/', include('apps.videos.urls')),
     path('websites/', include('apps.sites.urls')),

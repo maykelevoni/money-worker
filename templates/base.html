@@ -5,7 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>{% block title %}Money Worker{% endblock %}</title>
+  <title>{% block title %}PostForge{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff7e2e'/%3E%3Cpath d='M11 23V9h7.2c2.7 0 4.4 1.7 4.4 4.2S20.9 17.5 18.2 17.5H14.4V23z M14.4 14.6h3.3c1 0 1.7-.6 1.7-1.4s-.7-1.4-1.7-1.4h-3.3z' fill='%231a1206'/%3E%3C/svg%3E">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -38,8 +40,9 @@
     .bar { width: 100%; display: flex; align-items: center;
       flex-wrap: wrap; gap: 4px 16px; padding: 10px clamp(16px, 3vw, 32px); }
     .brandwrap { display: flex; align-items: center; gap: 9px; }
-    .logo { font-weight: 900; font-size: 17px; letter-spacing: -.3px; color: var(--text);
-      text-decoration: none; }
+    .logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 900;
+      font-size: 17px; letter-spacing: -.3px; color: var(--text); text-decoration: none; }
+    .logo-mark { flex: none; border-radius: 7px; }
     .logo b { color: var(--beak); }
     .tag { font-family: var(--mono); font-size: 9.5px; color: var(--faint);
       border: 1px solid var(--line); border-radius: 5px; padding: 2px 5px;
@@ -163,7 +166,15 @@
   <header class="topbar">
     <div class="bar">
       <div class="brandwrap">
-        <a href="/" class="logo">MONEY<b>WORKER</b></a>
+        <a href="/" class="logo">
+          <svg class="logo-mark" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+            <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#pf-g)"/>
+            <path d="M11 23V9h7.2c2.7 0 4.4 1.7 4.4 4.2S20.9 17.5 18.2 17.5H14.4V23z M14.4 14.6h3.3c1 0 1.7-.6 1.7-1.4s-.7-1.4-1.7-1.4h-3.3z" fill="#1a1206"/>
+            <defs><linearGradient id="pf-g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#ff9a55"/><stop offset="1" stop-color="#ff7e2e"/></linearGradient></defs>
+          </svg>
+          <span>Post<b>Forge</b></span>
+        </a>
         {% if request.workspace and request.user.memberships.count > 1 %}
         <span class="ws-chip" title="Current workspace">
           <span class="ws-av"></span>{{ request.workspace.name }}
@@ -214,7 +225,15 @@
         <div class="grp util" title="Settings">
           <span class="lbl" tabindex="0" role="button" aria-label="Settings">Settings</span>
           <div class="menu">
-            <a href="/admin/" target="_blank" class="ext">Admin panel ↗</a>
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'logout' %}" style="margin:0;">
+              {% csrf_token %}
+              <button type="submit" class="ext"
+                style="display:block;width:100%;text-align:left;background:none;border:none;
+                       padding:8px 11px;border-radius:7px;color:var(--muted);font-family:var(--sans);
+                       font-size:13.5px;cursor:pointer;">Log out</button>
+            </form>
+            {% endif %}
           </div>
         </div>
       </nav>
