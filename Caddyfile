@@ -1,0 +1,14 @@
+# Public entrypoint for the Money Worker app.
+# SITE_HOST / ACME_EMAIL are injected from the Hostinger panel env (see
+# docker-compose.yml). Caddy fetches + renews a Let's Encrypt cert for
+# SITE_HOST automatically and proxies everything to the Django container.
+#
+# It forwards X-Forwarded-Proto=https, which Django trusts via
+# SECURE_PROXY_SSL_HEADER (config/settings.py) so it knows the request is secure.
+#
+# Serves the main domain only. Adding *.SITE_HOST (generated public sites) would
+# need a wildcard cert via the Cloudflare DNS challenge — not configured here.
+{$SITE_HOST} {
+	reverse_proxy web:8000
+	tls {$ACME_EMAIL}
+}

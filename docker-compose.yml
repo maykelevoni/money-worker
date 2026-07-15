@@ -6,15 +6,22 @@
 # You MUST set at least SECRET_KEY, ALLOWED_HOSTS and DATABASE_URL, or the app
 # 400s on every request / falls back to throwaway SQLite.
 #
-# DB is Neon and media is R2 (both external), so this is the only container.
-# It serves gunicorn on :8000 — point Hostinger's domain/port at that.
+# DB is Neon and media is R2 (both external), so app state is external.
+#
+# Two containers:
+#   web   — gunicorn on :8000, NOT published to the host (internal only)
+#   caddy — public front door on :80/:443, auto-provisions a Let's Encrypt cert
+#           and reverse-proxies to web:8000. Point your domain's A record at the
+#           VPS IP; Caddy needs :80 reachable to validate the cert.
+# Panel env for TLS: SITE_HOST=yourdomain.com  ACME_EMAIL=you@example.com
+# (also set DEBUG=False, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS=https://yourdomain.com)
 
 services:
   web:
     build: .
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"          # internal only — reached by Caddy as web:8000
     environment:
       # --- Django core (REQUIRED for a working deploy) ---
       SECRET_KEY: ${SECRET_KEY}
@@ -46,3 +53,25 @@ services:
       timeout: 6s
       retries: 3
       start_period: 40s
+
+  # Reverse proxy + automatic HTTPS. Reads ./Caddyfile; certs live in the
+  # caddy_data volume so they survive redeploys (don't rebuild them each push).
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_HOST: ${SITE_HOST}       # e.g. moneyworker.io — the cert is issued for this
+      ACME_EMAIL: ${ACME_EMAIL}     # Let's Encrypt contact/recovery email
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
