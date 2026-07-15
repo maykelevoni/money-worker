@@ -54,10 +54,14 @@ services:
       retries: 3
       start_period: 40s
 
-  # Reverse proxy + automatic HTTPS. Reads ./Caddyfile; certs live in the
-  # caddy_data volume so they survive redeploys (don't rebuild them each push).
+  # Reverse proxy + automatic HTTPS. The Caddyfile is baked into the image
+  # (Caddyfile.Dockerfile) rather than bind-mounted — Hostinger's Docker Manager
+  # runs compose from a dir without the repo files, so a mount would fail.
+  # Certs live in the caddy_data volume so they survive redeploys.
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: Caddyfile.Dockerfile
     restart: unless-stopped
     depends_on:
       - web
@@ -65,10 +69,8 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      SITE_HOST: ${SITE_HOST}       # e.g. moneyworker.io — the cert is issued for this
-      ACME_EMAIL: ${ACME_EMAIL}     # Let's Encrypt contact/recovery email
+      SITE_HOST: ${SITE_HOST}       # apex domain, e.g. getpostforge.cloud — cert issued for this + www
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
 
