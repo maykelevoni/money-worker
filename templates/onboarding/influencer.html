@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Create your influencer · Setup{% endblock %}
+
+{% block content %}
+<style>
+  .ob { max-width: 680px; margin: 0 auto; }
+  .ob-hero { text-align: center; margin: 6px 0 26px; }
+  .ob-hero .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .ob-hero h1 { font-size: 30px; margin: 8px 0 8px; line-height: 1.15; }
+  .ob-hero p { color: var(--muted); font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.55; }
+  .ob-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .ob-note { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 14px; }
+</style>
+
+<div class="ob">
+  {% include "_stepper.html" with current=current %}
+
+  <div class="ob-hero">
+    <div class="eyebrow">Step 1 of 4</div>
+    <h1>Create your influencer</h1>
+    <p>This is the face of your one-person business. Pick a type to start, tweak how they
+       look, or drop in a reference image — we'll bring them to life. You can change them anytime.</p>
+  </div>
+
+  <div class="ob-card">
+    {% include "videos/_influencer_form.html" with submit_label="Bring them to life →" %}
+    <div class="ob-note">Takes a few seconds while we generate their portrait.</div>
+  </div>
+</div>
+{% endblock %}

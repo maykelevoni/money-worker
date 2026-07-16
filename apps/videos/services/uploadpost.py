@@ -110,6 +110,25 @@ def upload_photo(fileobj, filename, platforms, title, caption="", *, user=None, 
     return resp.json()
 
 
+def upload_photos(items, platforms, title, caption="", *, user=None, idempotency_key=""):
+    """Post one OR many images (a carousel) to `platforms`.
+    `items` is a list of (filename, fileobj). Uses the same photos[] array field."""
+    if not is_configured():
+        raise NotConfigured("Set UPLOAD_POST_API_KEY and UPLOAD_POST_USER in your .env")
+    data = [("user", user or settings.UPLOAD_POST_USER), ("title", (title or caption or "").strip())]
+    for p in platforms:
+        data.append(("platform[]", p))
+    if caption:
+        data.append(("description", caption))
+    headers = _headers()
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+    files = [("photos[]", (fn, fo, "image/png")) for (fn, fo) in items]
+    resp = requests.post(PHOTO_URL, headers=headers, data=data, files=files, timeout=300)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def upload_text(platforms, title, description="", *, user=None, idempotency_key=""):
     """Post a text-only update to `platforms` (X/LinkedIn/Threads/Reddit…)."""
     if not is_configured():

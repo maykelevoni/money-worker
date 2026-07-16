@@ -11,6 +11,10 @@ media/*
 # ...but keep the canonical character/brand assets (expensive to regenerate)
 !media/character/
 !media/character/**
+# ...and the influencer type preset samples shown in the create-influencer gallery
+!media/samples/
+!media/samples/types/
+!media/samples/types/**
 
 # Env / secrets
 .env

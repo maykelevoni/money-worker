@@ -3,185 +3,247 @@
 
 {% block content %}
 <style>
-  .wb { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; align-items: start; }
-  @media (max-width: 950px) { .wb { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card + .card { margin-top: 14px; }
+  .card h4 { margin: 0 0 12px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .field-lbl { font-size: 12px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
 
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .card h4 { margin: 0 0 10px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-  .stack { display: flex; flex-direction: column; gap: 8px; }
-  .col { display: flex; flex-direction: column; gap: 16px; }
+  /* ---------- overall: workshop (left) + live post (right) ---------- */
+  .composer { display: grid; grid-template-columns: 1fr minmax(320px, 400px); gap: 18px; align-items: start; }
+  @media (max-width: 940px) { .composer { grid-template-columns: 1fr; } }
+  .side-lbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
 
-  /* ---- gallery ---- */
-  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .tile { position: relative; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 10px;
-    overflow: hidden; cursor: pointer; background: var(--bg); padding: 0; }
-  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .tile.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-  .tile .badge { position: absolute; top: 6px; right: 6px; background: var(--accent); color: #fff;
-    width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700; }
-  .tile.add { display: flex; align-items: center; justify-content: center; border-style: dashed;
-    color: var(--muted); font-size: 28px; cursor: pointer; }
-  .tile.add:hover { color: var(--accent); border-color: var(--accent); }
-  .tile.add input { display: none; }
-  .gempty { color: var(--muted); font-size: 13px; padding: 22px 6px; text-align: center; grid-column: 1 / -1; }
-
-  /* ---- prompt bar ---- */
-  .modes { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
-  .modes button { padding: 7px 12px; font-size: 13px; font-weight: 600; background: var(--bg); border: 0;
-    cursor: pointer; color: var(--muted); }
-  .modes button.on { background: var(--accent); color: #fff; }
-  .promptrow { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-  .promptrow textarea { flex: 1; min-width: 200px; min-height: 46px; resize: vertical; line-height: 1.5; }
-  .editnote { display: none; align-items: center; gap: 8px; font-size: 12px; color: var(--accent);
-    margin-top: 8px; }
-  .editnote.show { display: flex; }
-  .editnote button { background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; }
-  .aimsg { font-size: 12px; margin-top: 8px; min-height: 15px; }
-  .aimsg.err { color: #ff6b6b; } .aimsg.ok { color: var(--accent); }
-  .spin { display: none; font-size: 12px; color: var(--muted); }
-  .spin.show { display: inline; }
-
-  /* ---- styled file button + chips ---- */
-  .filebtn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 9px;
-    border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-size: 13px; font-weight: 600;
-    cursor: pointer; white-space: nowrap; }
-  .filebtn:hover { border-color: var(--accent); color: var(--accent); }
-  .filebtn input { display: none; }
+  /* controls */
+  .with-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+  .with-col { flex: 1 1 170px; }
+  .inf-select { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 11px; padding: 7px 10px; }
+  .inf-select .av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; background: var(--surface-2); }
+  .inf-select .av.none { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+  .inf-select select { border: 0; background: transparent; padding: 0; font-size: 14px; width: 100%; color: var(--text); }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill { font-size: 12.5px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+  .pill:hover { border-color: var(--accent); } .pill.on { background: var(--accent); color: #fff; border-color: transparent; }
+  .ideas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 8px; }
+  .ideas-lbl { font-size: 12px; color: var(--muted); }
+  .idea { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+  .idea:hover { border-color: var(--accent); color: var(--accent); }
+  #aiPrompt { width: 100%; min-height: 84px; line-height: 1.5; resize: vertical; }
+  .genrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .genrow .btn { padding: 11px 20px; font-size: 15px; }
+  .spin { display: none; font-size: 12px; color: var(--muted); } .spin.show { display: inline; }
+  .aimsg { font-size: 12px; margin-top: 8px; min-height: 15px; } .aimsg.err { color: #ff6b6b; } .aimsg.ok { color: var(--accent); }
+  .refdrop { margin-top: 12px; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; color: var(--muted); font-size: 12.5px; cursor: pointer; transition: border-color .12s, background .12s, color .12s; }
+  .refdrop:hover, .refdrop.drag { border-color: var(--accent); color: var(--accent); background: var(--beak-soft); }
+  .refdrop em { font-style: normal; color: var(--faint); } .refdrop input { display: none; }
   .refchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .refchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--bg);
-    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
-  .refchip b { color: var(--fg); font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .refchip .x { cursor: pointer; }
+  .refchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
+  .refchip b { color: var(--text); font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .refchip .x { cursor: pointer; }
 
-  #imgControls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-  #imgControls select { min-width: 120px; }
+  /* your images — thumbnail tray */
+  .tray { display: flex; flex-wrap: wrap; gap: 9px; }
+  .thumb { position: relative; width: 78px; height: 78px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; background: var(--bg); padding: 0; flex: none; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .thumb .tag { position: absolute; top: 3px; left: 3px; font-size: 8px; background: rgba(0,0,0,.6); color: #fff; padding: 1px 5px; border-radius: 6px; text-transform: uppercase; letter-spacing: .03em; }
+  .thumb .del { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,.66); color: #fff; width: 17px; height: 17px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 10px; border: 0; cursor: pointer; }
+  .thumb:hover .del { display: flex; }
+  .thumb .num { position: absolute; bottom: 3px; right: 3px; background: var(--accent); color: #fff; min-width: 16px; height: 16px; border-radius: 999px; display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; padding: 0 4px; }
+  .thumb.sel .num { display: flex; }
+  .thumb.add { display: flex; flex-direction: column; align-items: center; justify-content: center; border-style: dashed; color: var(--muted); font-size: 20px; gap: 2px; }
+  .thumb.add small { font-size: 10px; } .thumb.add:hover { border-color: var(--accent); color: var(--accent); }
+  .tray-empty { color: var(--muted); font-size: 12.5px; }
 
-  .plats { display: flex; flex-wrap: wrap; gap: 8px; }
-  .plat { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 11px;
-    padding: 6px 13px 6px 7px; cursor: pointer; user-select: none; background: var(--surface-2);
-    position: relative; transition: border-color .12s, background .12s; }
-  .plat:hover { border-color: #39414f; }
-  .plat input { position: absolute; opacity: 0; width: 0; height: 0; }
-  .plat .av { width: 27px; height: 27px; border-radius: 50%; flex: none; display: inline-flex;
-    align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff;
-    background: var(--faint); text-transform: uppercase; }
-  .plat .hn { line-height: 1.2; }
-  .plat .hn b { display: block; font-size: 12.5px; font-weight: 700; }
-  .plat .hn span { color: var(--muted); font-size: 11px; }
-  .plat:has(input:checked) { border-color: var(--beak); background: var(--beak-soft); }
-  .plat:has(input:checked) .av { box-shadow: 0 0 0 2px var(--beak); }
-  .plat.off { opacity: .35; pointer-events: none; }
-  .plat[data-plat="youtube"] .av { background: #ff0033; }
-  .plat[data-plat="instagram"] .av { background: linear-gradient(45deg,#f09433,#dc2743,#bc1888); }
-  .plat[data-plat="tiktok"] .av { background: #111; box-shadow: inset 0 0 0 1px var(--line); }
-  .plat[data-plat="facebook"] .av { background: #1877f2; }
-  .plat[data-plat="linkedin"] .av { background: #0a66c2; }
-  .plat[data-plat="x"] .av, .plat[data-plat="twitter"] .av { background: #000; box-shadow: inset 0 0 0 1px var(--line); }
+  .phist { margin-top: 12px; }
+  .phist summary { cursor: pointer; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .phist ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 130px; overflow-y: auto; }
+  .phist li { font-size: 12.5px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; cursor: pointer; display: flex; gap: 8px; }
+  .phist li:hover { border-color: var(--accent); } .phist li span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .phist li .reuse { margin-left: auto; color: var(--muted); font-size: 11px; }
 
+  /* ---------- the live post card ---------- */
+  .postcard { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; position: sticky; top: 16px; }
+  .pc-head { display: flex; align-items: center; gap: 9px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+  .pc-head img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+  .pc-head .av-none { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+  .pc-head b { font-size: 13.5px; } .pc-head span { display: block; font-size: 11px; color: var(--muted); }
+  .pc-img { position: relative; width: 100%; aspect-ratio: 4 / 5; background: var(--bg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .pc-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pc-ph { color: var(--muted); font-size: 13px; text-align: center; padding: 26px; line-height: 1.5; }
+  .pc-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; border: 0; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 17px; z-index: 2; }
+  .pc-nav.prev { left: 8px; } .pc-nav.next { right: 8px; }
+  .pc-count { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; z-index: 2; display: none; }
+  .pc-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: none; gap: 5px; justify-content: center; z-index: 2; }
+  .pc-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.5); } .pc-dots i.on { background: #fff; }
+  .pc-img.multi .pc-nav, .pc-img.multi .pc-dots, .pc-img.multi .pc-count { display: flex; }
+  .pc-body { padding: 13px 15px 15px; }
+  .pc-caphead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .pc-caphead .fld { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .aiwrite { font-size: 12px; color: var(--accent); background: none; border: 0; cursor: pointer; font-family: inherit; }
+  .aiwrite:hover { text-decoration: underline; }
+  textarea.caption-ta { width: 100%; min-height: 64px; border: 0; background: transparent; padding: 0; resize: vertical; line-height: 1.5; font-size: 14px; color: var(--text); font-family: inherit; }
+  textarea.caption-ta:focus { outline: none; }
+  .postname { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .postname summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+  .postname input { margin-top: 8px; width: 100%; }
+
+  .actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions .btn { padding: 12px 20px; font-size: 15px; }
+  .actions-bottom { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
   .fld { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .col input[type=text], .col input[type=datetime-local], .col textarea { width: 100%; }
-  textarea[name=body] { min-height: 130px; line-height: 1.55; resize: vertical; }
-  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
 
-  /* ---- modal ---- */
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center;
-    justify-content: center; z-index: 60; padding: 20px; }
-  .modal.show { display: flex; }
-  .modal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
-    max-width: 620px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; gap: 12px; }
-  .modal .box img { max-width: 100%; max-height: 62vh; object-fit: contain; border-radius: 10px; margin: 0 auto; }
-  .modal .acts { display: flex; flex-wrap: wrap; gap: 8px; }
-  .modal .acts .btn { flex: 1; min-width: 130px; text-align: center; }
-  .modal .del { color: #ff6b6b; border-color: color-mix(in srgb, #ff6b6b 45%, var(--line)); }
+  /* publish step (non-onboarding) */
+  .plats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plat { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 11px; padding: 6px 13px 6px 7px; cursor: pointer; background: var(--surface-2); position: relative; }
+  .plat input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .plat .av { width: 27px; height: 27px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff; background: var(--faint); text-transform: uppercase; }
+  .plat .hn b { display: block; font-size: 12.5px; } .plat .hn span { color: var(--muted); font-size: 11px; }
+  .plat:has(input:checked) { border-color: var(--beak); background: var(--beak-soft); } .plat.off { opacity: .35; pointer-events: none; }
+  .phase-head { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
+  .phase-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+  .phase-head h3 { margin: 0; font-size: 17px; } .phase-sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
 
-  /* ---- toasts ---- */
-  #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 70;
-    display: flex; flex-direction: column; gap: 8px; align-items: center; }
-  .toast { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 9px 14px;
-    font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
-  .toast.err { border-color: #ff6b6b; }
+  #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 9px 14px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.18); } .toast.err { border-color: #ff6b6b; }
+  .ob-banner { background: var(--beak-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 12px; padding: 12px 16px; margin: 0 0 18px; font-size: 14px; line-height: 1.5; }
+  .ob-banner em { font-style: normal; font-weight: 600; color: var(--accent); }
 </style>
 
-{% include "_pagehead.html" with eyebrow="Studio" title="New post" subtitle="Make images on the left, write on the right, drive both with the Prompt bar. Everything lands in one post." %}
-{% if p.source_idea %}
-  <p class="sub" style="margin-top:-6px;"> From research: <strong>{{ p.source_idea.headline }}</strong></p>
+{% if onboarding %}
+  {% include "_stepper.html" with current=1 %}
+  <div class="ob-banner"><strong>Step 2 — make your first post.</strong> Create an image with your influencer, add a caption, and continue.</div>
 {% endif %}
+{% include "_pagehead.html" with eyebrow="Studio" title="New post" subtitle="Make it on the left — watch your post come together on the right." %}
 
-<div class="wb">
-  <!-- ============ LEFT: gallery + prompt ============ -->
-  <div class="col">
-    <div class="card">
-      <h4>Image gallery</h4>
-      <div class="gallery" id="gallery">
-        {% for img in gallery %}
-          <button type="button" class="tile{% if img.is_selected %} sel{% endif %}" data-pk="{{ img.pk }}" data-url="{{ img.image.url }}">
-            <img src="{{ img.image.url }}" alt="">
-            {% if img.is_selected %}<span class="badge">✓</span>{% endif %}
-          </button>
-        {% endfor %}
-        <div class="tile add" id="uploadBtn" title="Upload your own image">＋</div>
+<form method="post" action="{% url 'content:compose' p.pk %}" id="wbform">
+  {% csrf_token %}
+
+  <div id="phaseImage">
+    <div class="composer">
+      <!-- ==================== LEFT: the workshop ==================== -->
+      <div>
+        <div class="side-lbl">Make it</div>
+
+        <div class="card">
+          <div class="with-row">
+            <div class="with-col">
+              <div class="field-lbl">Featuring</div>
+              <div class="inf-select">
+                {% if default_avatar and default_avatar.image %}<img class="av" id="avThumb" src="{{ default_avatar.image.url }}" alt="">{% else %}<span class="av none" id="avThumb">—</span>{% endif %}
+                <select id="avatarSel" title="Who's in this image">
+                  <option value="">No influencer</option>
+                  {% for a in avatars %}<option value="{{ a.pk }}"{% if default_avatar and a.pk == default_avatar.pk %} selected{% endif %} data-img="{% if a.image %}{{ a.image.url }}{% endif %}" data-name="{{ a.name }}">{{ a.name }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="with-col">
+              <div class="field-lbl">Look</div>
+              <div class="pills" id="stylePills">
+                <button type="button" class="pill on" data-style="auto">Auto</button>
+                <button type="button" class="pill" data-style="realistic">Photo</button>
+                <button type="button" class="pill" data-style="render_3D">3D</button>
+                <button type="button" class="pill" data-style="anime">Anime</button>
+                <button type="button" class="pill" data-style="design">Art</button>
+              </div>
+              <input type="hidden" id="styleSel" value="auto">
+            </div>
+          </div>
+
+          <div class="ideas" id="ideas">
+            <span class="ideas-lbl">Try:</span>
+            <button type="button" class="idea">a friendly close-up portrait, soft daylight</button>
+            <button type="button" class="idea">holding a coffee, cozy morning vibe</button>
+            <button type="button" class="idea">at a laptop, modern workspace, natural light</button>
+          </div>
+
+          <textarea id="aiPrompt" placeholder="Describe the image you want…"></textarea>
+          <div class="genrow">
+            <button type="button" class="btn" id="aiSend">Generate image</button>
+            <span class="spin" id="aiSpin">working…</span>
+            <span class="aimsg" id="aiMsg"></span>
+          </div>
+
+          <div class="refdrop" id="refDrop" title="Add reference images">
+            <span>＋ Add reference images <em>(optional — guide the look)</em></span>
+            <input type="file" id="refInput" accept="image/*" multiple>
+          </div>
+          <div class="refchips" id="refChips"></div>
+
+          <details class="phist" id="phist" hidden>
+            <summary>Recent prompts</summary>
+            <ul id="phistList"></ul>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4>Your images</h4>
+          <p class="tray-empty" style="margin:-4px 0 12px;">Tap an image to add it to your post — pick more than one for a carousel.</p>
+          <div class="tray" id="tray">
+            {% for img in gallery %}
+              <button type="button" class="thumb{% if img.is_selected %} sel{% endif %}" data-pk="{{ img.pk }}" data-url="{{ img.image.url }}" data-prompt="{{ img.prompt }}" title="{{ img.prompt }}">
+                <img src="{{ img.image.url }}" alt="">
+                <span class="tag">{% if img.prompt == 'uploaded' %}Up{% else %}AI{% endif %}</span>
+                <span class="num"></span>
+                <span class="del" title="Delete">✕</span>
+              </button>
+            {% endfor %}
+            <button type="button" class="thumb add" id="uploadBtn" title="Upload your own"><span>＋</span><small>Upload</small></button>
+          </div>
+          {% if not gallery %}<div class="tray-empty" id="trayEmpty" style="margin-top:8px;">Generate one on the left, or upload your own — they collect here.</div>{% endif %}
+          <input type="file" id="uploadInput" accept="image/*" multiple style="display:none">
+        </div>
       </div>
-      <input type="file" id="uploadInput" accept="image/*" multiple style="display:none">
-      {% if not gallery %}<div class="gempty" id="gEmpty">No images yet — describe one in the Prompt bar below, or use ＋ to upload.</div>{% endif %}
+
+      <!-- ==================== RIGHT: the live post ==================== -->
+      <div>
+        <div class="side-lbl">Your post</div>
+        <div class="postcard">
+          <div class="pc-head">
+            {% if default_avatar and default_avatar.image %}<img id="pcAv" src="{{ default_avatar.image.url }}" alt="">{% else %}<span class="av-none" id="pcAv">—</span>{% endif %}
+            <div><b id="pcName">{% if default_avatar %}{{ default_avatar.name }}{% else %}Your influencer{% endif %}</b><span>just now</span></div>
+          </div>
+          <div class="pc-img" id="pcImgWrap">
+            <img id="pcImg" alt="" hidden>
+            <div class="pc-ph" id="pcPh">Your image shows here.<br>Generate or upload on the left.</div>
+            <button type="button" class="pc-nav prev" id="pcPrev">‹</button>
+            <button type="button" class="pc-nav next" id="pcNext">›</button>
+            <span class="pc-count" id="pcCount"></span>
+            <div class="pc-dots" id="pcDots"></div>
+          </div>
+          <div class="pc-body">
+            <div class="pc-caphead">
+              <span class="fld">Caption</span>
+              <span style="display:flex; gap:12px;">
+                <button type="button" class="aiwrite" id="captionAI">✧ Write with AI</button>
+                <button type="button" class="aiwrite" id="hashtagAI">＋ hashtags</button>
+              </span>
+            </div>
+            <textarea name="body" class="caption-ta" placeholder="Write a caption…">{{ p.body }}</textarea>
+            <details class="postname">
+              <summary>Post name (optional — only you see this)</summary>
+              <input type="text" name="title" value="{{ p.title }}" placeholder="e.g. Monday morning post">
+            </details>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <div class="card">
-      <h4>Prompt</h4>
-      <div class="modes" id="modes">
-        <button type="button" data-mode="image" class="on"> Image</button>
-        <button type="button" data-mode="text"> Text</button>
-      </div>
-      <div id="imgControls">
-        <select id="styleSel" title="Image style">
-          {% for s in styles %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-        </select>
-        <select id="avatarSel" title="Use a saved character as a reference">
-          <option value="">— no character —</option>
-          {% for a in avatars %}<option value="{{ a.pk }}"> {{ a.name }}</option>{% endfor %}
-        </select>
-        <button type="button" class="filebtn" id="refBtn" title="Attach reference images"> Refs</button>
-        <input type="file" id="refInput" accept="image/*" multiple style="display:none">
-      </div>
-
-      <div class="editnote" id="editNote">
-        ✎ Editing the selected image — describe the change.
-        <button type="button" id="editCancel">cancel</button>
-      </div>
-
-      <div class="promptrow">
-        <textarea id="aiPrompt" placeholder="Describe what you want…  e.g. “a neon duck hacker at a laptop”"></textarea>
-        <button type="button" class="btn" id="aiSend"> Generate</button>
-        <span class="spin" id="aiSpin">working…</span>
-      </div>
-      <div class="refchips" id="refChips"></div>
-      <div class="aimsg" id="aiMsg"></div>
+    <div class="actions actions-bottom">
+      {% if onboarding %}
+        <button type="submit" name="action" value="save" class="btn">Save &amp; continue →</button>
+      {% else %}
+        <button type="button" class="btn" id="toDetails">Next: where to publish →</button>
+        <button type="submit" name="action" value="save" class="btn ghost">Save draft</button>
+      {% endif %}
     </div>
   </div>
 
-  <!-- ============ RIGHT: content + post panel ============ -->
-  <form method="post" action="{% url 'content:compose' p.pk %}" class="col" id="wbform">
-    {% csrf_token %}
-    <div class="card stack">
-      <div>
-        <label class="fld">Title (internal)</label>
-        <input type="text" name="title" value="{{ p.title }}" placeholder="Optional">
-      </div>
-      <div>
-        <label class="fld">Caption / body</label>
-        <textarea name="body" placeholder="Write here… or generate it with the Prompt bar (Text mode).">{{ p.body }}</textarea>
-      </div>
-    </div>
-
-    {% if p.kind == 'article' %}
-    <div class="card" style="border-color: rgba(255,126,46,.35); background: var(--beak-soft);">
-      <h4> Next: publish to a blog</h4>
-      <p class="sub" style="margin:0 0 10px;">Articles publish to a website's blog, not social. Save this draft, then attach it on one of your sites.</p>
-      <a class="btn ghost" href="/websites/" style="width:100%; justify-content:center;">Go to Websites →</a>
-    </div>
-    {% else %}
+  {% if not onboarding %}
+  <div id="phaseDetails" hidden>
+    <div class="phase-head"><span class="phase-num">2</span><h3>Where to publish</h3></div>
+    <p class="phase-sub">Pick the channels, or schedule it for later.</p>
+    {% if p.kind != 'article' %}
     <div class="card">
-      <h4>Publish to</h4>
       <div class="plats" id="plats">
         {% for a in publish_accounts %}
         <label class="plat" data-plat="{{ a.platform }}">
@@ -193,224 +255,198 @@
         <p class="sub" style="margin:0">No accounts yet — add them in <a href="/social/">Social Accounts</a>.</p>
         {% endfor %}
       </div>
-      {% if publish_accounts %}<p class="sub" id="platHint" style="margin:10px 0 0; font-size:12px;">Greyed-out channels don't fit this post's type — add an image to unlock image channels.</p>{% endif %}
-    </div>
-    {% endif %}
-
-    <div class="card stack">
-      <div>
+      <div style="margin-top:12px;">
         <label class="fld">Schedule (blank = publish now)</label>
         <input type="datetime-local" name="scheduled_at" value="{{ p.scheduled_at|date:'Y-m-d\TH:i' }}">
       </div>
+    </div>
+    {% endif %}
+    <div class="actions">
+      <button type="button" class="btn ghost" id="backToImage">← Back</button>
       <button type="submit" name="action" value="publish" class="btn">Publish →</button>
       <button type="submit" name="action" value="save" class="btn ghost">Save draft</button>
     </div>
-  </form>
-</div>
-
-<!-- ============ image modal ============ -->
-<div class="modal" id="modal">
-  <div class="box">
-    <img id="modalImg" src="" alt="">
-    <div class="acts">
-      <button type="button" class="btn" id="mUse">✓ Use for post</button>
-      <button type="button" class="btn ghost" id="mEdit">✎ Edit this</button>
-      <a class="btn ghost" id="mDownload" href="" download>⤓ Download</a>
-      <button type="button" class="btn ghost del" id="mDelete"> Delete</button>
-    </div>
   </div>
-</div>
+  {% endif %}
+</form>
 
 <div id="toasts"></div>
 
 <script>
-  var POST_PK = {{ p.pk }};
   var URLS = {
     ai: "{% url 'content:compose_ai' p.pk %}",
     upload: "{% url 'content:gallery_upload' p.pk %}",
     select: function (pk) { return "/content/img/" + pk + "/select/"; },
+    toggle: function (pk) { return "/content/img/" + pk + "/toggle/"; },
     del: function (pk) { return "/content/img/" + pk + "/delete/"; }
   };
   var KIND_CHANNELS = {{ kind_channels_json|safe }};
   var csrf = document.querySelector('#wbform [name=csrfmiddlewaretoken]').value;
   var $ = function (s, r) { return (r || document).querySelector(s); };
+  var lastImagePrompt = '', editFrom = null, refs = [];
 
-  // ---------- toasts (no alert()) ----------
-  function toast(text, isErr) {
-    var t = document.createElement('div');
-    t.className = 'toast' + (isErr ? ' err' : '');
-    t.textContent = text;
-    $('#toasts').appendChild(t);
-    setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 2600);
+  function toast(t, e) { var d = document.createElement('div'); d.className = 'toast' + (e ? ' err' : ''); d.textContent = t; $('#toasts').appendChild(d); setTimeout(function () { d.style.opacity = '0'; setTimeout(function () { d.remove(); }, 300); }, 2500); }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  /* ---------- live post preview: carousel over the selected images ---------- */
+  var selItems = [], curIdx = 0;
+  function itemsFromOrder(order) {
+    return (order || []).map(function (pk) { var t = document.querySelector('.thumb[data-pk="' + pk + '"]'); return t ? { pk: pk, url: t.dataset.url } : null; }).filter(Boolean);
   }
-
-  // ---------- kind ↔ channels (kind is derived: got an image → image post, else text) ----------
-  function currentKind() { return document.querySelector('.tile.sel') ? 'image' : 'text'; }
-  function refreshPlats() {
-    var allowed = KIND_CHANNELS[currentKind()] || [];
-    document.querySelectorAll('.plat').forEach(function (chip) {
-      var ok = allowed.indexOf(chip.dataset.plat) !== -1;
-      chip.classList.toggle('off', !ok);
-      if (!ok) { var i = chip.querySelector('input'); if (i) i.checked = false; }
+  function renderCarousel() {
+    var wrap = $('#pcImgWrap'), img = $('#pcImg'), ph = $('#pcPh'), dots = $('#pcDots'), count = $('#pcCount');
+    if (!selItems.length) { img.hidden = true; ph.style.display = ''; wrap.classList.remove('multi'); return; }
+    if (curIdx >= selItems.length) curIdx = 0;
+    ph.style.display = 'none'; img.hidden = false; img.src = selItems[curIdx].url;
+    if (selItems.length > 1) {
+      wrap.classList.add('multi'); count.textContent = (curIdx + 1) + ' / ' + selItems.length;
+      dots.innerHTML = ''; selItems.forEach(function (_, i) { var d = document.createElement('i'); if (i === curIdx) d.className = 'on'; dots.appendChild(d); });
+    } else { wrap.classList.remove('multi'); }
+  }
+  function applySelectionState(order) {
+    var ord = (order || []).map(String);
+    document.querySelectorAll('.thumb').forEach(function (t) {
+      if (!t.dataset.pk) return;
+      var idx = ord.indexOf(String(t.dataset.pk));
+      t.classList.toggle('sel', idx !== -1);
+      var num = t.querySelector('.num'); if (num) num.textContent = idx !== -1 ? (idx + 1) : '';
     });
+    selItems = itemsFromOrder(ord); if (curIdx >= selItems.length) curIdx = 0; renderCarousel(); refreshPlats();
   }
-  refreshPlats();
+  $('#pcPrev').addEventListener('click', function () { if (selItems.length) { curIdx = (curIdx - 1 + selItems.length) % selItems.length; renderCarousel(); } });
+  $('#pcNext').addEventListener('click', function () { if (selItems.length) { curIdx = (curIdx + 1) % selItems.length; renderCarousel(); } });
+  // init from server-rendered selection (thumbs already marked .sel, in order)
+  (function () { var order = []; document.querySelectorAll('.thumb.sel').forEach(function (t) { if (t.dataset.pk) order.push(t.dataset.pk); }); applySelectionState(order); })();
 
-  // ---------- gallery rendering ----------
-  function tileEl(t) {
-    var b = document.createElement('button');
-    b.type = 'button'; b.className = 'tile' + (t.selected ? ' sel' : '');
-    b.dataset.pk = t.pk; b.dataset.url = t.url;
-    b.innerHTML = '<img src="' + t.url + '" alt="">' + (t.selected ? '<span class="badge">✓</span>' : '');
+  /* ---------- influencer header + thumb sync ---------- */
+  $('#avatarSel').addEventListener('change', function () {
+    var opt = this.options[this.selectedIndex]; var img = opt ? opt.getAttribute('data-img') : ''; var name = opt ? opt.getAttribute('data-name') : '';
+    var el = $('#avThumb'); if (img) el.outerHTML = '<img class="av" id="avThumb" src="' + img + '" alt="">'; else el.outerHTML = '<span class="av none" id="avThumb">—</span>';
+    var pcav = $('#pcAv'); if (img) pcav.outerHTML = '<img id="pcAv" src="' + img + '" alt="">'; else pcav.outerHTML = '<span class="av-none" id="pcAv">—</span>';
+    $('#pcName').textContent = name || 'Your influencer';
+  });
+
+  /* ---------- style pills ---------- */
+  document.querySelectorAll('#stylePills .pill').forEach(function (b) { b.addEventListener('click', function () { document.querySelectorAll('#stylePills .pill').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); $('#styleSel').value = b.dataset.style; }); });
+
+  /* ---------- idea chips ---------- */
+  document.querySelectorAll('#ideas .idea').forEach(function (c) { c.addEventListener('click', function () { $('#aiPrompt').value = c.textContent.trim(); $('#aiPrompt').focus(); }); });
+
+  /* ---------- thumbnails: build, select, delete ---------- */
+  function thumbEl(t) {
+    var b = document.createElement('button'); var pr = t.prompt || ''; var up = pr === 'uploaded';
+    b.type = 'button'; b.className = 'thumb'; b.dataset.pk = t.pk; b.dataset.url = t.url; b.dataset.prompt = pr; if (pr) b.title = pr;
+    b.innerHTML = '<img src="' + t.url + '" alt=""><span class="tag">' + (up ? 'Up' : 'AI') + '</span><span class="num"></span><span class="del" title="Delete">✕</span>';
     return b;
   }
-  function addTiles(tiles) {
-    var g = $('#gallery'); var addBtn = $('.tile.add');
-    var e = $('#gEmpty'); if (e) e.remove();
-    tiles.forEach(function (t) {
-      if (t.selected) markSelected(t.pk, true);
-      g.insertBefore(tileEl(t), addBtn);
-    });
+  function addThumbs(tiles) {
+    var tray = $('#tray'), addBtn = $('#uploadBtn'), e = $('#trayEmpty'); if (e) e.remove();
+    tiles.forEach(function (t) { tray.insertBefore(thumbEl(t), addBtn); });
   }
-  function markSelected(pk, on) {
-    document.querySelectorAll('.tile').forEach(function (el) {
-      if (!el.dataset.pk) return;
-      var sel = String(el.dataset.pk) === String(pk) && on;
-      el.classList.toggle('sel', sel);
-      var badge = el.querySelector('.badge');
-      if (sel && !badge) { var s = document.createElement('span'); s.className = 'badge'; s.textContent = '✓'; el.appendChild(s); }
-      if (!sel && badge) badge.remove();
-    });
-  }
-
-  // ---------- prompt bar ----------
-  var mode = 'image', editFrom = null, refs = [];
-  document.querySelectorAll('#modes button').forEach(function (b) {
-    b.addEventListener('click', function () {
-      mode = b.dataset.mode;
-      document.querySelectorAll('#modes button').forEach(function (x) { x.classList.toggle('on', x === b); });
-      $('#imgControls').style.display = (mode === 'image') ? 'flex' : 'none';
-      if (mode === 'text') cancelEdit();
-      $('#aiPrompt').placeholder = mode === 'image'
-        ? 'Describe what you want…  e.g. “a neon duck hacker at a laptop”'
-        : 'Tell the AI what to write…  e.g. “a punchy caption with 3 hashtags”';
-    });
-  });
-
-  // reference images — explicit trigger so the picker reliably opens
-  $('#refBtn').addEventListener('click', function () { $('#refInput').click(); });
-  $('#refInput').addEventListener('change', function (e) {
-    for (var i = 0; i < e.target.files.length; i++) refs.push(e.target.files[i]);
-    e.target.value = ''; renderRefs();
-  });
-  function renderRefs() {
-    var c = $('#refChips'); c.innerHTML = '';
-    refs.forEach(function (f, i) {
-      var chip = document.createElement('span'); chip.className = 'refchip';
-      chip.innerHTML = '<b></b><span class="x">✕</span>';
-      chip.querySelector('b').textContent = f.name;
-      chip.querySelector('.x').addEventListener('click', function () { refs.splice(i, 1); renderRefs(); });
-      c.appendChild(chip);
-    });
-  }
-  function startEdit(pk) {
-    editFrom = pk; mode = 'image';
-    document.querySelectorAll('#modes button').forEach(function (x) { x.classList.toggle('on', x.dataset.mode === 'image'); });
-    $('#imgControls').style.display = 'flex';
-    $('#editNote').classList.add('show'); $('#aiPrompt').focus();
-  }
-  function cancelEdit() { editFrom = null; $('#editNote').classList.remove('show'); }
-  $('#editCancel').addEventListener('click', cancelEdit);
-
-  function send() {
-    var prompt = $('#aiPrompt').value.trim();
-    if (mode === 'text' && !prompt) { $('#aiPrompt').focus(); return; }
-    if (mode === 'image' && !prompt && !editFrom && refs.length === 0) { $('#aiPrompt').focus(); return; }
-    var fd = new FormData();
-    fd.append('prompt', prompt); fd.append('mode', mode);
-    if (mode === 'image') {
-      fd.append('style', $('#styleSel').value);
-      fd.append('avatar', $('#avatarSel').value);
-      if (editFrom) fd.append('edit_from', editFrom);
-      refs.forEach(function (f) { fd.append('refs', f); });
-    }
-    $('#aiSend').disabled = true; $('#aiSpin').classList.add('show');
-    $('#aiMsg').className = 'aimsg'; $('#aiMsg').textContent = '';
-    fetch(URLS.ai, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+  $('#tray').addEventListener('click', function (e) {
+    var del = e.target.closest('.del');
+    var thumb = e.target.closest('.thumb');
+    if (!thumb || thumb.classList.contains('add')) return;
+    if (del) { deleteThumb(thumb); return; }
+    // toggle in/out of the post (multi-image carousel)
+    fetch(URLS.toggle(thumb.dataset.pk), { method: 'POST', headers: { 'X-CSRFToken': csrf } })
       .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d.ok) { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = d.error || 'Something went wrong.'; return; }
-        if (d.mode === 'text') {
-          $('textarea[name=body]').value = d.body;
-          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = 'Caption written ';
-        } else {
-          addTiles([d.image]);
-          $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = editFrom ? 'Image edited ' : 'Image generated ';
-          refreshPlats();
-        }
-        $('#aiPrompt').value = ''; refs = []; renderRefs(); cancelEdit();
-      })
-      .catch(function (e) { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = 'Network error.'; })
-      .finally(function () { $('#aiSend').disabled = false; $('#aiSpin').classList.remove('show'); });
-  }
-  $('#aiSend').addEventListener('click', send);
-  $('#aiPrompt').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+      .then(function (d) { if (d.ok) applySelectionState(d.order); });
   });
-
-  // ---------- upload (＋ tile) ----------
-  $('#uploadBtn').addEventListener('click', function () { $('#uploadInput').click(); });
-  $('#uploadInput').addEventListener('change', function (e) {
-    if (!e.target.files.length) return;
-    var fd = new FormData();
-    for (var i = 0; i < e.target.files.length; i++) fd.append('images', e.target.files[i]);
-    e.target.value = '';
-    fetch(URLS.upload, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d.ok) { toast(d.error || 'Upload failed.', true); return; }
-        addTiles(d.images); toast('Uploaded ' + d.images.length + ' image' + (d.images.length > 1 ? 's' : ''));
-        refreshPlats();
-      })
-      .catch(function () { toast('Upload failed.', true); });
-  });
-
-  // ---------- modal ----------
-  var modalPk = null;
-  $('#gallery').addEventListener('click', function (e) {
-    var tile = e.target.closest('.tile'); if (!tile || tile.classList.contains('add')) return;
-    openModal(tile.dataset.pk, tile.dataset.url);
-  });
-  function openModal(pk, url) {
-    modalPk = pk; $('#modalImg').src = url; $('#mDownload').href = url;
-    resetDelete(); $('#modal').classList.add('show');
-  }
-  function closeModal() { $('#modal').classList.remove('show'); modalPk = null; }
-  $('#modal').addEventListener('click', function (e) { if (e.target === $('#modal')) closeModal(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
-
-  $('#mUse').addEventListener('click', function () {
-    fetch(URLS.select(modalPk), { method: 'POST', headers: { 'X-CSRFToken': csrf } })
-      .then(function (r) { return r.json(); })
-      .then(function (d) { if (d.ok) { markSelected(d.pk, true); toast('Set as the post image ✓'); closeModal(); refreshPlats(); } });
-  });
-  $('#mEdit').addEventListener('click', function () { var pk = modalPk; closeModal(); startEdit(pk); });
-
-  // two-click delete confirm (no confirm())
-  var delArmed = false;
-  function resetDelete() { delArmed = false; $('#mDelete').textContent = ' Delete'; $('#mDelete').classList.remove('armed'); }
-  $('#mDelete').addEventListener('click', function () {
-    if (!delArmed) { delArmed = true; $('#mDelete').textContent = 'Click again to confirm'; return; }
-    var pk = modalPk;
+  function deleteThumb(thumb) {
+    var pk = thumb.dataset.pk;
     fetch(URLS.del(pk), { method: 'POST', headers: { 'X-CSRFToken': csrf } })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) { toast('Delete failed.', true); return; }
-        var el = document.querySelector('.tile[data-pk="' + pk + '"]'); if (el) el.remove();
-        if (d.new_selected) markSelected(d.new_selected, true);
-        toast('Image deleted'); closeModal(); refreshPlats();
+        thumb.remove(); applySelectionState(d.order || []); toast('Deleted');
+      }).catch(function () { toast('Delete failed.', true); });
+  }
+
+  /* ---------- prompt history ---------- */
+  function pushHistory(text) {
+    text = (text || '').trim(); if (!text || text === 'uploaded') return;
+    var list = $('#phistList'); Array.prototype.forEach.call(list.querySelectorAll('li'), function (li) { if (li.dataset.prompt === text) li.remove(); });
+    var li = document.createElement('li'); li.dataset.prompt = text; li.innerHTML = '<span class="t"></span><span class="reuse">reuse →</span>'; li.querySelector('.t').textContent = text;
+    li.addEventListener('click', function () { $('#aiPrompt').value = text; $('#aiPrompt').focus(); });
+    list.insertBefore(li, list.firstChild); $('#phist').hidden = false;
+  }
+  Array.prototype.slice.call(document.querySelectorAll('.thumb[data-prompt]')).reverse().forEach(function (el) { pushHistory(el.dataset.prompt); });
+
+  /* ---------- references ---------- */
+  function addRefFiles(list) { for (var i = 0; i < list.length; i++) { if (list[i].type && list[i].type.indexOf('image/') === 0) refs.push(list[i]); } renderRefs(); }
+  function renderRefs() { var c = $('#refChips'); c.innerHTML = ''; refs.forEach(function (f, i) { var chip = document.createElement('span'); chip.className = 'refchip'; chip.innerHTML = '<b></b><span class="x">✕</span>'; chip.querySelector('b').textContent = f.name; chip.querySelector('.x').addEventListener('click', function () { refs.splice(i, 1); renderRefs(); }); c.appendChild(chip); }); }
+  $('#refDrop').addEventListener('click', function () { $('#refInput').click(); });
+  $('#refInput').addEventListener('change', function (e) { addRefFiles(e.target.files); e.target.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (ev) { $('#refDrop').addEventListener(ev, function (e) { e.preventDefault(); this.classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { $('#refDrop').addEventListener(ev, function (e) { e.preventDefault(); this.classList.remove('drag'); }); });
+  $('#refDrop').addEventListener('drop', function (e) { if (e.dataTransfer) addRefFiles(e.dataTransfer.files); });
+
+  /* ---------- generate ---------- */
+  function send() {
+    var prompt = $('#aiPrompt').value.trim();
+    if (!prompt && !editFrom && refs.length === 0) { $('#aiPrompt').focus(); return; }
+    var fd = new FormData(); fd.append('prompt', prompt); fd.append('mode', 'image'); fd.append('style', $('#styleSel').value); fd.append('avatar', $('#avatarSel').value);
+    if (editFrom) fd.append('edit_from', editFrom); refs.forEach(function (f) { fd.append('refs', f); });
+    $('#aiSend').disabled = true; $('#aiSpin').classList.add('show'); $('#aiMsg').className = 'aimsg'; $('#aiMsg').textContent = '';
+    fetch(URLS.ai, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = d.error || 'Something went wrong.'; return; }
+        addThumbs([d.image]); applySelectionState(d.order);
+        $('#aiMsg').className = 'aimsg ok'; $('#aiMsg').textContent = editFrom ? 'Updated' : 'Done';
+        if (prompt) { pushHistory(prompt); lastImagePrompt = prompt; }
+        refs = []; renderRefs(); editFrom = null;
       })
-      .catch(function () { toast('Delete failed.', true); });
+      .catch(function () { $('#aiMsg').className = 'aimsg err'; $('#aiMsg').textContent = 'Network error.'; })
+      .finally(function () { $('#aiSend').disabled = false; $('#aiSpin').classList.remove('show'); });
+  }
+  $('#aiSend').addEventListener('click', send);
+  $('#aiPrompt').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } });
+
+  /* ---------- caption AI (with hashtags) ---------- */
+  function topicBasis() { return $('textarea[name=body]').value.trim() || lastImagePrompt || 'this image'; }
+  function runAI(btn, working, instr, cb) {
+    var old = btn.textContent; btn.textContent = working; btn.disabled = true;
+    var fd = new FormData(); fd.append('mode', 'text'); fd.append('prompt', instr);
+    fetch(URLS.ai, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d.ok && d.body) cb(d.body.trim()); else toast(d.error || 'AI is not set up.', true); })
+      .catch(function () { toast('Network error.', true); })
+      .finally(function () { btn.textContent = old; btn.disabled = false; });
+  }
+  $('#captionAI').addEventListener('click', function () {
+    runAI(this, 'writing…',
+      'Write a short, catchy social media caption for a post about: ' + topicBasis()
+      + '. Start with a strong hook, keep it 1-2 short lines, then end with 5-8 relevant hashtags on a new line. Output only the caption.',
+      function (body) { $('textarea[name=body]').value = body; });
   });
+  $('#hashtagAI').addEventListener('click', function () {
+    runAI(this, 'adding…',
+      'List 6-8 relevant, popular social-media hashtags for a post about: ' + topicBasis()
+      + '. Output only the hashtags, space-separated, each starting with #.',
+      function (tags) { var ta = $('textarea[name=body]'); ta.value = (ta.value.trim() + '\n\n' + tags).trim(); });
+  });
+
+  /* ---------- upload ---------- */
+  $('#uploadBtn').addEventListener('click', function () { $('#uploadInput').click(); });
+  $('#uploadInput').addEventListener('change', function (e) {
+    if (!e.target.files.length) return; var fd = new FormData(); for (var i = 0; i < e.target.files.length; i++) fd.append('images', e.target.files[i]); e.target.value = '';
+    fetch(URLS.upload, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+      .then(function (r) { return r.json(); }).then(function (d) { if (!d.ok) { toast(d.error || 'Upload failed.', true); return; } addThumbs(d.images); applySelectionState(d.order); toast('Uploaded'); }).catch(function () { toast('Upload failed.', true); });
+  });
+
+  /* ---------- publish channel filtering ---------- */
+  function currentKind() { return document.querySelector('.thumb.sel') ? 'image' : 'text'; }
+  function refreshPlats() {
+    var allowed = KIND_CHANNELS[currentKind()] || [];
+    document.querySelectorAll('.plat').forEach(function (chip) { var ok = allowed.indexOf(chip.dataset.plat) !== -1; chip.classList.toggle('off', !ok); if (!ok) { var i = chip.querySelector('input'); if (i) i.checked = false; } });
+  }
+  refreshPlats();
+
+  /* ---------- phase nav (publish step, non-onboarding) ---------- */
+  function showPhase(p) { var pi = $('#phaseImage'), pd = $('#phaseDetails'); if (pi) pi.hidden = (p !== 'image'); if (pd) pd.hidden = (p !== 'details'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  var toDetails = $('#toDetails'); if (toDetails) toDetails.addEventListener('click', function () { showPhase('details'); });
+  var backBtn = $('#backToImage'); if (backBtn) backBtn.addEventListener('click', function () { showPhase('image'); });
 </script>
 {% endblock %}

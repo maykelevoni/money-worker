@@ -20,6 +20,13 @@
   .next .k { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
   .next .v { font-size: 18px; font-weight: 600; margin-top: 4px; }
   .next .btn { flex: none; }
+  /* just-onboarded welcome */
+  .welcome { display: flex; gap: 16px; align-items: flex-start; background: var(--beak-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 14px;
+    padding: 20px 22px; margin-bottom: 22px; }
+  .welcome .wemoji { font-size: 30px; line-height: 1; flex: none; }
+  .welcome h2 { margin: 0 0 6px; font-size: 20px; }
+  .welcome p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 640px; }
   /* setup checklist */
   .setup { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 20px; margin-bottom: 24px; }
@@ -40,31 +47,25 @@
   .analytics-link:hover { color: var(--accent); }
 </style>
 
-{% include "_pagehead.html" with eyebrow="Overview" title="Command Center" subtitle="Talking-avatar videos → leads → product sales" %}
+{% if just_onboarded %}
+<div class="welcome">
+  <div>
+    <h2>You're all set up{% if request.workspace %}, {{ request.workspace.name }}{% endif %}.</h2>
+    <p>Your influencer is ready and your first post is in the Library. From here, keep
+       creating — every post feeds leads and sales. Here's your next move.</p>
+  </div>
+</div>
+{% endif %}
+
+{% include "_pagehead.html" with eyebrow="Home" title="Your business" subtitle="Your influencer → content → leads → sales" %}
 
 <div class="next">
   <div class="txt">
-    <div class="k"> The one next action</div>
+    <div class="k">Your next move</div>
     <div class="v">{{ next_action }}</div>
   </div>
   <a class="btn" href="{{ next_action_url }}">{{ next_action_cta }} →</a>
 </div>
-
-{% if show_setup %}
-<div class="setup">
-  <h3>Get set up</h3>
-  <div class="prog">{{ setup_done }} of {{ setup_steps|length }} done — finish these to start the funnel.</div>
-  <div class="steps">
-    {% for s in setup_steps %}
-    <a class="step {% if s.done %}on{% endif %}" href="{{ s.url }}">
-      <span class="box">{% if s.done %}✓{% endif %}</span>
-      <span>{{ s.label }}</span>
-      {% if not s.done %}<span class="go">Do it →</span>{% endif %}
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
 
 <div class="cards">
   <a class="card" href="/factory/?status=posted"><div class="k">Videos live</div><div class="v">{{ videos_live }}</div></a>
@@ -75,15 +76,16 @@
 
 <div class="cards">
   <a class="card" href="/factory/avatars/">
-    <div class="k"> Avatars</div><div class="v">{{ avatars_count }}</div></a>
+    <div class="k">Influencers</div><div class="v">{{ avatars_count }}</div>
+    {% if avatars_count == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">create your first</div>{% endif %}</a>
+  <a class="card" href="/content/">
+    <div class="k">Posts</div><div class="v">{{ posts_total }}</div>
+    {% if posts_total == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">make your first</div>{% endif %}</a>
   <a class="card" href="/offers/">
-    <div class="k"> Products</div><div class="v">{{ products_active }}</div>
-    {% if products_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">add one to promote</div>{% endif %}</a>
-  <a class="card" href="/factory/">
-    <div class="k"> All videos</div><div class="v">{{ videos_total }}</div>
-    {% if videos_total == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">make your first</div>{% endif %}</a>
+    <div class="k">Products</div><div class="v">{{ products_active }}</div>
+    {% if products_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">add one to sell</div>{% endif %}</a>
   <a class="card" href="/capture-pages/">
-    <div class="k"> Capture pages</div><div class="v">{{ pages_active }}</div>
+    <div class="k">Capture pages</div><div class="v">{{ pages_active }}</div>
     {% if pages_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">build one to collect leads</div>{% endif %}</a>
 </div>
 

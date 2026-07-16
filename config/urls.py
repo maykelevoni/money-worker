@@ -19,13 +19,26 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.dashboard import onboarding as ob
 from apps.leads import views as lead_views
 from apps.sites import api_views as sites_api
+
+onboarding_patterns = ([
+    path('', ob.start, name='start'),
+    path('influencer/', ob.influencer, name='influencer'),
+    path('post/', ob.post, name='post'),
+    path('share/', ob.share, name='share'),
+    path('share/continue/', ob.share_continue, name='share_continue'),
+    path('money/', ob.money, name='money'),
+    path('finish/', ob.finish, name='finish'),
+    path('skip/', ob.skip, name='skip'),
+], 'onboarding')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('start/', include(onboarding_patterns)),
     path('', include('apps.dashboard.urls')),
     path('factory/', include('apps.videos.urls')),
     path('websites/', include('apps.sites.urls')),

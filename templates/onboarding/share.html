@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Share it · Setup{% endblock %}
+
+{% block content %}
+<style>
+  .ob { max-width: 680px; margin: 0 auto; }
+  .ob-hero { text-align: center; margin: 6px 0 26px; }
+  .ob-hero .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .ob-hero h1 { font-size: 30px; margin: 8px 0 8px; line-height: 1.15; }
+  .ob-hero p { color: var(--muted); font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.55; }
+  .ob-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; text-align: center; }
+  .ob-card p { color: var(--muted); line-height: 1.55; margin: 0 0 16px; }
+  .ob-actions { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto; }
+  .ob-actions .btn { justify-content: center; padding: 12px; }
+  .acct { display: inline-flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 13px; font-size: 13px; margin: 4px; }
+  .ob-skip { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer;
+    text-decoration: underline; font-family: inherit; padding: 8px; }
+  .ob-skip:hover { color: var(--fg); }
+</style>
+
+<div class="ob">
+  {% include "_stepper.html" with current=current %}
+
+  <div class="ob-hero">
+    <div class="eyebrow">Step 3 of 4</div>
+    <h1>Share it with the world</h1>
+    <p>Connect where your influencer will post — Instagram, TikTok, YouTube and more.
+       This is how your content reaches an audience.</p>
+  </div>
+
+  <div class="ob-card">
+    {% if accounts %}
+      <p><strong>Connected:</strong><br>
+        {% for a in accounts %}<span class="acct">{{ a.handle }} · {{ a.platform_label }}</span>{% endfor %}
+      </p>
+      <div class="ob-actions">
+        <a class="btn ghost" href="{% url 'social:list' %}">Connect another →</a>
+        <form method="post" action="{% url 'onboarding:share_continue' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn" style="width:100%;justify-content:center;padding:12px;">Continue →</button>
+        </form>
+      </div>
+    {% else %}
+      <p>No channels connected yet. Connect one now so your posts have somewhere to go —
+         or do it later and keep setting up.</p>
+      <div class="ob-actions">
+        <a class="btn" href="{% url 'social:list' %}" style="justify-content:center;">Connect a channel →</a>
+        <form method="post" action="{% url 'onboarding:share_continue' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="ob-skip">I'll connect later — continue →</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

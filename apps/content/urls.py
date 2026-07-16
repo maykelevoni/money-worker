@@ -14,6 +14,7 @@ urlpatterns = [
     path("<int:pk>/ai/", views.compose_ai, name="compose_ai"),
     path("<int:pk>/upload/", views.gallery_upload, name="gallery_upload"),
     path("img/<int:img_pk>/select/", views.image_select, name="image_select"),
+    path("img/<int:img_pk>/toggle/", views.image_toggle, name="image_toggle"),
     path("img/<int:img_pk>/delete/", views.image_delete, name="image_delete"),
     path("<int:pk>/", views.post_detail, name="post_detail"),
     path("<int:pk>/publish/", views.publish_post, name="publish_post"),

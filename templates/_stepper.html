@@ -1,0 +1,31 @@
+{% comment %}Guided first-run progress. Pass `current` = 0..3.{% endcomment %}
+<style>
+  .stepper { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin: 0 0 22px; flex-wrap: wrap; }
+  .steps { list-style: none; display: flex; gap: 6px; margin: 0; padding: 0; flex-wrap: wrap; }
+  .steps li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted);
+    padding: 7px 13px 7px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+  .steps li .dot { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; flex: none;
+    align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--muted);
+    background: var(--bg); border: 1px solid var(--line); }
+  .steps li.done { color: var(--fg); border-color: color-mix(in srgb, var(--ok, #43d6a0) 45%, var(--line)); }
+  .steps li.done .dot { background: var(--ok, #43d6a0); color: #08210f; border-color: transparent; }
+  .steps li.now { color: var(--fg); border-color: var(--accent); background: var(--beak-soft); }
+  .steps li.now .dot { background: var(--accent); color: #fff; border-color: transparent; }
+  .stepskip { background: none; border: none; color: var(--muted); font-size: 12.5px; cursor: pointer;
+    text-decoration: underline; font-family: inherit; padding: 4px; }
+  .stepskip:hover { color: var(--fg); }
+  @media (max-width: 620px) { .steps li .lbl { display: none; } }
+</style>
+<div class="stepper">
+  <ol class="steps">
+    <li class="{% if current > 0 %}done{% elif current == 0 %}now{% endif %}"><span class="dot">{% if current > 0 %}✓{% else %}1{% endif %}</span><span class="lbl">Create your influencer</span></li>
+    <li class="{% if current > 1 %}done{% elif current == 1 %}now{% endif %}"><span class="dot">{% if current > 1 %}✓{% else %}2{% endif %}</span><span class="lbl">Make your first post</span></li>
+    <li class="{% if current > 2 %}done{% elif current == 2 %}now{% endif %}"><span class="dot">{% if current > 2 %}✓{% else %}3{% endif %}</span><span class="lbl">Share it</span></li>
+    <li class="{% if current > 3 %}done{% elif current == 3 %}now{% endif %}"><span class="dot">4</span><span class="lbl">Set up sales</span></li>
+  </ol>
+  <form method="post" action="{% url 'onboarding:skip' %}" style="margin:0;">
+    {% csrf_token %}
+    <button type="submit" class="stepskip">Skip setup for now</button>
+  </form>
+</div>

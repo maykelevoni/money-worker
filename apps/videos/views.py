@@ -634,28 +634,64 @@ def avatar_list(request):
     })
 
 
+def _save_reference_uploads(files):
+    """Write uploaded reference images to temp files; return their paths (for edit_image)."""
+    import tempfile
+
+    paths = []
+    for f in files or []:
+        if not getattr(f, "content_type", "").startswith("image/"):
+            continue
+        suffix = Path(f.name).suffix or ".png"
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        for chunk in f.chunks():
+            tmp.write(chunk)
+        tmp.close()
+        paths.append(Path(tmp.name))
+    return paths
+
+
+def _cleanup_paths(paths):
+    for p in paths or []:
+        try:
+            Path(p).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
 @login_required
 @require_POST
 def avatar_create(request):
     name = request.POST.get("name", "").strip()
     appearance = request.POST.get("appearance", "").strip()
     if not name or not appearance:
-        messages.error(request, "Give the avatar a name and describe how it looks.")
+        messages.error(request, "Give your influencer a name and describe how they look.")
         return redirect("videos:avatars")
     seed = request.POST.get("seed", "").strip()
+    style = request.POST.get("style", "").strip()
     avatar = Avatar.objects.create(
         workspace=request.workspace,
-        name=name, appearance=appearance, seed=int(seed) if seed.isdigit() else None
+        name=name, appearance=appearance, style=style,
+        seed=int(seed) if seed.isdigit() else None,
     )
+    # Optional reference images (a photo, a cartoon, an inspiration) → based-on look.
+    ref_paths = _save_reference_uploads(request.FILES.getlist("refs"))
     try:
-        avatars.generate_portrait(avatar)
+        avatars.generate_portrait(avatar, reference_paths=ref_paths)
     except avatars.NotConfigured as e:
         messages.error(request, str(e))
         return redirect("videos:avatars")
     except Exception as e:
-        messages.error(request, f"Avatar image failed: {e}")
+        messages.error(request, f"Influencer image failed: {e}")
         return redirect("videos:avatars")
+    finally:
+        _cleanup_paths(ref_paths)
     messages.success(request, f"Avatar “{name}” created ")
+    # First-run flow: creating your influencer completes step 1 → go to the composer.
+    ws = request.workspace
+    if ws and not ws.onboarding_done and ws.onboarding_step == 0:
+        ws.advance_onboarding(1)  # STEP_POST
+        return redirect("onboarding:start")
     return redirect("videos:avatars")
 
 

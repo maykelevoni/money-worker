@@ -39,6 +39,20 @@ def _select_image(post, pi):
     post.save(update_fields=["media", "kind"])
 
 
+def _selected_order(post):
+    """PKs of the post's selected images, in carousel order (creation order)."""
+    return list(post.images.filter(is_selected=True).order_by("pk").values_list("pk", flat=True))
+
+
+def _sync_selection(post):
+    """Mirror the current multi-selection into Post.media (first image) + kind."""
+    first = post.images.filter(is_selected=True).order_by("pk").first()
+    if post.kind not in (Post.Kind.ARTICLE, Post.Kind.VIDEO):
+        post.kind = Post.Kind.IMAGE if first else Post.Kind.TEXT
+    post.media.name = first.image.name if first else ""
+    post.save(update_fields=["media", "kind"])
+
+
 def _back(pk):
     return redirect("content:post_detail", pk=pk)
 
@@ -164,11 +178,24 @@ def _do_publish(request, post, accounts):
                         user=profile, idempotency_key=idem,
                     )
             elif post.kind == Post.Kind.IMAGE:
-                with post.media.open("rb") as fh:
-                    r = uploadpost.upload_photo(
-                        fh, os.path.basename(post.media.name), platforms, title, caption,
-                        user=profile, idempotency_key=idem,
+                sel = list(post.images.filter(is_selected=True).order_by("pk"))
+                opened = []
+                try:
+                    items = []
+                    for pi in sel:
+                        fh = pi.image.open("rb")
+                        opened.append(fh)
+                        items.append((os.path.basename(pi.image.name), fh))
+                    if not items:  # fallback: legacy single media
+                        fh = post.media.open("rb")
+                        opened.append(fh)
+                        items.append((os.path.basename(post.media.name), fh))
+                    r = uploadpost.upload_photos(
+                        items, platforms, title, caption, user=profile, idempotency_key=idem,
                     )
+                finally:
+                    for fh in opened:
+                        fh.close()
             else:  # TEXT
                 r = uploadpost.upload_text(
                     platforms, post.body or title, user=profile, idempotency_key=idem
@@ -248,6 +275,14 @@ def compose(request, pk):
         post.scheduled_at = timezone.datetime.fromisoformat(sched) if sched else None
         post.save()
 
+        # First-run flow: saving/publishing the first post completes step 2 →
+        # move on to sharing. (Publishing needs a connected account they don't
+        # have yet, so during onboarding "save & continue" is the real action.)
+        ws = request.workspace
+        if ws and not ws.onboarding_done and ws.onboarding_step == 1:
+            ws.advance_onboarding(2)  # STEP_SHARE
+            return redirect("onboarding:start")
+
         if request.POST.get("action") == "publish":
             accounts = social_publish.accounts_for(
                 request.workspace, post.available_channels, request.POST.getlist("accounts")
@@ -262,11 +297,19 @@ def compose(request, pk):
         messages.success(request, "Saved.")
         return redirect("content:compose", pk=pk)
 
+    workspace_avatars = Avatar.objects.for_workspace(request.workspace)
+    # Preselect the newest influencer so a post uses your character by default
+    # instead of "— no character —". Beginners shouldn't have to know to pick it.
+    default_avatar = workspace_avatars.order_by("-pk").first()
+    ws = request.workspace
+    onboarding = bool(ws and not ws.onboarding_done and ws.onboarding_step == 1)
     return render(request, "content/workbench.html", {
+        "onboarding": onboarding,
         "p": post,
         "gallery": post.images.all(),
         "styles": IMAGE_STYLES,
-        "avatars": Avatar.objects.for_workspace(request.workspace),
+        "avatars": workspace_avatars,
+        "default_avatar": default_avatar,
         "publish_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(is_active=True),
         "kind_channels_json": json.dumps(uploadpost.KIND_CHANNELS),
         "config": {"text": openrouter.is_configured(), "images": images.is_configured()},
@@ -281,7 +324,11 @@ def _add_gallery_image(post, tmp_path, prompt, select=True):
         pi.image.save(f"g{post.pk}_{int(timezone.now().timestamp())}.png", File(fh), save=False)
     pi.save()
     if select:
-        _select_image(post, pi)
+        # Additive: a freshly made image joins the post's selection, so making
+        # two images gives you a two-image carousel without extra clicks.
+        pi.is_selected = True
+        pi.save(update_fields=["is_selected"])
+        _sync_selection(post)
     return pi
 
 
@@ -358,7 +405,7 @@ def compose_ai(request, pk):
 
     pi = _add_gallery_image(post, out, prompt)
     out.unlink(missing_ok=True)
-    return JsonResponse({"ok": True, "mode": "image", "image": _tile(pi)})
+    return JsonResponse({"ok": True, "mode": "image", "image": _tile(pi), "order": _selected_order(post)})
 
 
 @login_required
@@ -377,37 +424,43 @@ def gallery_upload(request, pk):
         tiles.append(_tile(pi))
     # select the first upload if nothing is selected yet
     if not post.images.filter(is_selected=True).exists():
-        _select_image(post, post.images.get(pk=tiles[0]["pk"]))
+        first = post.images.get(pk=tiles[0]["pk"])
+        first.is_selected = True
+        first.save(update_fields=["is_selected"])
+        _sync_selection(post)
         tiles[0]["selected"] = True
-    return JsonResponse({"ok": True, "images": tiles})
+    return JsonResponse({"ok": True, "images": tiles, "order": _selected_order(post)})
 
 
 @login_required
 @require_POST
 def image_select(request, img_pk):
-    """Mark a gallery image as the one that publishes."""
+    """Single-select an image (used outside the multi-image composer)."""
     pi = get_object_or_404(PostImage, pk=img_pk, post__workspace=request.workspace)
     _select_image(pi.post, pi)
-    return JsonResponse({"ok": True, "pk": pi.pk})
+    return JsonResponse({"ok": True, "pk": pi.pk, "order": _selected_order(pi.post)})
+
+
+@login_required
+@require_POST
+def image_toggle(request, img_pk):
+    """Add/remove an image from the post's selection (multi-image carousel)."""
+    pi = get_object_or_404(PostImage, pk=img_pk, post__workspace=request.workspace)
+    pi.is_selected = not pi.is_selected
+    pi.save(update_fields=["is_selected"])
+    _sync_selection(pi.post)
+    return JsonResponse({"ok": True, "pk": pi.pk, "selected": pi.is_selected, "order": _selected_order(pi.post)})
 
 
 @login_required
 @require_POST
 def image_delete(request, img_pk):
-    """Remove a gallery image; reselect another if we deleted the selected one."""
+    """Remove a gallery image; the remaining selection (if any) stays a carousel."""
     pi = get_object_or_404(PostImage, pk=img_pk, post__workspace=request.workspace)
-    post, was_selected = pi.post, pi.is_selected
+    post = pi.post
     pi.delete()
-    new_selected = None
-    if was_selected:
-        nxt = post.images.last()
-        if nxt:
-            _select_image(post, nxt)
-            new_selected = nxt.pk
-        else:
-            post.media = ""
-            post.save(update_fields=["media"])
-    return JsonResponse({"ok": True, "new_selected": new_selected})
+    _sync_selection(post)
+    return JsonResponse({"ok": True, "order": _selected_order(post)})
 
 
 @login_required

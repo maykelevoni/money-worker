@@ -179,47 +179,48 @@
         <span class="ws-chip" title="Current workspace">
           <span class="ws-av"></span>{{ request.workspace.name }}
         </span>
-        {% else %}
-        <span class="tag">ops</span>
         {% endif %}
       </div>
+      {% if request.workspace and not request.workspace.onboarding_done %}
+      <span class="tag">Setup</span>
+      {% else %}
       <button class="menu-toggle" aria-label="Menu"
         onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
       <nav id="nav" class="links">
-        <a href="/" class="navlink {% if request.path == '/' %}active{% endif %}">Dashboard</a>
+        <a href="/" class="navlink {% if request.path == '/' %}active{% endif %}">Home</a>
 
-        <a href="/factory/research/" class="navlink {% if '/factory/research' in request.path %}active{% endif %}">Research</a>
+        <a href="/factory/research/" class="navlink {% if '/factory/research' in request.path %}active{% endif %}">Ideas</a>
 
         <div class="grp {% if '/content/' in request.path or request.path == '/factory/' or '/factory/create' in request.path or '/factory/video' in request.path or '/factory/avatars' in request.path %}active{% endif %}">
-          <a href="/content/studio/" class="lbl">Studio ▾</a>
+          <a href="/content/studio/" class="lbl">Create ▾</a>
           <div class="menu">
-            <a href="/content/studio/">Create</a>
-            <a href="/factory/">Video Factory</a>
-            <a href="/factory/avatars/">Avatars</a>
+            <a href="/content/studio/">Make a post</a>
+            <a href="/factory/avatars/">Your influencers</a>
+            <a href="/factory/">Videos</a>
             <a href="/content/">Library</a>
             <a href="/content/calendar/">Calendar</a>
           </div>
         </div>
 
         <div class="grp {% if '/websites/' in request.path or '/social/' in request.path or '/capture-pages/' in request.path %}active{% endif %}">
-          <a href="/websites/" class="lbl">Assets ▾</a>
+          <a href="/websites/" class="lbl">Publish ▾</a>
           <div class="menu">
+            <a href="/social/">Social accounts</a>
             <a href="/websites/">Websites</a>
-            <a href="/social/">Social Accounts</a>
-            <a href="/capture-pages/">Capture Pages</a>
+            <a href="/capture-pages/">Capture pages</a>
           </div>
         </div>
 
         <div class="grp {% if '/emails/' in request.path or '/scheduler/' in request.path or '/automations/' in request.path or '/leads/' in request.path %}active{% endif %}">
-          <a href="/emails/" class="lbl">Grow ▾</a>
+          <a href="/emails/" class="lbl">Audience ▾</a>
           <div class="menu">
-            <a href="/leads/">Email Lists</a>
-            <a href="/emails/">Email Sequences</a>
+            <a href="/leads/">Leads &amp; lists</a>
+            <a href="/emails/">Email sequences</a>
             <a href="/automations/">Automation</a>
           </div>
         </div>
 
-        <a href="/offers/" class="navlink {% if '/offers/' in request.path %}active{% endif %}">Products</a>
+        <a href="/offers/" class="navlink {% if '/offers/' in request.path %}active{% endif %}">Sell</a>
         <a href="/analytics/" class="navlink {% if '/analytics/' in request.path %}active{% endif %}">Analytics</a>
 
         <div class="grp util" title="Settings">
@@ -237,6 +238,7 @@
           </div>
         </div>
       </nav>
+      {% endif %}
     </div>
   </header>
   <main>

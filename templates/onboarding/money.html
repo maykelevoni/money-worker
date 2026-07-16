@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Set up sales · Setup{% endblock %}
+
+{% block content %}
+<style>
+  .ob { max-width: 680px; margin: 0 auto; }
+  .ob-hero { text-align: center; margin: 6px 0 26px; }
+  .ob-hero .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .ob-hero h1 { font-size: 30px; margin: 8px 0 8px; line-height: 1.15; }
+  .ob-hero p { color: var(--muted); font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.55; }
+  .ob-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; text-align: center; }
+  .ob-card p { color: var(--muted); line-height: 1.55; margin: 0 0 16px; }
+  .ob-actions { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto; }
+  .prod { display: inline-flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 13px; font-size: 13px; margin: 4px; }
+  .ob-skip { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer;
+    text-decoration: underline; font-family: inherit; padding: 8px; }
+  .ob-skip:hover { color: var(--fg); }
+</style>
+
+<div class="ob">
+  {% include "_stepper.html" with current=current %}
+
+  <div class="ob-hero">
+    <div class="eyebrow">Step 4 of 4</div>
+    <h1>Set up how you make money</h1>
+    <p>Add something to sell — a product, course, or service. Your influencer's posts
+       and pages will point people toward it. This is the payoff.</p>
+  </div>
+
+  <div class="ob-card">
+    {% if products %}
+      <p><strong>Ready to sell:</strong><br>
+        {% for p in products %}<span class="prod">{{ p.name }}</span>{% endfor %}
+      </p>
+      <div class="ob-actions">
+        <a class="btn ghost" href="{% url 'offers:list' %}">Add another →</a>
+        <form method="post" action="{% url 'onboarding:finish' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn" style="width:100%;justify-content:center;padding:12px;">Finish setup →</button>
+        </form>
+      </div>
+    {% else %}
+      <p>No product yet. Add one now, or finish setup and add it later — either way
+         you're ready to start creating.</p>
+      <div class="ob-actions">
+        <a class="btn" href="{% url 'offers:list' %}" style="justify-content:center;">Add a product →</a>
+        <form method="post" action="{% url 'onboarding:finish' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="ob-skip">I'll add it later — finish setup →</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

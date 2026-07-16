@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Avatars · Video Factory{% endblock %}
+{% block title %}Your influencers · Studio{% endblock %}
 {% block nav_factory %}active{% endblock %}
 
 {% block content %}
-{% include "_pagehead.html" with eyebrow="Studio" title="Avatars" subtitle="Your reusable on-screen characters. Build one once, then put it in any video." %}
+{% include "_pagehead.html" with eyebrow="Studio" title="Your influencers" subtitle="The recurring faces of your business. Create one once, then use them in any post or video." %}
 
 {% if not configured %}
   <div class="msg msg-error">FAL_API_KEY isn’t set — add it to your .env to generate avatars.</div>
@@ -64,20 +64,10 @@
     </div>
   {% endfor %}
 
-  <form class="av-new" method="post" action="{% url 'videos:avatar_create' %}">
-    {% csrf_token %}
-    <div class="eyebrow">New character</div>
-    <h2>Create an avatar</h2>
-    <p class="sub" style="margin:6px 0 12px; font-size:13px;">The appearance text becomes the image prompt.</p>
-    <label>Name</label>
-    <input name="name" placeholder="e.g. Duck Hacker" required>
-    <label>Appearance — looks, outfit, vibe</label>
-    <textarea name="appearance" placeholder="An adult anthropomorphic duck hacker, black hoodie, headphones, glowing red eyes, cinematic 3d animated character…" required></textarea>
-    <label>Seed — optional, fixes the look</label>
-    <input name="seed" placeholder="e.g. 8101" inputmode="numeric">
-    <div style="margin-top:16px;">
-      <button class="btn" type="submit">Generate avatar</button>
-    </div>
-  </form>
+  <div class="av-new">
+    <div class="eyebrow">New influencer</div>
+    <h2 style="margin:0 0 14px;">Create an influencer</h2>
+    {% include "videos/_influencer_form.html" with submit_label="Create influencer" %}
+  </div>
 </div>
 {% endblock %}

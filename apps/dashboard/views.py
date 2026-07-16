@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import render
 
+from apps.content.models import Post
 from apps.leads.models import CapturePage, Lead
 from apps.offers.models import Offer
 from apps.sequences.models import AutomationRun, SentEmail
@@ -32,38 +33,35 @@ def index(request):
     avatars_count = Avatar.objects.for_workspace(ws).count()
     products_active = Offer.objects.for_workspace(ws).filter(is_active=True).count()
     pages_active = CapturePage.objects.for_workspace(ws).filter(is_active=True).count()
+    posts_total = Post.objects.for_workspace(ws).count()
+    content_total = posts_total + videos_total
 
-    # The single next action — the guardrail against improvising.
-    if products_active == 0:
-        next_action = "Add your first product to promote."
+    # The single next action — influencer-first, then content, then the money path.
+    if avatars_count == 0:
+        next_action = "Create your influencer — the face of your business."
+        next_action_url, next_action_cta = "/factory/avatars/", "Create influencer"
+    elif content_total == 0:
+        next_action = "Make your first post with your influencer."
+        next_action_url, next_action_cta = "/content/studio/", "Make a post"
+    elif products_active == 0:
+        next_action = "Add something to sell so your content can make money."
         next_action_url, next_action_cta = "/offers/", "Add a product"
-    elif videos_total == 0:
-        next_action = "Generate your first video in the Video Factory."
-        next_action_url, next_action_cta = "/factory/", "Make a video"
-    elif pending_approval:
-        next_action = f"Approve {pending_approval} video(s) waiting in the queue."
-        next_action_url, next_action_cta = "/factory/", "Review the queue"
     elif pages_active == 0:
-        next_action = "Create a capture page so your videos can collect leads."
+        next_action = "Build a capture page so your content collects leads."
         next_action_url, next_action_cta = "/capture-pages/", "Build a capture page"
     elif leads_total == 0:
-        next_action = "Post a video and share its capture-page link to get your first leads."
-        next_action_url, next_action_cta = "/factory/", "Open the Video Factory"
+        next_action = "Share your content and start collecting leads."
+        next_action_url, next_action_cta = "/content/", "Open your library"
     else:
-        next_action = "Keep the funnel fed: generate + post the next video."
-        next_action_url, next_action_cta = "/factory/", "Make the next video"
+        next_action = "Keep it going — make your next post."
+        next_action_url, next_action_cta = "/content/studio/", "Make a post"
 
-    # Setup checklist — a friendlier first-run than a wall of zeros.
-    setup_steps = [
-        {"label": "Add a product to promote", "done": products_active > 0, "url": "/offers/"},
-        {"label": "Create a reusable avatar", "done": avatars_count > 0, "url": "/factory/avatars/"},
-        {"label": "Generate your first video", "done": videos_total > 0, "url": "/factory/"},
-        {"label": "Build a capture page", "done": pages_active > 0, "url": "/capture-pages/"},
-    ]
-    setup_done = sum(1 for s in setup_steps if s["done"])
-    show_setup = setup_done < len(setup_steps)
+    # Show once, right after the guided setup finishes.
+    just_onboarded = request.session.pop("just_onboarded", False)
 
     context = {
+        "just_onboarded": just_onboarded,
+        "posts_total": posts_total,
         "videos_live": videos_live,
         "pending_approval": pending_approval,
         "leads_total": leads_total,
@@ -76,9 +74,6 @@ def index(request):
         "next_action": next_action,
         "next_action_url": next_action_url,
         "next_action_cta": next_action_cta,
-        "setup_steps": setup_steps,
-        "setup_done": setup_done,
-        "show_setup": show_setup,
         "funnel": {
             "videos": videos_total,
             "leads": leads_total,

@@ -1,0 +1,126 @@
+{% comment %}
+Reusable "create an influencer" form — used by onboarding AND the standalone
+influencers screen (and any future avatar-creation entry point).
+Params: submit_label (optional, defaults to "Create influencer").
+{% endcomment %}
+<style>
+  .inf-form { text-align: left; }
+  .inf-eyebrow { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 10px; }
+  .inf-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px;
+    margin-bottom: 20px; }
+  .inf-preset { position: relative; padding: 0; overflow: hidden; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 12px; cursor: pointer; color: var(--text);
+    font-family: inherit; transition: border-color .12s, box-shadow .12s; }
+  .inf-preset:hover { border-color: var(--accent); }
+  .inf-preset.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .inf-preset img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; background: var(--surface-2); }
+  .inf-preset .pt { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 6px; font-weight: 600;
+    font-size: 12px; color: #fff; text-align: left; line-height: 1.2;
+    background: linear-gradient(transparent, rgba(0,0,0,.82)); }
+  .inf-form label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  .inf-form .hint { color: var(--faint); font-weight: 400; }
+  .inf-form input[type=text], .inf-form textarea, .inf-form input[inputmode=numeric] { width: 100%; margin-bottom: 16px; }
+  .inf-form textarea { min-height: 84px; line-height: 1.5; resize: vertical; }
+  .inf-refs { border: 1px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center;
+    color: var(--muted); font-size: 13px; cursor: pointer; margin-bottom: 8px;
+    transition: border-color .12s, background .12s, color .12s; }
+  .inf-refs:hover, .inf-refs.drag { border-color: var(--accent); color: var(--accent); background: var(--beak-soft); }
+  .inf-refs em { font-style: normal; color: var(--faint); }
+  .inf-refs input { display: none; }
+  .inf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .inf-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
+  .inf-chip b { color: var(--text); font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .inf-chip .x { cursor: pointer; }
+  .inf-go { width: 100%; justify-content: center; padding: 12px; font-size: 15px; }
+</style>
+
+<form class="inf-form" method="post" action="{% url 'videos:avatar_create' %}" enctype="multipart/form-data" id="infForm">
+  {% csrf_token %}
+  <input type="hidden" name="style" id="infStyle" value="">
+
+  <div class="inf-eyebrow">Start from a type</div>
+  <div class="inf-presets" id="infPresets">
+    <button type="button" class="inf-preset" data-name="Nova" data-style="realistic" data-appearance="friendly young woman, curly auburn hair, cream sweater, natural makeup, warm smile, soft daylight, photorealistic"><img src="/media/samples/types/girl-next-door.png" alt="Girl next door" loading="lazy"><span class="pt">Girl next door</span></button>
+    <button type="button" class="inf-preset" data-name="Leo" data-style="realistic" data-appearance="friendly young man, short dark hair, light stubble, casual jacket, warm smile, natural light, photorealistic"><img src="/media/samples/types/guy-next-door.png" alt="Guy next door" loading="lazy"><span class="pt">Guy next door</span></button>
+    <button type="button" class="inf-preset" data-name="Aiko" data-style="anime" data-appearance="anime girl, big expressive eyes, pastel colored hair, stylish modern outfit, clean vibrant anime art"><img src="/media/samples/types/anime-girl.png" alt="Anime girl" loading="lazy"><span class="pt">Anime girl</span></button>
+    <button type="button" class="inf-preset" data-name="Ren" data-style="anime" data-appearance="anime guy, cool tousled hairstyle, expressive eyes, modern streetwear, clean vibrant anime art"><img src="/media/samples/types/anime-guy.png" alt="Anime guy" loading="lazy"><span class="pt">Anime guy</span></button>
+    <button type="button" class="inf-preset" data-name="Sora" data-style="render_3D" data-appearance="cute anthropomorphic cat character, big expressive eyes, wearing a hoodie, cinematic 3d animated mascot"><img src="/media/samples/types/cat-mascot.png" alt="Cat mascot" loading="lazy"><span class="pt">Cat mascot</span></button>
+    <button type="button" class="inf-preset" data-name="Bolt" data-style="render_3D" data-appearance="friendly humanoid robot, sleek white and chrome body, glowing accent lights, expressive digital eyes, cinematic 3d render"><img src="/media/samples/types/robot.png" alt="Robot" loading="lazy"><span class="pt">Robot</span></button>
+    <button type="button" class="inf-preset" data-name="Quack" data-style="render_3D" data-appearance="playful anthropomorphic duck character, black hoodie, headphones, cinematic 3d animated character"><img src="/media/samples/types/duck-mascot.png" alt="Duck mascot" loading="lazy"><span class="pt">Duck mascot</span></button>
+    <button type="button" class="inf-preset" data-name="Max" data-style="realistic" data-appearance="athletic fitness coach, sporty tank top, fit and confident, bright gym setting, photorealistic"><img src="/media/samples/types/fitness-coach.png" alt="Fitness coach" loading="lazy"><span class="pt">Fitness coach</span></button>
+    <button type="button" class="inf-preset" data-name="Mia" data-style="realistic" data-appearance="stylish fashion model woman, elegant makeup, sleek hairstyle, chic outfit, editorial studio lighting, photorealistic"><img src="/media/samples/types/fashion-model.png" alt="Fashion model" loading="lazy"><span class="pt">Fashion model</span></button>
+    <button type="button" class="inf-preset" data-name="Sticky" data-style="design" data-appearance="funny stick figure character, simple bold black line drawing, round smiling head, quirky minimalist doodle, plain white background, playful cartoon"><img src="/media/samples/types/stickman.png" alt="Stickman" loading="lazy"><span class="pt">Stickman</span></button>
+  </div>
+
+  <label>Name</label>
+  <input type="text" name="name" id="infName" placeholder="e.g. Nova" required>
+
+  <label>What do they look like? <span class="hint">— tweak a type above, or write your own</span></label>
+  <textarea name="appearance" id="infAppearance" placeholder="Describe your influencer… or tap a type above to start" required></textarea>
+
+  <div class="inf-eyebrow">Have a look in mind?</div>
+  <div class="inf-refs" id="infRefs" title="Add reference images">
+    <span>＋ Add reference images <em>(a photo, a cartoon, anyone as inspiration — optional)</em></span>
+    <input type="file" name="refs" id="infRefInput" accept="image/*" multiple>
+  </div>
+  <div class="inf-chips" id="infChips"></div>
+
+  <label>Lock the look <span class="hint">— optional, keeps them consistent</span></label>
+  <input name="seed" placeholder="e.g. 8101" inputmode="numeric">
+
+  <button type="submit" class="btn inf-go">{{ submit_label|default:"Create influencer" }}</button>
+</form>
+
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var refInput = $('#infRefInput');
+
+  // ---- preset types: fill appearance + style, suggest a name if empty ----
+  document.querySelectorAll('#infPresets .inf-preset').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#infPresets .inf-preset').forEach(function (x) { x.classList.remove('sel'); });
+      b.classList.add('sel');
+      $('#infAppearance').value = b.dataset.appearance || '';
+      $('#infStyle').value = b.dataset.style || '';
+      var name = $('#infName');
+      if (!name.value.trim() && b.dataset.name) name.value = b.dataset.name;
+      name.focus();
+    });
+  });
+
+  // ---- reference images: real file input, drag-drop, removable chips ----
+  function renderChips() {
+    var c = $('#infChips'); c.innerHTML = '';
+    Array.prototype.forEach.call(refInput.files, function (f, i) {
+      var chip = document.createElement('span'); chip.className = 'inf-chip';
+      chip.innerHTML = '<b></b><span class="x">✕</span>';
+      chip.querySelector('b').textContent = f.name;
+      chip.querySelector('.x').addEventListener('click', function () { removeAt(i); });
+      c.appendChild(chip);
+    });
+  }
+  function rebuild(keepIdx, extra) {
+    var dt = new DataTransfer();
+    Array.prototype.forEach.call(refInput.files, function (f, i) {
+      if (keepIdx === null || i !== keepIdx) dt.items.add(f);
+    });
+    Array.prototype.forEach.call(extra || [], function (f) {
+      if (f.type && f.type.indexOf('image/') === 0) dt.items.add(f);
+    });
+    refInput.files = dt.files; renderChips();
+  }
+  function removeAt(idx) { rebuild(idx, []); }
+  $('#infRefs').addEventListener('click', function () { refInput.click(); });
+  refInput.addEventListener('change', renderChips);
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    $('#infRefs').addEventListener(ev, function (e) { e.preventDefault(); this.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    $('#infRefs').addEventListener(ev, function (e) { e.preventDefault(); this.classList.remove('drag'); });
+  });
+  $('#infRefs').addEventListener('drop', function (e) { if (e.dataTransfer) rebuild(null, e.dataTransfer.files); });
+})();
+</script>
