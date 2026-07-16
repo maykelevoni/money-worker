@@ -45,6 +45,31 @@
   .analytics-link { display: inline-block; color: var(--muted); text-decoration: none; font-size: 14px;
     font-weight: 600; }
   .analytics-link:hover { color: var(--accent); }
+  /* warm greeting hero — the influencer fronts the business */
+  .hero { display: flex; align-items: center; gap: 22px; margin-bottom: 24px; padding: 22px 24px;
+    background:
+      radial-gradient(120% 140% at 0% 0%, rgba(255,126,46,.10), transparent 55%),
+      linear-gradient(180deg, var(--surface), var(--ink-2));
+    border: 1px solid var(--line); border-radius: 18px; }
+  .hero .face { position: relative; flex: none; }
+  .hero .face img { width: 92px; height: 92px; border-radius: 16px; object-fit: cover;
+    border: 1px solid color-mix(in srgb, var(--beak) 45%, var(--line));
+    box-shadow: 0 0 0 4px rgba(255,126,46,.08); background: var(--surface-2); }
+  .hero .face .dot { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--ok); border: 3px solid var(--ink-2); }
+  .hero .body { flex: 1 1 auto; min-width: 0; }
+  .hero .now { font-family: var(--mono); font-size: 11px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--beak); margin-bottom: 8px; }
+  .hero h1 { font-size: 30px; font-weight: 800; letter-spacing: -.6px; line-height: 1.12; }
+  .hero .status { color: var(--muted); font-size: 15px; line-height: 1.55; margin-top: 8px;
+    max-width: 62ch; }
+  .hero .status b { color: var(--text); font-weight: 700; }
+  @media (max-width: 560px) { .hero { flex-direction: column; align-items: flex-start; text-align: left; } }
+  /* soft section label above each strip of cards */
+  .strip-label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--faint); margin-bottom: 10px; }
+  /* a zero shouldn't shout — dim it so the page feels calm, not empty */
+  .card .v.zero { color: var(--faint); font-weight: 600; }
 </style>
 
 {% if just_onboarded %}
@@ -57,7 +82,21 @@
 </div>
 {% endif %}
 
-{% include "_pagehead.html" with eyebrow="Home" title="Your business" subtitle="Your influencer → content → leads → sales" %}
+<div class="hero">
+  {% if hero_avatar and hero_avatar.image %}
+  <div class="face">
+    <img src="{{ hero_avatar.image.url }}" alt="{{ hero_avatar.name }}">
+    <span class="dot" title="On the clock"></span>
+  </div>
+  {% endif %}
+  <div class="body">
+    <div class="now">{{ now_label }}</div>
+    <h1>{{ greeting }}{% if request.workspace %}, {{ request.workspace.name }}{% endif %}.</h1>
+    <p class="status">
+      {% if hero_avatar %}<b>{{ hero_avatar.name }}</b> is on the clock. {% endif %}{{ status_line }}
+    </p>
+  </div>
+</div>
 
 <div class="next">
   <div class="txt">
@@ -67,27 +106,29 @@
   <a class="btn" href="{{ next_action_url }}">{{ next_action_cta }} →</a>
 </div>
 
+<div class="strip-label">How it's going</div>
 <div class="cards">
-  <a class="card" href="/factory/?status=posted"><div class="k">Videos live</div><div class="v">{{ videos_live }}</div></a>
-  <a class="card" href="/factory/"><div class="k">Awaiting approval</div><div class="v" style="color:var(--amber)">{{ pending_approval }}</div></a>
-  <a class="card" href="/leads/"><div class="k">Leads</div><div class="v">{{ leads_total }}</div></a>
-  <a class="card" href="/analytics/"><div class="k">Conversions</div><div class="v" style="color:var(--green)">{{ leads_converted }}</div></a>
+  <a class="card" href="/factory/?status=posted"><div class="k">Videos live</div><div class="v {% if videos_live == 0 %}zero{% endif %}">{{ videos_live }}</div></a>
+  <a class="card" href="/factory/"><div class="k">Awaiting approval</div><div class="v {% if pending_approval == 0 %}zero{% endif %}"{% if pending_approval %} style="color:var(--amber)"{% endif %}>{{ pending_approval }}</div></a>
+  <a class="card" href="/leads/"><div class="k">Leads</div><div class="v {% if leads_total == 0 %}zero{% endif %}">{{ leads_total }}</div></a>
+  <a class="card" href="/analytics/"><div class="k">Conversions</div><div class="v {% if leads_converted == 0 %}zero{% endif %}"{% if leads_converted %} style="color:var(--green)"{% endif %}>{{ leads_converted }}</div></a>
 </div>
 
+<div class="strip-label" style="margin-top:24px">Your toolkit</div>
 <div class="cards">
   <a class="card" href="/factory/avatars/">
-    <div class="k">Influencers</div><div class="v">{{ avatars_count }}</div>
+    <div class="k">Influencers</div><div class="v {% if avatars_count == 0 %}zero{% endif %}">{{ avatars_count }}</div>
     {% if avatars_count == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">create your first</div>{% endif %}</a>
   <a class="card" href="/content/">
-    <div class="k">Posts</div><div class="v">{{ posts_total }}</div>
+    <div class="k">Posts</div><div class="v {% if posts_total == 0 %}zero{% endif %}">{{ posts_total }}</div>
     {% if posts_total == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">make your first</div>{% endif %}</a>
   <a class="card" href="/offers/">
-    <div class="k">Products</div><div class="v">{{ products_active }}</div>
+    <div class="k">Products</div><div class="v {% if products_active == 0 %}zero{% endif %}">{{ products_active }}</div>
     {% if products_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">add one to sell</div>{% endif %}</a>
   <a class="card" href="/capture-pages/">
-    <div class="k">Capture pages</div><div class="v">{{ pages_active }}</div>
+    <div class="k">Capture pages</div><div class="v {% if pages_active == 0 %}zero{% endif %}">{{ pages_active }}</div>
     {% if pages_active == 0 %}<div class="l" style="font-size:12px;color:var(--amber)">build one to collect leads</div>{% endif %}</a>
 </div>
 
-<a class="analytics-link" href="/analytics/">See the full funnel &amp; performance in Analytics →</a>
+<a class="analytics-link" style="margin-top:24px" href="/analytics/">See the full funnel &amp; performance in Analytics →</a>
 {% endblock %}

@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import render
+from django.utils import timezone
 
 from apps.content.models import Post
 from apps.leads.models import CapturePage, Lead
@@ -30,7 +31,13 @@ def index(request):
     leads_converted = leads.filter(stage=Lead.Stage.CONVERTED).count()
     leads_clicked = leads.filter(stage=Lead.Stage.CLICKED).count()
 
-    avatars_count = Avatar.objects.for_workspace(ws).count()
+    avatars_qs = Avatar.objects.for_workspace(ws)
+    avatars_count = avatars_qs.count()
+    # The influencer that fronts the business — the default one, else the newest.
+    hero_avatar = (
+        avatars_qs.filter(is_default=True).first()
+        or avatars_qs.order_by("-created_at").first()
+    )
     products_active = Offer.objects.for_workspace(ws).filter(is_active=True).count()
     pages_active = CapturePage.objects.for_workspace(ws).filter(is_active=True).count()
     posts_total = Post.objects.for_workspace(ws).count()
@@ -59,8 +66,46 @@ def index(request):
     # Show once, right after the guided setup finishes.
     just_onboarded = request.session.pop("just_onboarded", False)
 
+    # A warm, time-aware greeting — the human touch at the top of the page.
+    now = timezone.localtime()
+    hour = now.hour
+    if hour < 12:
+        greeting = "Good morning"
+    elif hour < 18:
+        greeting = "Good afternoon"
+    else:
+        greeting = "Good evening"
+    now_label = now.strftime("%A · %-I:%M %p")
+
+    # One friendly sentence that reflects where things actually stand, so the
+    # page feels like it's paying attention rather than reporting stats.
+    if content_total == 0:
+        status_line = "Your business is set up and waiting. Let's put out your first post."
+    elif leads_total == 0:
+        pieces = []
+        if avatars_count:
+            pieces.append(f"{avatars_count} influencer{'s' if avatars_count != 1 else ''}")
+        if content_total:
+            pieces.append(f"{content_total} post{'s' if content_total != 1 else ''} going")
+        made = " and ".join(pieces) if pieces else "things moving"
+        status_line = f"You've got {made}. Next up: turn that attention into leads."
+    elif leads_converted:
+        status_line = (
+            f"{leads_converted} sale{'s' if leads_converted != 1 else ''} so far "
+            f"from {leads_total} lead{'s' if leads_total != 1 else ''} — keep the momentum going."
+        )
+    else:
+        status_line = (
+            f"{leads_total} lead{'s' if leads_total != 1 else ''} in the door. "
+            "Keep posting and nudge them toward the sale."
+        )
+
     context = {
         "just_onboarded": just_onboarded,
+        "greeting": greeting,
+        "now_label": now_label,
+        "status_line": status_line,
+        "hero_avatar": hero_avatar,
         "posts_total": posts_total,
         "videos_live": videos_live,
         "pending_approval": pending_approval,
