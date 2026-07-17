@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -11,6 +12,51 @@ from . import webhooks
 from .auth import current_customer, customer_required, login_customer, logout_customer
 from .models import Customer, Entitlement, LoginToken
 from .services import stripe_gateway
+
+
+# ---------------------------------------------------------------------------
+# Creator dashboard — who bought, and how much money.
+# ---------------------------------------------------------------------------
+@login_required
+def customers_dashboard(request):
+    ws = request.workspace
+    ents = list(
+        Entitlement.objects.for_workspace(ws).select_related("offer", "customer")
+    )
+    customers = (
+        Customer.objects.for_workspace(ws)
+        .prefetch_related("entitlements__offer")
+        .order_by("-created_at")
+    )
+
+    one_time_cents = sum(
+        e.offer.price_cents or 0 for e in ents
+        if e.access_type == Offer.AccessType.ONE_TIME and e.status == Entitlement.Status.ACTIVE
+    )
+    mrr_cents = sum(
+        e.offer.price_cents or 0 for e in ents
+        if e.access_type == Offer.AccessType.SUBSCRIPTION and e.status == Entitlement.Status.ACTIVE
+    )
+    active_access = sum(1 for e in ents if e.grants_access)
+
+    rows = []
+    for c in customers:
+        c_ents = list(c.entitlements.all())
+        rows.append({
+            "customer": c,
+            "products": [e.offer.name for e in c_ents if e.grants_access],
+            "has_access": any(e.grants_access for e in c_ents),
+            "any_refunded": any(e.status == Entitlement.Status.REFUNDED for e in c_ents),
+        })
+
+    return render(request, "store/customers.html", {
+        "rows": rows,
+        "customer_count": customers.count(),
+        "active_access": active_access,
+        "one_time_revenue": one_time_cents / 100,
+        "mrr": mrr_cents / 100,
+        "sales_count": len(ents),
+    })
 
 
 # ---------------------------------------------------------------------------

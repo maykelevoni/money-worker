@@ -10,6 +10,8 @@ urlpatterns = [
     path("checkout/success/", views.checkout_success, name="checkout_success"),
     path("checkout/cancel/", views.checkout_cancel, name="checkout_cancel"),
     path("stripe/webhook/", views.stripe_webhook, name="stripe_webhook"),
+    # Creator dashboard
+    path("sell/customers/", views.customers_dashboard, name="customers"),
     # Member area
     path("members/", views.portal, name="portal"),
     path("members/login/", views.login, name="login"),

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Customers & sales · PostForge{% endblock %}
+{% block nav_sell %}active{% endblock %}
+
+{% block content %}
+<style>
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px; margin-bottom: 22px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .tile .k { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  .tile .v { font-size: 26px; font-weight: 700; margin-top: 6px; color: var(--text); }
+  .tile .v.money { color: var(--green); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 4px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: .4px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; }
+  .pill.on { color: var(--green); border-color: #1d5235; }
+  .pill.off { color: var(--muted); }
+  .pill.ref { color: var(--amber); border-color: #5c4a16; }
+  .prod { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 6px;
+    background: var(--panel2); border: 1px solid var(--line); margin: 2px 4px 2px 0; }
+  .small { color: var(--muted); font-size: 12px; }
+</style>
+
+{% include "_pagehead.html" with eyebrow="Sell" title="Customers & sales" subtitle="Everyone who bought, and what you've earned." %}
+
+<div class="tiles">
+  <div class="tile"><div class="k">Customers</div><div class="v">{{ customer_count }}</div></div>
+  <div class="tile"><div class="k">Sales</div><div class="v">{{ sales_count }}</div></div>
+  <div class="tile"><div class="k">Active access</div><div class="v">{{ active_access }}</div></div>
+  <div class="tile"><div class="k">One-time revenue</div><div class="v money">${{ one_time_revenue|floatformat:0 }}</div></div>
+  <div class="tile"><div class="k">MRR</div><div class="v money">${{ mrr|floatformat:0 }}</div></div>
+</div>
+
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Customer</th><th>Products</th><th>Access</th><th>Joined</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <strong>{{ row.customer.email }}</strong>
+              {% if row.customer.name %}<br><span class="small">{{ row.customer.name }}</span>{% endif %}
+            </td>
+            <td>
+              {% for p in row.products %}<span class="prod">{{ p }}</span>{% empty %}<span class="small">—</span>{% endfor %}
+            </td>
+            <td>
+              {% if row.has_access %}<span class="pill on">active</span>
+              {% elif row.any_refunded %}<span class="pill ref">refunded</span>
+              {% else %}<span class="pill off">none</span>{% endif %}
+            </td>
+            <td class="small">{{ row.customer.created_at|date:"M j, Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="small" style="padding:20px 14px">No customers yet. When someone buys a product, they'll show up here.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
