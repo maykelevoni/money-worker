@@ -45,8 +45,15 @@
         <input type="text" name="currency" value="{{ offer.currency|default:'usd' }}" maxlength="3">
       </div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:16px">
+      <input type="checkbox" name="community_enabled" style="width:auto" {% if offer.community_enabled %}checked{% endif %}>
+      Enable a members-only community for buyers
+    </label>
     <div style="margin-top:14px"><button class="btn" type="submit">Save selling settings</button></div>
   </form>
+  {% if offer.community_enabled %}
+    <p style="margin-top:12px"><a class="btn btn-ghost" href="{% url 'store:offer_community' offer.pk %}">Open community &amp; moderate →</a></p>
+  {% endif %}
 
   {% if offer.is_sellable %}
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">

@@ -59,6 +59,60 @@ def customers_dashboard(request):
     })
 
 
+@login_required
+def offer_community(request, pk):
+    """Creator's view of a product community: post announcements, moderate."""
+    from .models import Post
+
+    offer = get_object_or_404(Offer, pk=pk, workspace=request.workspace)
+    if request.method == "POST":
+        body = request.POST.get("body", "").strip()
+        if body:
+            Post.objects.create(
+                workspace=request.workspace, offer=offer, is_creator=True, body=body
+            )
+        return redirect("store:offer_community", pk=pk)
+
+    posts = list(offer.posts.select_related("author").prefetch_related("comments__author"))
+    for p in posts:  # staff can moderate everything
+        p.deletable = True
+        for c in p.comments.all():
+            c.deletable = True
+    return render(request, "store/offer_community.html", {"offer": offer, "posts": posts})
+
+
+@login_required
+@require_POST
+def offer_community_comment(request, pk, post_id):
+    from .models import Comment, Post
+
+    post = get_object_or_404(Post, pk=post_id, workspace=request.workspace)
+    body = request.POST.get("body", "").strip()
+    if body:
+        Comment.objects.create(
+            workspace=request.workspace, post=post, is_creator=True, body=body
+        )
+    return redirect("store:offer_community", pk=pk)
+
+
+@login_required
+@require_POST
+def offer_community_post_delete(request, pk, post_id):
+    from .models import Post
+
+    get_object_or_404(Post, pk=post_id, workspace=request.workspace).delete()
+    return redirect("store:offer_community", pk=pk)
+
+
+@login_required
+@require_POST
+def offer_community_comment_delete(request, pk, comment_id):
+    from .models import Comment
+
+    get_object_or_404(Comment, pk=comment_id, workspace=request.workspace).delete()
+    return redirect("store:offer_community", pk=pk)
+
+
 # ---------------------------------------------------------------------------
 # Public checkout — no login needed; Stripe collects the email.
 # ---------------------------------------------------------------------------
@@ -299,6 +353,76 @@ def mark_complete(request, content_id):
             workspace=content.workspace, customer=request.customer, content=content
         )
     return redirect("store:product", offer_key=content.offer.public_key)
+
+
+@customer_required
+def community(request, offer_key):
+    """A product's members-only discussion space (buyers + creator)."""
+    from .models import Post
+
+    offer = get_object_or_404(Offer, public_key=offer_key)
+    if _entitlement_or_none(request.customer, offer) is None or not offer.community_enabled:
+        messages.error(request, "That community isn't available.")
+        return redirect("store:portal")
+
+    if request.method == "POST":
+        body = request.POST.get("body", "").strip()
+        if body:
+            Post.objects.create(
+                workspace=offer.workspace, offer=offer, author=request.customer, body=body
+            )
+        return redirect("store:community", offer_key=offer_key)
+
+    posts = list(offer.posts.select_related("author").prefetch_related("comments__author"))
+    for p in posts:
+        p.deletable = p.author_id == request.customer.id
+        for c in p.comments.all():
+            c.deletable = c.author_id == request.customer.id
+    return render(request, "store/community.html", {
+        "offer": offer, "posts": posts, "customer": request.customer,
+    })
+
+
+@customer_required
+@require_POST
+def community_comment(request, post_id):
+    from .models import Comment, Post
+
+    post = get_object_or_404(Post, pk=post_id)
+    if _entitlement_or_none(request.customer, post.offer) is None:
+        return HttpResponse("Not authorized.", status=403)
+    body = request.POST.get("body", "").strip()
+    if body:
+        Comment.objects.create(
+            workspace=post.workspace, post=post, author=request.customer, body=body
+        )
+    return redirect("store:community", offer_key=post.offer.public_key)
+
+
+@customer_required
+@require_POST
+def community_post_delete(request, post_id):
+    from .models import Post
+
+    post = get_object_or_404(Post, pk=post_id)
+    if not post.can_delete(customer=request.customer):
+        return HttpResponse("Not authorized.", status=403)
+    key = post.offer.public_key
+    post.delete()
+    return redirect("store:community", offer_key=key)
+
+
+@customer_required
+@require_POST
+def community_comment_delete(request, comment_id):
+    from .models import Comment
+
+    c = get_object_or_404(Comment, pk=comment_id)
+    if not c.can_delete(customer=request.customer):
+        return HttpResponse("Not authorized.", status=403)
+    key = c.post.offer.public_key
+    c.delete()
+    return redirect("store:community", offer_key=key)
 
 
 @customer_required

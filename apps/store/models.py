@@ -147,6 +147,70 @@ class LessonCompletion(WorkspaceOwned):
         return f"{self.customer.email} ✓ {self.content.title}"
 
 
+class Post(WorkspaceOwned):
+    """A message in a product's members-only community. Authored by a buyer
+    (Customer) or by the creator (author=None, is_creator=True)."""
+
+    offer = models.ForeignKey(
+        Offer, on_delete=models.CASCADE, related_name="posts"
+    )
+    author = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, null=True, blank=True, related_name="posts"
+    )
+    is_creator = models.BooleanField(default=False)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.author_display}: {self.body[:40]}"
+
+    @property
+    def author_display(self):
+        if self.is_creator:
+            return self.workspace.name
+        if self.author:
+            return self.author.name or self.author.email.split("@")[0]
+        return "Member"
+
+    def can_delete(self, *, customer=None, is_staff=False):
+        """Staff can delete anything; a buyer can delete only their own post."""
+        return is_staff or (customer is not None and self.author_id == customer.id)
+
+
+class Comment(WorkspaceOwned):
+    """A reply on a community Post."""
+
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name="comments"
+    )
+    author = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, null=True, blank=True, related_name="comments"
+    )
+    is_creator = models.BooleanField(default=False)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.author_display}: {self.body[:40]}"
+
+    @property
+    def author_display(self):
+        if self.is_creator:
+            return self.workspace.name
+        if self.author:
+            return self.author.name or self.author.email.split("@")[0]
+        return "Member"
+
+    def can_delete(self, *, customer=None, is_staff=False):
+        return is_staff or (customer is not None and self.author_id == customer.id)
+
+
 class LoginToken(models.Model):
     """A single-use token for a Customer, used for password reset ("forgot
     password"). We store only a hash, so a leaked row can't be used. One-shot

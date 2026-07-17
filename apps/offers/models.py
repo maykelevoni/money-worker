@@ -63,6 +63,10 @@ class Offer(WorkspaceOwned):
         help_text="Native price in the smallest currency unit, e.g. 2900 = $29.00",
     )
     currency = models.CharField(max_length=3, default="usd")
+    # Members-only discussion space for buyers of this product.
+    community_enabled = models.BooleanField(
+        default=False, help_text="Give buyers a members-only discussion space",
+    )
     # Public, unguessable key for the /buy/<key>/ checkout link.
     public_key = models.CharField(max_length=40, unique=True, blank=True)
     # Cached Stripe object ids so we don't recreate them on every checkout.

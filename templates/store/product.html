@@ -5,6 +5,9 @@
 {% block body %}
 <h1>{{ offer.name }}</h1>
 {% if offer.notes %}<p class="muted">{{ offer.notes }}</p>{% endif %}
+{% if offer.community_enabled %}
+  <p style="margin-top:10px"><a class="btn" style="padding:9px 18px;font-size:14px" href="{% url 'store:community' offer.public_key %}">Open community →</a></p>
+{% endif %}
 
 {% if total_count %}
   <div class="progress">

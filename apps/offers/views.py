@@ -73,6 +73,7 @@ def offer_manage(request, pk):
                 messages.error(request, "Enter the price as a number, e.g. 29 or 29.99.")
                 return redirect("offers:manage", pk=offer.pk)
         offer.currency = (request.POST.get("currency", "usd").strip().lower() or "usd")[:3]
+        offer.community_enabled = bool(request.POST.get("community_enabled"))
         # Amount/cadence may have changed — drop the cached Stripe price so the
         # next checkout recreates it (Stripe prices are immutable).
         offer.stripe_price_id = ""
