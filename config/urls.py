@@ -46,6 +46,7 @@ urlpatterns = [
     path('api/optin/', sites_api.optin_api, name='api_optin'),
     path('content/', include('apps.content.urls')),
     path('offers/', include('apps.offers.urls')),
+    path('', include('apps.store.urls')),  # /buy/ checkout + /members/ area
     path('', include('apps.sequences.urls')),  # /emails/ /scheduler/ /automations/
     path('leads/', lead_views.lead_list, name='leads'),
     path('leads/lists/new/', lead_views.list_create, name='list_create'),

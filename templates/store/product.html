@@ -1,0 +1,26 @@
+{% extends "store/_base.html" %}
+{% load site_extras %}
+{% block title %}{{ offer.name }}{% endblock %}
+{% block nav %}<a class="muted" href="{% url 'store:portal' %}">← All products</a>{% endblock %}
+{% block body %}
+<h1>{{ offer.name }}</h1>
+{% if offer.notes %}<p class="muted">{{ offer.notes }}</p>{% endif %}
+
+{% if contents %}
+  {% for c in contents %}
+    <div class="card" style="margin-top:18px">
+      <h2>{{ c.title }}</h2>
+      {% if c.body %}<div style="margin-top:10px" class="muted">{{ c.body|markdownify }}</div>{% endif %}
+      {% if c.file %}
+        <p style="margin-top:14px">
+          <a class="btn" href="{% url 'store:download' c.id %}">Download</a>
+        </p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="card" style="margin-top:18px">
+    <p class="muted">The creator hasn't added content to this product yet. Check back soon.</p>
+  </div>
+{% endif %}
+{% endblock %}

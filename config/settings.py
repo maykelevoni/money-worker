@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'apps.leads',
     'apps.sequences',
     'apps.content',
+    'apps.store',
 ]
 
 MIDDLEWARE = [
@@ -264,3 +265,10 @@ DEFAULT_FROM_EMAIL = RESEND_FROM_EMAIL or 'noreply@getpostforge.cloud'
 # UPLOAD_POST_USER is the profile name created in the Upload-Post dashboard.
 UPLOAD_POST_API_KEY = os.getenv('UPLOAD_POST_API_KEY', '')
 UPLOAD_POST_USER = os.getenv('UPLOAD_POST_USER', '')
+
+# Stripe — takes the money for digital products. We never hold funds; Stripe
+# hosts checkout, and a webhook grants/revokes access (see apps.store). Use test
+# keys (sk_test_… / pk_test_… / whsec_…) until the flow is verified.
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')

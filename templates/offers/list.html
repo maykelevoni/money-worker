@@ -80,6 +80,7 @@
         <td>{% if o.primary_url %}<a class="ext" href="{{ o.primary_url }}" target="_blank">open ↗</a>{% else %}<span class="small">—</span>{% endif %}</td>
         <td>
           <div class="actions">
+            <a class="btn btn-ghost" href="{% url 'offers:manage' o.pk %}">{% if o.is_sellable %}Sell · content{% else %}Sell{% endif %}</a>
             <form method="post" action="{% url 'offers:toggle' o.pk %}">{% csrf_token %}
               <button class="btn btn-ghost" type="submit">{% if o.is_active %}Pause{% else %}Activate{% endif %}</button></form>
             <form method="post" action="{% url 'offers:delete' o.pk %}" data-confirm="Delete this product?">{% csrf_token %}

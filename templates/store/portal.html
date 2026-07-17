@@ -1,0 +1,23 @@
+{% extends "store/_base.html" %}
+{% block title %}My products{% endblock %}
+{% block nav %}<a class="muted" href="{% url 'store:logout' %}">Sign out</a>{% endblock %}
+{% block body %}
+<h1>Your products</h1>
+<p class="muted">Everything you have access to, {{ customer.email }}.</p>
+{% if products %}
+  <div class="grid">
+    {% for offer in products %}
+      <a class="card" href="{% url 'store:product' offer.public_key %}">
+        <h2>{{ offer.name }}</h2>
+        <p class="muted" style="margin-top:6px">{{ offer.notes|truncatewords:14 }}</p>
+        <p style="margin-top:14px;color:var(--accent);font-weight:600">Open →</p>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="margin-top:22px">
+    <p class="muted">You don't have any products yet. If you just bought one, use the
+    link in your email to open it.</p>
+  </div>
+{% endif %}
+{% endblock %}

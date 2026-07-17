@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Members area{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --accent: #ff7e2e; }
+    body { background: linear-gradient(160deg, #0f1117, #1a1f30); color: #e6e8ee;
+      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh; }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 2px 22px; border-bottom: 1px solid #232838; margin-bottom: 28px; }
+    .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 18px; color: #fff; }
+    .muted { color: #8b91a3; }
+    .btn { display: inline-block; padding: 12px 22px; background: var(--accent);
+      color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;
+      font-size: 15px; }
+    .btn.ghost { background: transparent; border: 1px solid #2a2f3d; color: #e6e8ee; }
+    .card { background: #181b24; border: 1px solid #2a2f3d; border-radius: 16px;
+      padding: 22px; }
+    .center { max-width: 440px; margin: 8vh auto 0; }
+    input[type=email], input[type=password] { width: 100%; padding: 13px 15px; border-radius: 10px;
+      border: 1px solid #2a2f3d; background: #0f121a; color: #e6e8ee; font-size: 15px;
+      margin: 12px 0; }
+    h1 { font-size: 26px; letter-spacing: -0.02em; color: #fff; }
+    h2 { font-size: 19px; color: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px; margin-top: 22px; }
+    .msg { padding: 11px 15px; border-radius: 10px; background: #1e2740;
+      border: 1px solid #2f3a5c; margin-bottom: 14px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <span class="brand">PostForge</span>
+      <span>{% block nav %}{% endblock %}</span>
+    </div>
+    {% if messages %}{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}{% endif %}
+    {% block body %}{% endblock %}
+  </div>
+</body>
+</html>

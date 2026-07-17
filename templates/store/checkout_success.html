@@ -1,0 +1,12 @@
+{% extends "store/_base.html" %}
+{% block title %}Thank you{% endblock %}
+{% block body %}
+<div class="card center">
+  <h1>Payment complete</h1>
+  <p class="muted" style="margin-top:8px">Thank you for your purchase. We've emailed you a
+  link to open your product — no password needed. Check your inbox (and spam, just in case).</p>
+  <p style="margin-top:18px">
+    <a class="btn" href="{% url 'store:login' %}">Go to sign in</a>
+  </p>
+</div>
+{% endblock %}
