@@ -150,6 +150,10 @@ class ProductContent(WorkspaceOwned):
         upload_to="products/", blank=True,
         help_text="Downloadable file delivered to buyers",
     )
+    video_url = models.URLField(
+        blank=True,
+        help_text="YouTube, Vimeo or Loom link — plays inline in the members area",
+    )
     drip_days = models.PositiveIntegerField(
         default=0, help_text="Days after purchase before this unlocks (0 = right away)",
     )
@@ -160,6 +164,26 @@ class ProductContent(WorkspaceOwned):
 
     def __str__(self):
         return f"{self.offer.name} · {self.title}"
+
+    @property
+    def video_embed(self):
+        """An embeddable iframe src for known hosts, or '' if we don't recognise
+        the URL (we only embed trusted video hosts, never an arbitrary iframe)."""
+        import re
+
+        u = (self.video_url or "").strip()
+        if not u:
+            return ""
+        m = re.search(r"(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([\w-]{6,})", u)
+        if m:
+            return f"https://www.youtube.com/embed/{m.group(1)}"
+        m = re.search(r"vimeo\.com/(?:video/)?(\d+)", u)
+        if m:
+            return f"https://player.vimeo.com/video/{m.group(1)}"
+        m = re.search(r"loom\.com/(?:share|embed)/([\w-]+)", u)
+        if m:
+            return f"https://www.loom.com/embed/{m.group(1)}"
+        return ""
 
     def unlock_date(self, since):
         """When this lesson becomes available, given a purchase/entitlement date."""

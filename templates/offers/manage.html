@@ -104,6 +104,9 @@
         <div><label style="font-size:11px;color:var(--muted)">Drip (days)</label>
           <input type="number" name="drip_days" min="0" value="{{ c.drip_days }}" style="width:90px">
         </div>
+        <div style="flex:1;min-width:200px"><label style="font-size:11px;color:var(--muted)">Video URL (YouTube/Vimeo/Loom)</label>
+          <input type="url" name="video_url" value="{{ c.video_url }}" placeholder="https://youtu.be/…">
+        </div>
         <button class="btn btn-ghost" type="submit">Save</button>
       </form>
     </div>
@@ -117,6 +120,8 @@
     <input type="text" name="title" placeholder="e.g. The full guide (PDF)" required>
     <label>Written content (optional, Markdown)</label>
     <textarea name="body" placeholder="Shown on the lesson in the members area."></textarea>
+    <label>Video URL (optional — YouTube, Vimeo or Loom)</label>
+    <input type="url" name="video_url" placeholder="https://youtu.be/… (plays inline in the course)">
     <div class="row">
       <div>
         <label>Section (optional)</label>

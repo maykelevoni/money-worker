@@ -9,6 +9,15 @@
   </div>
 
   {% if L.unlocked %}
+    {% if L.obj.video_embed %}
+      <div class="lesson-video">
+        <iframe src="{{ L.obj.video_embed }}" title="{{ L.obj.title }}" loading="lazy"
+                frameborder="0" allowfullscreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+      </div>
+    {% elif L.obj.video_url %}
+      <p class="lesson-body"><a href="{{ L.obj.video_url }}" target="_blank" rel="noopener">Watch the video →</a></p>
+    {% endif %}
     {% if L.obj.body %}<div class="lesson-body muted">{{ L.obj.body|markdownify }}</div>{% endif %}
     <div class="lesson-actions">
       {% if L.obj.file %}<a class="btn small" href="{% url 'store:download' L.obj.id %}">Download</a>{% endif %}

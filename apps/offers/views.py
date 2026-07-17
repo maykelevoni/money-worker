@@ -106,6 +106,7 @@ def content_add(request, pk):
         title=title,
         body=request.POST.get("body", "").strip(),
         file=request.FILES.get("file"),
+        video_url=request.POST.get("video_url", "").strip(),
         drip_days=_int(request.POST.get("drip_days")),
         order=offer.contents.count(),
     )
@@ -129,7 +130,9 @@ def content_update(request, pk, content_id):
     module_id = request.POST.get("module") or None
     lesson.module = Module.objects.filter(pk=module_id, offer=offer).first() if module_id else None
     lesson.drip_days = _int(request.POST.get("drip_days"))
-    lesson.save(update_fields=["module", "drip_days"])
+    if "video_url" in request.POST:
+        lesson.video_url = request.POST.get("video_url", "").strip()
+    lesson.save(update_fields=["module", "drip_days", "video_url"])
     messages.success(request, f"Updated “{lesson.title}”.")
     return redirect("offers:manage", pk=offer.pk)
 
