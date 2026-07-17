@@ -107,17 +107,39 @@ class Offer(WorkspaceOwned):
         return self.affiliate_url or self.landing_url
 
 
-class ProductContent(WorkspaceOwned):
-    """One piece of what a buyer unlocks after purchase — a download or a
-    written lesson. Gated behind an active Entitlement (apps.store).
+class Module(WorkspaceOwned):
+    """A section of a course — groups lessons (ProductContent) under a heading.
+    Optional: a product can still be a flat list of lessons with no modules."""
 
-    Kept deliberately flat for Phase 1 (an ordered list per product). A later
-    "courses" phase can group these under modules without reshaping access:
-    entitlement checks are per-product, not per-item.
+    offer = models.ForeignKey(
+        Offer, on_delete=models.CASCADE, related_name="modules"
+    )
+    title = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.offer.name} · {self.title}"
+
+
+class ProductContent(WorkspaceOwned):
+    """One lesson a buyer unlocks after purchase — a download and/or written
+    content. Gated behind an active Entitlement (apps.store).
+
+    Optionally grouped under a Module (course structure) and optionally dripped
+    (unlocks N days after purchase). Access is still per-product: the entitlement
+    grants the whole thing; module/drip only shape *when* each lesson appears.
     """
 
     offer = models.ForeignKey(
         Offer, on_delete=models.CASCADE, related_name="contents"
+    )
+    module = models.ForeignKey(
+        Module, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="lessons", help_text="Course section this lesson belongs to",
     )
     title = models.CharField(max_length=200)
     order = models.PositiveIntegerField(default=0)
@@ -128,6 +150,9 @@ class ProductContent(WorkspaceOwned):
         upload_to="products/", blank=True,
         help_text="Downloadable file delivered to buyers",
     )
+    drip_days = models.PositiveIntegerField(
+        default=0, help_text="Days after purchase before this unlocks (0 = right away)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -135,3 +160,14 @@ class ProductContent(WorkspaceOwned):
 
     def __str__(self):
         return f"{self.offer.name} · {self.title}"
+
+    def unlock_date(self, since):
+        """When this lesson becomes available, given a purchase/entitlement date."""
+        from datetime import timedelta
+
+        return since + timedelta(days=self.drip_days)
+
+    def is_unlocked(self, since):
+        from django.utils import timezone
+
+        return self.drip_days == 0 or timezone.now() >= self.unlock_date(since)

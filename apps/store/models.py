@@ -124,6 +124,29 @@ class Entitlement(WorkspaceOwned):
         return False
 
 
+class LessonCompletion(WorkspaceOwned):
+    """Marks that a Customer finished a lesson (ProductContent). Drives course
+    progress. One row per (customer, lesson)."""
+
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, related_name="completions"
+    )
+    content = models.ForeignKey(
+        "offers.ProductContent", on_delete=models.CASCADE, related_name="completions"
+    )
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["customer", "content"], name="uniq_completion_per_lesson"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.customer.email} ✓ {self.content.title}"
+
+
 class LoginToken(models.Model):
     """A single-use token for a Customer, used for password reset ("forgot
     password"). We store only a hash, so a leaked row can't be used. One-shot

@@ -1,0 +1,25 @@
+{% load site_extras %}
+<div class="lesson {% if not L.unlocked %}locked{% endif %}">
+  <div class="lesson-head">
+    <div class="lesson-title">
+      <span class="tick {% if L.done %}on{% endif %}">{% if L.done %}✓{% endif %}</span>
+      {{ L.obj.title }}
+    </div>
+    {% if not L.unlocked %}<span class="lock">Unlocks {{ L.unlock_date|date:"M j" }}</span>{% endif %}
+  </div>
+
+  {% if L.unlocked %}
+    {% if L.obj.body %}<div class="lesson-body muted">{{ L.obj.body|markdownify }}</div>{% endif %}
+    <div class="lesson-actions">
+      {% if L.obj.file %}<a class="btn small" href="{% url 'store:download' L.obj.id %}">Download</a>{% endif %}
+      <form class="inline" method="post" action="{% url 'store:mark_complete' L.obj.id %}">
+        {% csrf_token %}
+        <button class="btn small {% if not L.done %}ghost{% endif %}" type="submit">
+          {% if L.done %}Completed ✓{% else %}Mark complete{% endif %}
+        </button>
+      </form>
+    </div>
+  {% else %}
+    <div class="lesson-body muted" style="font-size:14px">This lesson unlocks {{ L.obj.drip_days }} day{{ L.obj.drip_days|pluralize }} after you joined.</div>
+  {% endif %}
+</div>

@@ -236,29 +236,80 @@ def portal(request):
     return render(request, "store/portal.html", {"products": products, "customer": request.customer})
 
 
+def _entitlement_or_none(customer, offer):
+    ent = Entitlement.objects.filter(customer=customer, offer=offer).first()
+    return ent if ent and ent.grants_access else None
+
+
 @customer_required
 def product(request, offer_key):
+    """The course view: modules → lessons, with drip locks and progress."""
     offer = get_object_or_404(Offer, public_key=offer_key)
-    ent = Entitlement.objects.filter(customer=request.customer, offer=offer).first()
-    if ent is None or not ent.grants_access:
+    ent = _entitlement_or_none(request.customer, offer)
+    if ent is None:
         messages.error(request, "You don't have access to that product.")
         return redirect("store:portal")
-    contents = offer.contents.all()
-    return render(
-        request, "store/product.html",
-        {"offer": offer, "contents": contents, "entitlement": ent},
+
+    since = ent.created_at
+    from .models import LessonCompletion
+    done_ids = set(
+        LessonCompletion.objects.filter(customer=request.customer, content__offer=offer)
+        .values_list("content_id", flat=True)
     )
+
+    def lesson(l):
+        return {
+            "obj": l,
+            "unlocked": l.is_unlocked(since),
+            "unlock_date": l.unlock_date(since),
+            "done": l.id in done_ids,
+        }
+
+    modules = [
+        {"module": m, "lessons": [lesson(l) for l in m.lessons.all()]}
+        for m in offer.modules.all()
+    ]
+    ungrouped = [lesson(l) for l in offer.contents.filter(module__isnull=True)]
+
+    all_lessons = [x for m in modules for x in m["lessons"]] + ungrouped
+    total = len(all_lessons)
+    done = sum(1 for x in all_lessons if x["done"])
+    progress = round(done / total * 100) if total else 0
+
+    return render(request, "store/product.html", {
+        "offer": offer, "entitlement": ent,
+        "modules": modules, "ungrouped": ungrouped,
+        "progress": progress, "done_count": done, "total_count": total,
+    })
+
+
+@customer_required
+@require_POST
+def mark_complete(request, content_id):
+    """Toggle a lesson's completion for the signed-in buyer."""
+    from .models import LessonCompletion
+    content = get_object_or_404(ProductContent, pk=content_id)
+    if _entitlement_or_none(request.customer, content.offer) is None:
+        return HttpResponse("Not authorized.", status=403)
+    row = LessonCompletion.objects.filter(customer=request.customer, content=content).first()
+    if row:
+        row.delete()
+    else:
+        LessonCompletion.objects.create(
+            workspace=content.workspace, customer=request.customer, content=content
+        )
+    return redirect("store:product", offer_key=content.offer.public_key)
 
 
 @customer_required
 def download(request, content_id):
-    """Stream a product file — only if the buyer's entitlement is live."""
+    """Stream a lesson file — only if entitled and the lesson has dripped open."""
     content = get_object_or_404(ProductContent, pk=content_id)
-    ent = Entitlement.objects.filter(
-        customer=request.customer, offer=content.offer
-    ).first()
-    if ent is None or not ent.grants_access:
+    ent = _entitlement_or_none(request.customer, content.offer)
+    if ent is None:
         return HttpResponse("Not authorized.", status=403)
+    if not content.is_unlocked(ent.created_at):
+        return HttpResponse("This lesson hasn't unlocked yet.", status=403)
     if not content.file:
         return HttpResponse("No file on this item.", status=404)
     return FileResponse(content.file.open("rb"), as_attachment=True,

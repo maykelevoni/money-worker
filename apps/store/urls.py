@@ -20,5 +20,6 @@ urlpatterns = [
     path("members/forgot/", views.forgot_password, name="forgot_password"),
     path("members/reset/<str:token>/", views.reset_password, name="reset_password"),
     path("members/product/<str:offer_key>/", views.product, name="product"),
+    path("members/lesson/<int:content_id>/complete/", views.mark_complete, name="mark_complete"),
     path("members/download/<int:content_id>/", views.download, name="download"),
 ]
