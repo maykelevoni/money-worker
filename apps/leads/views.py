@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from apps.offers.models import Offer
 from apps.videos.models import Video
 
-from .models import CapturePage, EmailList, Lead
+from .models import CapturePage, EmailList, Lead, PageLink
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ def page(request, slug):
             "leads/thanks.html",
             {"magnet": page.lead_magnet, "success_message": page.success_message},
         )
-    return render(request, "leads/page.html", {"page": page})
+    return render(request, page.public_template, {"page": page})
 
 
 def capture(request):
@@ -154,6 +154,10 @@ def capture_pages(request):
 
 def _save_page(request, page):
     page.workspace = request.workspace
+    layout = request.POST.get("layout", CapturePage.Layout.CAPTURE)
+    if layout not in CapturePage.Layout.values:
+        layout = CapturePage.Layout.CAPTURE
+    page.layout = layout
     page.title = request.POST.get("title", "").strip()
     page.headline = request.POST.get("headline", "").strip()
     page.subheadline = request.POST.get("subheadline", "").strip()
@@ -165,9 +169,15 @@ def _save_page(request, page):
     page.offer_id = request.POST.get("offer") or None
     page.email_list_id = request.POST.get("email_list") or None
     page.slug = request.POST.get("slug", "").strip() or slugify(page.title)
+    if request.FILES.get("avatar"):
+        page.avatar = request.FILES["avatar"]
 
-    if not page.title or not page.headline or not page.lead_magnet:
-        messages.error(request, "Title, headline and lead magnet are required.")
+    if not page.title or not page.headline:
+        messages.error(request, "Title and headline are required.")
+        return None
+    # A lead magnet is the whole point of a capture page; sales/bio don't need one.
+    if page.layout == CapturePage.Layout.CAPTURE and not page.lead_magnet:
+        messages.error(request, "An email-capture page needs a lead magnet.")
         return None
     try:
         page.save()
@@ -178,17 +188,29 @@ def _save_page(request, page):
     return page
 
 
+def _form_context(request, page):
+    return {
+        "page": page,
+        "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True),
+        "lists": EmailList.objects.for_workspace(request.workspace),
+        "layouts": CapturePage.Layout.choices,
+    }
+
+
+def _after_save_redirect(page):
+    # Bio hubs need links added, so drop the creator into the editor to finish.
+    if page.layout == CapturePage.Layout.BIO:
+        return redirect("capture_page_edit", pk=page.pk)
+    return redirect("capture_pages")
+
+
 @login_required
 def capture_page_create(request):
     if request.method == "POST":
-        if _save_page(request, CapturePage()) is not None:
-            return redirect("capture_pages")
-    return render(
-        request,
-        "leads/capture_page_form.html",
-        {"page": None, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True),
-         "lists": EmailList.objects.for_workspace(request.workspace)},
-    )
+        page = _save_page(request, CapturePage())
+        if page is not None:
+            return _after_save_redirect(page)
+    return render(request, "leads/capture_page_form.html", _form_context(request, None))
 
 
 @login_required
@@ -200,6 +222,31 @@ def capture_page_edit(request, pk):
     return render(
         request,
         "leads/capture_page_form.html",
-        {"page": page_obj, "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True),
-         "lists": EmailList.objects.for_workspace(request.workspace)},
+        _form_context(request, page_obj),
     )
+
+
+@login_required
+@require_POST
+def page_link_add(request, pk):
+    page = get_object_or_404(CapturePage, pk=pk, workspace=request.workspace)
+    label = request.POST.get("label", "").strip()
+    url = request.POST.get("url", "").strip()
+    if label and url:
+        PageLink.objects.create(
+            workspace=request.workspace, page=page, label=label, url=url,
+            order=page.links.count(),
+        )
+        messages.success(request, "Link added.")
+    else:
+        messages.error(request, "A link needs both a label and a URL.")
+    return redirect("capture_page_edit", pk=page.pk)
+
+
+@login_required
+@require_POST
+def page_link_delete(request, pk, link_id):
+    page = get_object_or_404(CapturePage, pk=pk, workspace=request.workspace)
+    get_object_or_404(PageLink, pk=link_id, page=page).delete()
+    messages.success(request, "Link removed.")
+    return redirect("capture_page_edit", pk=page.pk)

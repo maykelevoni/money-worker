@@ -57,6 +57,8 @@ urlpatterns = [
     path('capture-pages/', lead_views.capture_pages, name='capture_pages'),
     path('capture-pages/new/', lead_views.capture_page_create, name='capture_page_create'),
     path('capture-pages/<int:pk>/edit/', lead_views.capture_page_edit, name='capture_page_edit'),
+    path('capture-pages/<int:pk>/links/add/', lead_views.page_link_add, name='page_link_add'),
+    path('capture-pages/<int:pk>/links/<int:link_id>/delete/', lead_views.page_link_delete, name='page_link_delete'),
     path('p/<slug:slug>/', lead_views.page, name='capture_page'),  # public capture page
     path('free/', lead_views.capture, name='capture'),  # legacy → first active page
 ]

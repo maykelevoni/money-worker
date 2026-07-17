@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if page %}Edit{% else %}New{% endif %} Capture Page · PostForge{% endblock %}
+{% block title %}{% if page %}Edit{% else %}New{% endif %} Page · PostForge{% endblock %}
 {% block nav_capture %}active{% endblock %}
 
 {% block content %}
@@ -14,14 +14,26 @@
   .check input { width: auto; }
   .actions { margin-top: 20px; display: flex; gap: 10px; }
   a.link { color: var(--accent); text-decoration: none; }
+  .link-row { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+  .link-row form { display: inline; }
+  .link-add { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; align-items: end; }
 </style>
 
 <div class="eyebrow">Assets</div>
-<h1>{% if page %}Edit capture page{% else %}New capture page{% endif %}</h1>
+<h1>{% if page %}Edit page{% else %}New page{% endif %}</h1>
 <div class="sub"><a class="link" href="{% url 'capture_pages' %}">← back to all pages</a></div>
 
-<form class="form" method="post">
+<form class="form" method="post" enctype="multipart/form-data">
   {% csrf_token %}
+
+  <label>What is this page for?</label>
+  <select name="layout">
+    {% for value, label in layouts %}
+      <option value="{{ value }}" {% if page.layout == value or not page and value == 'capture' %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <div class="hint">Capture = opt-in for a freebie · Sales = sell a product · Link hub = the bio link your videos point to</div>
 
   <label>Title (internal)</label>
   <input name="title" value="{{ page.title|default:'' }}" placeholder="e.g. Free SEO Checklist page" required>
@@ -31,21 +43,26 @@
   <div class="hint">Public link will be /p/&lt;slug&gt;/</div>
 
   <label>Headline</label>
-  <input name="headline" value="{{ page.headline|default:'' }}" placeholder="The big promise" required>
+  <input name="headline" value="{{ page.headline|default:'' }}" placeholder="The big promise (or your name, for a link hub)" required>
 
   <label>Subheadline (optional)</label>
-  <textarea name="subheadline" placeholder="Supporting line under the headline">{{ page.subheadline|default:'' }}</textarea>
+  <textarea name="subheadline" placeholder="Supporting line / short bio">{{ page.subheadline|default:'' }}</textarea>
 
-  <label>Lead magnet (the freebie)</label>
-  <input name="lead_magnet" value="{{ page.lead_magnet|default:'' }}" placeholder="e.g. The 1-page launch checklist" required>
+  <label>Avatar (link hubs only, optional)</label>
+  <input type="file" name="avatar" accept="image/*">
+  {% if page.avatar %}<div class="hint">Current: {{ page.avatar.name }}</div>{% endif %}
 
-  <label>Product to promote (optional)</label>
+  <label>Lead magnet (freebie — required for capture pages)</label>
+  <input name="lead_magnet" value="{{ page.lead_magnet|default:'' }}" placeholder="e.g. The 1-page launch checklist">
+
+  <label>Product to promote / sell (optional)</label>
   <select name="offer">
     <option value="">— none —</option>
     {% for o in offers %}
-      <option value="{{ o.pk }}" {% if page.offer_id == o.pk %}selected{% endif %}>{{ o.name }}</option>
+      <option value="{{ o.pk }}" {% if page.offer_id == o.pk %}selected{% endif %}>{{ o.name }}{% if o.is_sellable %} · sellable{% endif %}</option>
     {% endfor %}
   </select>
+  <div class="hint">A sellable product shows a real Buy button (Stripe checkout).</div>
 
   <label>Add signups to list</label>
   <select name="email_list">
@@ -74,4 +91,29 @@
     <a class="btn btn-ghost" href="{% url 'capture_pages' %}">Cancel</a>
   </div>
 </form>
+
+{% if page and page.layout == 'bio' %}
+<div class="form" style="margin-top:20px">
+  <h1 style="font-size:17px;margin:0 0 4px">Hub links</h1>
+  <div class="hint" style="margin-bottom:14px">The buttons on your link hub. Add your socials, other pages, affiliate links.</div>
+
+  {% for l in page.links.all %}
+    <div class="link-row">
+      <div><strong>{{ l.label }}</strong> <span class="hint">{{ l.url }}</span></div>
+      <form method="post" action="{% url 'page_link_delete' page.pk l.id %}" data-confirm="Remove this link?">
+        {% csrf_token %}<button class="btn btn-ghost" type="submit">Remove</button>
+      </form>
+    </div>
+  {% empty %}
+    <div class="hint">No links yet — add the first below.</div>
+  {% endfor %}
+
+  <form method="post" action="{% url 'page_link_add' page.pk %}" class="link-add" style="margin-top:14px">
+    {% csrf_token %}
+    <div><label style="font-size:12px;color:var(--muted)">Label</label><input name="label" placeholder="Instagram" required></div>
+    <div><label style="font-size:12px;color:var(--muted)">URL</label><input name="url" type="url" placeholder="https://…" required></div>
+    <button class="btn" type="submit">Add</button>
+  </form>
+</div>
+{% endif %}
 {% endblock %}

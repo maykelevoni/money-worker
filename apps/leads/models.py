@@ -36,6 +36,15 @@ class CapturePage(WorkspaceOwned):
     URL (/p/<slug>/). Niche-agnostic: all the copy comes from these fields.
     """
 
+    class Layout(models.TextChoices):
+        CAPTURE = "capture", "Email capture (opt-in for a freebie)"
+        SALES = "sales", "Sales page (sell a product)"
+        BIO = "bio", "Link hub (bio link for your videos)"
+
+    layout = models.CharField(
+        max_length=12, choices=Layout.choices, default=Layout.CAPTURE,
+        help_text="What this page is for — picks the public design",
+    )
     title = models.CharField(max_length=200, help_text="Internal name for this page")
     slug = models.SlugField(unique=True, help_text="Public URL: /p/<slug>/")
     headline = models.CharField(max_length=200, help_text="The big promise at the top")
@@ -66,6 +75,8 @@ class CapturePage(WorkspaceOwned):
         max_length=300, blank=True, help_text="Shown after they opt in (optional)"
     )
     niche = models.CharField(max_length=200, blank=True)
+    # Bio/link-hub only: the face at the top of the hub.
+    avatar = models.ImageField(upload_to="capture/avatars/", blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -77,6 +88,31 @@ class CapturePage(WorkspaceOwned):
 
     def get_absolute_url(self):
         return reverse("capture_page", args=[self.slug])
+
+    @property
+    def public_template(self):
+        return {
+            self.Layout.SALES: "leads/sales.html",
+            self.Layout.BIO: "leads/bio.html",
+        }.get(self.layout, "leads/page.html")
+
+
+class PageLink(WorkspaceOwned):
+    """One button on a bio/link-hub CapturePage — where the creator's video
+    traffic can go (socials, other pages, an affiliate link)."""
+
+    page = models.ForeignKey(
+        CapturePage, on_delete=models.CASCADE, related_name="links"
+    )
+    label = models.CharField(max_length=120)
+    url = models.URLField()
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.page.title} · {self.label}"
 
 
 class Lead(WorkspaceOwned):

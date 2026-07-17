@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>{{ page.headline }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: linear-gradient(160deg, #0f1117, #1a1f30); color: #e6e8ee;
+      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh; display: flex; justify-content: center; padding: 40px 20px; }
+    .hub { max-width: 460px; width: 100%; text-align: center; }
+    .avatar { width: 92px; height: 92px; border-radius: 50%; object-fit: cover;
+      border: 2px solid #2a2f3d; margin: 0 auto 16px; display: block; }
+    h1 { font-size: 24px; margin-bottom: 6px; }
+    p.bio { color: #8b91a3; margin-bottom: 26px; }
+    .links { display: flex; flex-direction: column; gap: 12px; }
+    .link { display: block; background: #181b24; border: 1px solid #2a2f3d; color: #e6e8ee;
+      border-radius: 12px; padding: 15px; font-weight: 600; text-decoration: none; transition: .15s; }
+    .link:hover { border-color: #3a4a6b; background: #1f2330; transform: translateY(-1px); }
+    .link.buy { background: #ff7e2e; border-color: #ff7e2e; color: #fff; }
+    .link .price { font-weight: 400; opacity: .85; font-size: 14px; }
+    .optin { margin-top: 22px; background: #181b24; border: 1px solid #2a2f3d;
+      border-radius: 12px; padding: 18px; }
+    .optin p { color: #8b91a3; font-size: 14px; margin-bottom: 10px; }
+    .optin form { display: flex; gap: 8px; }
+    .optin input { flex: 1; background: #1f2330; border: 1px solid #2a2f3d; color: #e6e8ee;
+      border-radius: 10px; padding: 11px 13px; font-size: 14px; }
+    .optin button { background: #6c8cff; color: #fff; border: none; border-radius: 10px;
+      padding: 11px 16px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .err { color: #ff7a90; font-size: 14px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="hub">
+    {% if page.avatar %}<img class="avatar" src="{{ page.avatar.url }}" alt="{{ page.headline }}">{% endif %}
+    <h1>{{ page.headline }}</h1>
+    {% if page.subheadline %}<p class="bio">{{ page.subheadline }}</p>{% endif %}
+    {% if messages %}{% for m in messages %}<div class="err">{{ m }}</div>{% endfor %}{% endif %}
+
+    <div class="links">
+      {% if page.offer.is_sellable %}
+        <a class="link buy" href="{% url 'store:buy' page.offer.public_key %}">
+          {{ page.offer.name }} <span class="price">· {{ page.offer.price_display }}</span>
+        </a>
+      {% endif %}
+      {% for l in page.links.all %}
+        <a class="link" href="{{ l.url }}" target="_blank" rel="noopener">{{ l.label }}</a>
+      {% endfor %}
+    </div>
+
+    {% if page.lead_magnet %}
+    <div class="optin">
+      <p>Get <strong>{{ page.lead_magnet }}</strong> free.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="v" value="{{ request.GET.v }}">
+        <input type="email" name="email" placeholder="you@email.com" required>
+        <button type="submit">Get it</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
