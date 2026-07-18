@@ -46,10 +46,10 @@ def ensure_price(offer: Offer) -> str:
         # Verify the cached price still matches the current amount/cadence.
         try:
             price = client.Price.retrieve(offer.stripe_price_id)
-            recurring = bool(price.get("recurring"))
+            recurring = bool(getattr(price, "recurring", None))
             if (
-                price["unit_amount"] == offer.price_cents
-                and price["currency"] == offer.currency
+                getattr(price, "unit_amount", None) == offer.price_cents
+                and getattr(price, "currency", None) == offer.currency
                 and recurring == offer.is_subscription
             ):
                 return offer.stripe_price_id
@@ -83,15 +83,18 @@ def verify_paid_session(session_id: str):
         s = client.checkout.Session.retrieve(session_id)
     except stripe.error.StripeError:
         return None
-    paid = s.get("payment_status") == "paid" or s.get("status") == "complete"
+    # Stripe objects don't expose dict.get — use attribute access with getattr.
+    paid = getattr(s, "payment_status", None) == "paid" or getattr(s, "status", None) == "complete"
     if not paid:
         return None
-    details = s.get("customer_details") or {}
-    key = (s.get("metadata") or {}).get("offer_key")
+    details = getattr(s, "customer_details", None)
+    meta = getattr(s, "metadata", None)
+    key = getattr(meta, "offer_key", None) if meta else None
+    email = (getattr(details, "email", None) if details else None) or getattr(s, "customer_email", None) or ""
     return {
-        "email": (details.get("email") or s.get("customer_email") or "").strip().lower(),
-        "name": details.get("name") or "",
-        "customer_id": s.get("customer") or "",
+        "email": email.strip().lower(),
+        "name": (getattr(details, "name", None) if details else None) or "",
+        "customer_id": getattr(s, "customer", None) or "",
         "offer": Offer.objects.filter(public_key=key).first() if key else None,
     }
 

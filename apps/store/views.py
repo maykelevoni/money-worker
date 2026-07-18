@@ -231,25 +231,27 @@ def stripe_webhook(request):
     import stripe
     from django.conf import settings
 
+    import json
+    import logging
+
     payload = request.body
     sig = request.META.get("HTTP_STRIPE_SIGNATURE", "")
     secret = settings.STRIPE_WEBHOOK_SECRET
     try:
         if secret:
-            event = stripe.Webhook.construct_event(payload, sig, secret)
-        else:
-            # No secret configured (local dev) — parse without verifying.
-            import json
-
-            event = json.loads(payload or "{}")
+            # Verify the signature (raises on tampering); we process the raw JSON
+            # below so handlers always see a plain dict, not a StripeObject.
+            stripe.Webhook.construct_event(payload, sig, secret)
+        event = json.loads(payload or "{}")
     except (ValueError, stripe.error.SignatureVerificationError):
         return HttpResponse(status=400)
 
     try:
         webhooks.process_event(event)
     except Exception:
-        # Ack anyway if we can't process; Stripe retries on 5xx and we don't
-        # want an unrelated bug to wedge the whole webhook.
+        # Ack anyway (Stripe retries on 5xx and we don't want a bug to wedge the
+        # whole webhook), but log it so failures aren't silent.
+        logging.getLogger("apps.store").exception("Stripe webhook processing failed")
         return HttpResponse(status=200)
     return HttpResponse(status=200)
 
