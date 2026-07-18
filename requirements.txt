@@ -9,3 +9,4 @@ boto3
 gunicorn
 whitenoise
 pytrends>=4.9.2
+stripe>=9.0

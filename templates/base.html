@@ -220,7 +220,15 @@
           </div>
         </div>
 
-        <a href="/offers/" class="navlink {% if '/offers/' in request.path %}active{% endif %}">Sell</a>
+        <div class="grp {% if '/offers/' in request.path or '/sell/' in request.path %}active{% endif %}">
+          <a href="/offers/" class="lbl">Sell ▾</a>
+          <div class="menu">
+            <a href="/offers/">Products</a>
+            <a href="/sell/customers/">Customers &amp; sales</a>
+            <a href="/members/login/" target="_blank" rel="noopener">Members area ↗</a>
+          </div>
+        </div>
+
         <a href="/analytics/" class="navlink {% if '/analytics/' in request.path %}active{% endif %}">Analytics</a>
 
         <div class="grp util" title="Settings">

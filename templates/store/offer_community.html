@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ offer.name }} · Community · PostForge{% endblock %}
+{% block nav_sell %}active{% endblock %}
+
+{% block content %}
+<style>
+  .composer, .post { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 14px; max-width: 720px; }
+  .composer textarea { width: 100%; min-height: 70px; }
+  .post-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .author { font-weight: 600; }
+  .badge { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; background: var(--accent);
+    color: #fff; border-radius: 5px; padding: 1px 6px; margin-left: 6px; }
+  .when { font-size: 12px; color: var(--muted); }
+  .post-body { margin-top: 8px; }
+  .comments { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .comment { font-size: 14px; padding: 5px 0; display: flex; gap: 8px; align-items: baseline; }
+  .comment .cbody { color: var(--text); flex: 1; }
+  .del { display: inline; }
+  .link-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; }
+  .link-del:hover { color: #ff7a90; }
+  .reply { display: flex; gap: 8px; margin-top: 10px; }
+  .reply input { flex: 1; }
+</style>
+
+{% include "_pagehead.html" with eyebrow="Sell" title="Community" subtitle=offer.name %}
+<p style="margin:-6px 0 18px"><a href="{% url 'offers:manage' offer.pk %}" style="color:var(--accent);text-decoration:none">← Back to product</a></p>
+
+<form class="composer" method="post" action="{% url 'store:offer_community' offer.pk %}">
+  {% csrf_token %}
+  <textarea name="body" placeholder="Post an announcement to buyers…" required></textarea>
+  <div style="margin-top:10px"><button class="btn" type="submit">Post as creator</button></div>
+</form>
+
+{% for post in posts %}
+  <div class="post">
+    <div class="post-head">
+      <span class="author">{{ post.author_display }}{% if post.is_creator %}<span class="badge">You</span>{% endif %}</span>
+      <span class="when">{{ post.created_at|date:"M j, g:i a" }}
+        <form method="post" action="{% url 'store:offer_community_post_delete' offer.pk post.id %}" class="del" data-confirm="Delete this post?">
+          {% csrf_token %}<button class="link-del" type="submit">delete</button>
+        </form>
+      </span>
+    </div>
+    <div class="post-body">{{ post.body|linebreaksbr }}</div>
+
+    <div class="comments">
+      {% for c in post.comments.all %}
+        <div class="comment">
+          <span class="author">{{ c.author_display }}{% if c.is_creator %}<span class="badge">You</span>{% endif %}</span>
+          <span class="cbody">{{ c.body|linebreaksbr }}</span>
+          <form method="post" action="{% url 'store:offer_community_comment_delete' offer.pk c.id %}" class="del">
+            {% csrf_token %}<button class="link-del" type="submit">×</button>
+          </form>
+        </div>
+      {% endfor %}
+      <form method="post" action="{% url 'store:offer_community_comment' offer.pk post.id %}" class="reply">
+        {% csrf_token %}
+        <input type="text" name="body" placeholder="Reply as creator…" required>
+        <button class="btn btn-ghost" type="submit">Reply</button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <p class="small" style="color:var(--muted)">No posts yet. Post an announcement, or wait for buyers to start talking.</p>
+{% endfor %}
+{% endblock %}

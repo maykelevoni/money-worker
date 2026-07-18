@@ -40,6 +40,13 @@
       <button type="submit">{{ page.button_text }}</button>
     </form>
     <p class="fine">No spam. Unsubscribe anytime.</p>
+    {% if page.offer.is_sellable %}
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)">
+        <p class="lead" style="margin-bottom:10px">Want it now? Get <strong>{{ page.offer.name }}</strong> — {{ page.offer.price_display }}.</p>
+        <a href="{% url 'store:buy' page.offer.public_key %}"
+           style="display:inline-block;background:#ff7e2e;color:#fff;padding:13px 24px;border-radius:10px;font-weight:600;text-decoration:none">Buy now</a>
+      </div>
+    {% endif %}
   </div>
 </body>
 </html>

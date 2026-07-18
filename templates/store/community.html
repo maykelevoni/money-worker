@@ -1,0 +1,72 @@
+{% extends "store/_base.html" %}
+{% block title %}{{ offer.name }} · Community{% endblock %}
+{% block nav %}<a class="muted" href="{% url 'store:product' offer.public_key %}">← Back to course</a>{% endblock %}
+{% block body %}
+<h1>{{ offer.name }} · Community</h1>
+<p class="muted">Ask questions, share wins. Be kind.</p>
+
+<form class="composer" method="post" action="{% url 'store:community' offer.public_key %}">
+  {% csrf_token %}
+  <textarea name="body" placeholder="Start a discussion…" required></textarea>
+  <button class="btn" type="submit">Post</button>
+</form>
+
+{% for post in posts %}
+  <div class="post">
+    <div class="post-head">
+      <span class="author">{{ post.author_display }}{% if post.is_creator %}<span class="badge">Creator</span>{% endif %}</span>
+      <span class="when muted">{{ post.created_at|date:"M j, g:i a" }}</span>
+    </div>
+    <div class="post-body">{{ post.body|linebreaksbr }}</div>
+    {% if post.deletable %}
+      <form method="post" action="{% url 'store:community_post_delete' post.id %}" class="del">
+        {% csrf_token %}<button type="submit" class="link-del">Delete</button>
+      </form>
+    {% endif %}
+
+    <div class="comments">
+      {% for c in post.comments.all %}
+        <div class="comment">
+          <span class="author">{{ c.author_display }}{% if c.is_creator %}<span class="badge">Creator</span>{% endif %}</span>
+          <span class="cbody">{{ c.body|linebreaksbr }}</span>
+          {% if c.deletable %}
+            <form method="post" action="{% url 'store:community_comment_delete' c.id %}" class="del">
+              {% csrf_token %}<button type="submit" class="link-del">×</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <form method="post" action="{% url 'store:community_comment' post.id %}" class="reply">
+        {% csrf_token %}
+        <input type="text" name="body" placeholder="Reply…" required>
+        <button class="btn small" type="submit">Reply</button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <div class="card"><p class="muted">No posts yet. Be the first to start a discussion.</p></div>
+{% endfor %}
+
+<style>
+  .composer { margin: 22px 0 26px; }
+  .composer textarea { width: 100%; min-height: 80px; background: #0f121a; color: #e6e8ee;
+    border: 1px solid #2a2f3d; border-radius: 12px; padding: 13px 15px; font: inherit; margin-bottom: 10px; }
+  .post { background: #181b24; border: 1px solid #2a2f3d; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+  .post-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .author { font-weight: 600; color: #fff; }
+  .badge { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; background: var(--accent);
+    color: #fff; border-radius: 5px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+  .when { font-size: 12px; }
+  .post-body { margin-top: 8px; }
+  .del { display: inline; }
+  .link-del { background: none; border: none; color: #6a7185; cursor: pointer; font-size: 12px; padding: 4px 0; }
+  .link-del:hover { color: #ff7a90; }
+  .comments { margin-top: 14px; padding-top: 12px; border-top: 1px solid #23283a; }
+  .comment { font-size: 14px; padding: 6px 0; display: flex; gap: 8px; align-items: baseline; }
+  .comment .cbody { color: #c4c9d6; flex: 1; }
+  .reply { display: flex; gap: 8px; margin-top: 10px; }
+  .reply input { flex: 1; background: #0f121a; border: 1px solid #2a2f3d; color: #e6e8ee;
+    border-radius: 9px; padding: 9px 12px; font-size: 14px; }
+  .btn.small { padding: 8px 14px; font-size: 14px; }
+</style>
+{% endblock %}

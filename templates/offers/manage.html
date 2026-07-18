@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ offer.name }} · Sell · PostForge{% endblock %}
+{% block nav_offers %}active{% endblock %}
+
+{% block content %}
+<style>
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  .panel h3 { margin: 0 0 4px; font-size: 15px; }
+  .panel .small { color: var(--muted); font-size: 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+  input, select, textarea { width: 100%; }
+  textarea { min-height: 90px; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .buy-link { font-family: ui-monospace, monospace; font-size: 12px; color: var(--accent);
+    word-break: break-all; }
+  .content-item { display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    margin-bottom: 8px; }
+  .content-item form { display: inline; }
+</style>
+
+{% include "_pagehead.html" with eyebrow="Products" title=offer.name subtitle="Sell this product and manage what buyers unlock." %}
+
+<p style="margin:-6px 0 18px"><a class="ext" href="{% url 'offers:list' %}" style="color:var(--accent);text-decoration:none">← All products</a></p>
+
+<div class="panel">
+  <h3>Selling</h3>
+  <p class="small">Stripe collects the payment; PostForge grants access. Pick a paid type to turn on a buy link.</p>
+  <form method="post" action="{% url 'offers:manage' offer.pk %}">
+    {% csrf_token %}
+    <label>Access type</label>
+    <select name="access_type">
+      {% for value, label in access_types %}
+        <option value="{{ value }}" {% if offer.access_type == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <div class="row">
+      <div>
+        <label>Price</label>
+        <input type="text" name="price_dollars" placeholder="29" value="{% if offer.price_cents %}{{ offer.price_cents|floatformat:0|slice:':-2' }}{% endif %}">
+      </div>
+      <div>
+        <label>Currency</label>
+        <input type="text" name="currency" value="{{ offer.currency|default:'usd' }}" maxlength="3">
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:16px">
+      <input type="checkbox" name="community_enabled" style="width:auto" {% if offer.community_enabled %}checked{% endif %}>
+      Enable a members-only community for buyers
+    </label>
+    <div style="margin-top:14px"><button class="btn" type="submit">Save selling settings</button></div>
+  </form>
+  {% if offer.community_enabled %}
+    <p style="margin-top:12px"><a class="btn btn-ghost" href="{% url 'store:offer_community' offer.pk %}">Open community &amp; moderate →</a></p>
+  {% endif %}
+
+  {% if offer.is_sellable %}
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+      <span class="pill on">Live · {{ offer.price_display }}</span>
+      <p class="small" style="margin-top:8px">Buy link (put this behind any button):</p>
+      <p class="buy-link">{{ request.scheme }}://{{ request.get_host }}{% url 'store:buy' offer.public_key %}</p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h3>Course sections</h3>
+  <p class="small">Group lessons into sections (modules). Optional — a product can be a flat list of lessons too.</p>
+  {% for m in modules %}
+    <div class="content-item">
+      <div><strong>{{ m.title }}</strong> <span class="small">· {{ m.lessons.count }} lesson{{ m.lessons.count|pluralize }}</span></div>
+      <form method="post" action="{% url 'offers:module_delete' offer.pk m.id %}" data-confirm="Remove this section? Its lessons stay (ungrouped).">
+        {% csrf_token %}<button class="btn btn-ghost" type="submit">Remove</button>
+      </form>
+    </div>
+  {% empty %}
+    <p class="small">No sections yet.</p>
+  {% endfor %}
+  <form method="post" action="{% url 'offers:module_add' offer.pk %}" style="margin-top:12px;display:flex;gap:8px">
+    {% csrf_token %}
+    <input type="text" name="title" placeholder="e.g. Week 1 — Foundations" required style="flex:1">
+    <button class="btn" type="submit">Add section</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h3>Lessons</h3>
+  <p class="small">Files and lessons buyers see in the members area. Assign a section and a drip delay per lesson.</p>
+
+  {% for c in contents %}
+    <div class="content-item" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <strong>{{ c.title }}</strong>
+          {% if c.file %}<span class="small"> · file</span>{% endif %}
+          {% if c.body %}<span class="small"> · text</span>{% endif %}
+        </div>
+        <form method="post" action="{% url 'offers:content_delete' offer.pk c.id %}" data-confirm="Remove this lesson?">
+          {% csrf_token %}<button class="btn btn-ghost" type="submit">Remove</button>
+        </form>
+      </div>
+      <form method="post" action="{% url 'offers:content_update' offer.pk c.id %}" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+        {% csrf_token %}
+        <div><label style="font-size:11px;color:var(--muted)">Section</label>
+          <select name="module">
+            <option value="">— none (ungrouped) —</option>
+            {% for m in modules %}<option value="{{ m.id }}" {% if c.module_id == m.id %}selected{% endif %}>{{ m.title }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><label style="font-size:11px;color:var(--muted)">Drip (days)</label>
+          <input type="number" name="drip_days" min="0" value="{{ c.drip_days }}" style="width:90px">
+        </div>
+        <div style="flex:1;min-width:200px"><label style="font-size:11px;color:var(--muted)">Video URL (YouTube/Vimeo/Loom)</label>
+          <input type="url" name="video_url" value="{{ c.video_url }}" placeholder="https://youtu.be/…">
+        </div>
+        <button class="btn btn-ghost" type="submit">Save</button>
+      </form>
+    </div>
+  {% empty %}
+    <p class="small">No lessons yet — add the first below.</p>
+  {% endfor %}
+
+  <form method="post" action="{% url 'offers:content_add' offer.pk %}" enctype="multipart/form-data" style="margin-top:14px">
+    {% csrf_token %}
+    <label>Title</label>
+    <input type="text" name="title" placeholder="e.g. The full guide (PDF)" required>
+    <label>Written content (optional, Markdown)</label>
+    <textarea name="body" placeholder="Shown on the lesson in the members area."></textarea>
+    <label>Video URL (optional — YouTube, Vimeo or Loom)</label>
+    <input type="url" name="video_url" placeholder="https://youtu.be/… (plays inline in the course)">
+    <div class="row">
+      <div>
+        <label>Section (optional)</label>
+        <select name="module">
+          <option value="">— none (ungrouped) —</option>
+          {% for m in modules %}<option value="{{ m.id }}">{{ m.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Drip delay (days after purchase)</label>
+        <input type="number" name="drip_days" min="0" value="0">
+      </div>
+    </div>
+    <label>File (optional)</label>
+    <input type="file" name="file">
+    <div style="margin-top:14px"><button class="btn" type="submit">Add lesson</button></div>
+  </form>
+</div>
+{% endblock %}
