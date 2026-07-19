@@ -17,7 +17,10 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import include, path
+
+from config.throttle import rate_limit
 
 from apps.dashboard import onboarding as ob
 from apps.leads import views as lead_views
@@ -36,6 +39,15 @@ onboarding_patterns = ([
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Throttled staff login — override the bundled auth view to slow brute-force.
+    # Must precede the auth-urls include so this pattern wins.
+    path(
+        'accounts/login/',
+        rate_limit('staff_login', limit=10, window_seconds=300)(
+            auth_views.LoginView.as_view()
+        ),
+        name='login',
+    ),
     path('accounts/', include('apps.accounts.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
     path('start/', include(onboarding_patterns)),

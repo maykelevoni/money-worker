@@ -5,6 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
+from config.throttle import rate_limit
+
 from apps.offers.models import Offer
 from apps.videos.models import Video
 
@@ -50,6 +52,7 @@ def _capture_email(request, page):
     return lead
 
 
+@rate_limit("capture_page", limit=20, window_seconds=60, methods=("POST",))
 def page(request, slug):
     """A public capture page rendered from its CapturePage record."""
     page = get_object_or_404(CapturePage, slug=slug, is_active=True)

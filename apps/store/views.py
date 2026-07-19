@@ -6,6 +6,8 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from config.throttle import rate_limit
+
 from apps.offers.models import Offer, ProductContent
 
 from . import webhooks
@@ -163,6 +165,7 @@ def _fallback_workspace():
     return Workspace.objects.first()
 
 
+@rate_limit("store_set_password", limit=10, window_seconds=300)
 @require_POST
 def set_password(request):
     """Set the buyer's password, re-verifying the paid session server-side so
@@ -186,6 +189,7 @@ def set_password(request):
     return redirect("store:portal")
 
 
+@rate_limit("store_forgot_password", limit=5, window_seconds=600)
 def forgot_password(request):
     """Email a reset link (recovery only — not the normal way to sign in)."""
     if request.method == "POST":
@@ -198,6 +202,7 @@ def forgot_password(request):
     return render(request, "store/forgot_password.html")
 
 
+@rate_limit("store_reset_password", limit=10, window_seconds=600)
 def reset_password(request, token):
     # GET carries the token into the form; the token is only burned on POST.
     if request.method == "POST":
@@ -234,14 +239,22 @@ def stripe_webhook(request):
     import json
     import logging
 
+    log = logging.getLogger("apps.store")
     payload = request.body
     sig = request.META.get("HTTP_STRIPE_SIGNATURE", "")
     secret = settings.STRIPE_WEBHOOK_SECRET
+
+    # A missing secret means we CANNOT verify the signature — refuse rather than
+    # trusting the body. Without this, anyone could POST a fake checkout event
+    # and grant themselves a paid entitlement for free.
+    if not secret:
+        log.error("Stripe webhook secret not configured; rejecting unverifiable event")
+        return HttpResponse(status=503)
+
     try:
-        if secret:
-            # Verify the signature (raises on tampering); we process the raw JSON
-            # below so handlers always see a plain dict, not a StripeObject.
-            stripe.Webhook.construct_event(payload, sig, secret)
+        # Verify the signature (raises on tampering); we process the raw JSON
+        # below so handlers always see a plain dict, not a StripeObject.
+        stripe.Webhook.construct_event(payload, sig, secret)
         event = json.loads(payload or "{}")
     except (ValueError, stripe.error.SignatureVerificationError):
         return HttpResponse(status=400)
@@ -249,16 +262,17 @@ def stripe_webhook(request):
     try:
         webhooks.process_event(event)
     except Exception:
-        # Ack anyway (Stripe retries on 5xx and we don't want a bug to wedge the
-        # whole webhook), but log it so failures aren't silent.
-        logging.getLogger("apps.store").exception("Stripe webhook processing failed")
-        return HttpResponse(status=200)
+        # Handlers are idempotent, so ask Stripe to retry (5xx) rather than
+        # silently dropping a real grant/revoke on a transient failure.
+        log.exception("Stripe webhook processing failed; asking Stripe to retry")
+        return HttpResponse(status=500)
     return HttpResponse(status=200)
 
 
 # ---------------------------------------------------------------------------
 # Member area — email + password login + gated product content.
 # ---------------------------------------------------------------------------
+@rate_limit("store_login", limit=10, window_seconds=300)
 def login(request):
     """Email + password sign-in for returning buyers."""
     if current_customer(request):

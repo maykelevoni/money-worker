@@ -3,6 +3,7 @@ psycopg[binary]
 python-dotenv
 requests
 markdown
+nh3  # HTML sanitizer for user/AI-authored markdown (stored-XSS defense)
 Pillow
 django-storages[s3]
 boto3

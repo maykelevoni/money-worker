@@ -5,6 +5,13 @@ from django.db import models
 from apps.accounts.models import WorkspaceOwned
 
 
+def _product_upload_to(instance, filename):
+    """Store paid files under an unguessable random prefix. Downloads are gated
+    by the entitlement-checked view; the random key means the object's direct
+    storage URL can't be guessed/enumerated even on a public bucket."""
+    return f"products/{secrets.token_urlsafe(12)}/{filename}"
+
+
 class Offer(WorkspaceOwned):
     """A product the funnel promotes — an affiliate product or Mayke's own.
 
@@ -151,7 +158,7 @@ class ProductContent(WorkspaceOwned):
         blank=True, help_text="Written content shown in the members area (Markdown)"
     )
     file = models.FileField(
-        upload_to="products/", blank=True,
+        upload_to=_product_upload_to, blank=True,
         help_text="Downloadable file delivered to buyers",
     )
     video_url = models.URLField(

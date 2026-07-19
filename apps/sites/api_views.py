@@ -4,6 +4,8 @@ import json
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from config.throttle import rate_limit
+
 from .models import Website
 
 
@@ -15,6 +17,7 @@ def _cors(resp):
 
 
 @csrf_exempt
+@rate_limit("optin_api", limit=20, window_seconds=60, methods=("POST",))
 def optin_api(request):
     """Create a Lead in the site's workspace from a static site's opt-in form.
 
