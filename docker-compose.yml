@@ -41,6 +41,10 @@ services:
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
       UPLOAD_POST_API_KEY: ${UPLOAD_POST_API_KEY}
       UPLOAD_POST_USER: ${UPLOAD_POST_USER}
+      # --- Stripe (REQUIRED for checkout + the access-granting webhook) ---
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       # --- Media storage (Cloudflare R2) ---
       R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
