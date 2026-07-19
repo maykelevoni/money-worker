@@ -188,6 +188,10 @@ class Video(WorkspaceOwned):
 
     voice_url = models.URLField(blank=True)
     video_url = models.URLField(blank=True, help_text="Rendered video (fal.ai output)")
+    captions = models.BooleanField(
+        default=False,
+        help_text="Burn phrase-synced captions onto the video (timed to each beat)",
+    )
 
     offer = models.ForeignKey(
         "offers.Offer",

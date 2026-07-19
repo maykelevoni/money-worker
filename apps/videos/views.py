@@ -322,11 +322,13 @@ def video_detail(request, pk):
     )
     if request.method == "POST":
         video.title = request.POST.get("title", video.title).strip()
+        video.tool_featured = request.POST.get("tool_featured", video.tool_featured).strip()
         video.script = request.POST.get("script", video.script)
         video.caption = request.POST.get("caption", video.caption)
         video.niche = request.POST.get("niche", video.niche).strip()
         video.avatar_id = request.POST.get("avatar") or None
         video.offer_id = request.POST.get("offer") or None
+        video.captions = request.POST.get("captions") == "on"
         if video.script and video.status == Video.Status.DRAFT:
             video.status = Video.Status.SCRIPTED
         video.save()

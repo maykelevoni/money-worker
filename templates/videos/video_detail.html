@@ -7,8 +7,8 @@
   .backlink { color: var(--muted); text-decoration: none; font-size: 13px; }
   .backlink:hover { color: var(--text); }
   .vhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 4px; }
-  .vhead h1 { flex: 1; min-width: 200px; }
-  .metarow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+  .vhead h1 { flex: 1; min-width: 200px; font-size: 22px; }
+  .metarow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
     padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
   .s-draft{color:var(--faint);border-color:var(--line);background:var(--surface-2);}
@@ -17,50 +17,107 @@
   .s-rendered{color:var(--beak-2);border-color:rgba(255,126,46,.35);background:var(--beak-soft);}
   .s-approved,.s-posted{color:var(--ok);border-color:rgba(67,214,160,.35);background:rgba(67,214,160,.1);}
 
-  .editor-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
-  @media (max-width: 880px) { .editor-grid { grid-template-columns: 1fr; } }
-  .block { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
-  .block h2 { font-size: 14px; margin-bottom: 12px; }
-  .block .eyebrow { margin-bottom: 10px; }
-  textarea.script { min-height: 380px; resize: vertical; line-height: 1.6; }
-  .pre { white-space: pre-wrap; color: var(--muted); font-size: 13px; }
-  .side .block { margin-bottom: 14px; }
-  .actions { display: grid; gap: 8px; }
-  .actions .btn { justify-content: center; width: 100%; }
-  .asset img, .asset video { width: 100%; border-radius: 9px; display: block; background: var(--surface-2); }
-  .asset audio { width: 100%; margin-top: 4px; }
-  .twocol { display: flex; flex-wrap: wrap; gap: 10px; }
-  .twocol > * { flex: 1; min-width: 150px; }
-  .rec { display: flex; gap: 6px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
-  .rec-start.recording { background: var(--eyes); border-color: var(--eyes); color: #fff; }
-  .rec-timer { font-family: var(--mono); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .eyebrow { margin-bottom: 10px; }
   .small { color: var(--muted); font-size: 12px; }
   .small.ok { color: var(--ok); } .small.bad { color: #ff8a8a; }
-  .share-platforms { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
-  .share-pl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text);
-    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
-    cursor: pointer; }
-  .share-pl input { width: auto; }
-  .share-state { margin-top: 10px; }
-  .share-results { margin-top: 12px; display: grid; gap: 6px; }
-  .share-row { display: flex; align-items: center; gap: 8px; }
-  .linklike { background: none; border: none; color: var(--beak-2); cursor: pointer; font-size: 12px;
-    text-decoration: underline; padding: 0; }
-  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
-  .slide { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface-2); display: flex; flex-direction: column; }
-  .slide img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; display: block; }
-  .slide .noimg { aspect-ratio: 9 / 16; display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 11px; }
-  .slide-cap { font-size: 11px; color: var(--muted); padding: 6px 8px; line-height: 1.35; }
-  .slide-tag { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--beak-2); padding: 6px 8px 0; }
-  .slide-actions { display: flex; gap: 8px; justify-content: space-between; padding: 4px 8px 8px; margin-top: auto; }
-  .gen-progress { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px;
+  .pre { white-space: pre-wrap; color: var(--muted); font-size: 13px; }
+  .twocol { display: flex; flex-wrap: wrap; gap: 10px; }
+  .twocol > * { flex: 1; min-width: 140px; }
+  textarea.script { min-height: 150px; resize: vertical; line-height: 1.55; }
+  .cap-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .aiwrite { font-size: 12.5px; color: var(--accent); background: none; border: 0; cursor: pointer; font-family: inherit; padding: 0; }
+  .aiwrite:hover { text-decoration: underline; }
+  .linklike { background: none; border: none; color: var(--beak-2); cursor: pointer; font-size: 12.5px; text-decoration: underline; padding: 0; font-family: inherit; }
+  .actions { display: grid; gap: 8px; } .actions .btn { justify-content: center; width: 100%; }
+  .card.ship { margin-top: 14px; border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+
+  /* ================= one-screen editor ================= */
+  .editor { display: grid; grid-template-columns: minmax(270px, 330px) 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .editor { grid-template-columns: 1fr; } }
+
+  /* --- left: program monitor --- */
+  .monitor { position: sticky; top: 14px; }
+  .prev-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+  .prev-head img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+  .prev-head .av-none { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
+  .prev-head b { font-size: 13px; display: block; } .prev-head span { font-size: 11px; color: var(--muted); }
+  .phone { position: relative; aspect-ratio: 9 / 16; max-height: calc(100vh - 250px); width: auto; margin: 0 auto;
+    background: #000; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); }
+  .phone > img, .phone > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .phone .ph-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--faint); font-size: 12.5px; padding: 22px; line-height: 1.5; }
+  .ph-empty .gen-cta { padding: 13px 26px; font-size: 15.5px; }
+  .ph-empty .gen-cta-sub { color: rgba(255,255,255,.5); font-size: 11.5px; }
+  .phone .cap { position: absolute; left: 6%; right: 6%; bottom: 15%; text-align: center; z-index: 3;
+    font-weight: 800; font-size: clamp(14px, 2.1vw, 22px); line-height: 1.15; color: #fff; letter-spacing: .2px;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 3px 5px rgba(0,0,0,.55);
+    pointer-events: none; word-break: break-word; }
+  .phone .cap.off { display: none; }
+  .phone .generating { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 22px;
+    background: #0a0c12; }
+  .phone .generating[hidden] { display: none; }
+  .phone .generating.err { background: #1c0d0d; }
+  .gspin { width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(255,255,255,.18); border-top-color: var(--beak); animation: gspin .8s linear infinite; }
+  .generating.err .gspin { animation: none; border-top-color: #ff8a8a; }
+  @keyframes gspin { to { transform: rotate(360deg); } }
+  .glabel { color: #fff; font-size: 15px; font-weight: 800; letter-spacing: .02em; }
+  .gstep { color: rgba(255,255,255,.72); font-size: 12.5px; line-height: 1.4; max-width: 220px; }
+  .gtimer { color: var(--beak-2); font-family: var(--mono); font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .phone .beatnum { position: absolute; top: 9px; right: 10px; z-index: 3; background: rgba(0,0,0,.55); color: #fff; font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-family: var(--mono); }
+  .phone .playbtn { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; background: none; border: 0; cursor: pointer; }
+  .phone .playbtn span { width: 54px; height: 54px; border-radius: 50%; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 21px; padding-left: 4px; transition: transform .12s; }
+  .phone .playbtn:hover span { transform: scale(1.08); }
+  .transport { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .transport .scrub { flex: 1; accent-color: var(--accent); }
+  .transport .tnum { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .cap-toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); cursor: pointer; margin-top: 10px; user-select: none; }
+  .cap-toggle input { width: auto; }
+  .gen-progress { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px;
     color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
   .gen-progress[data-status="error"] { color: #ff8a8a; border-color: rgba(255,138,138,.35); }
   .gen-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--beak-2); flex: none; animation: genpulse 1s infinite; }
   .gen-progress[data-status="error"] .gen-dot { background: #ff8a8a; animation: none; }
   @keyframes genpulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
-  .gen-steps { margin-top: 10px; }
-  .gen-steps summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  .more { margin-top: 12px; } .more > summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  .more .asset audio { width: 100%; margin-top: 8px; }
+
+  /* --- right: timeline (top) + inspector (below) --- */
+  .workcol { display: flex; flex-direction: column; gap: 14px; }
+  .tl-lbl { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .tl-lbl .side-lbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .timeline { display: flex; gap: 3px; position: relative; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 8px; overflow-x: auto; min-height: 96px; }
+  .clip { position: relative; flex-grow: 1; flex-basis: 0; min-width: 46px; height: 80px; border-radius: 8px; overflow: hidden;
+    border: 2px solid transparent; cursor: pointer; padding: 0; background: var(--bg); }
+  .clip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .clip .noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 10px; }
+  .clip.active { border-color: var(--beak); box-shadow: 0 0 0 2px var(--beak); }
+  .clip:hover:not(.active) { border-color: var(--faint); }
+  .clip-idx { position: absolute; top: 3px; left: 4px; background: rgba(0,0,0,.6); color: #fff; font-size: 10px; font-weight: 700;
+    min-width: 15px; height: 15px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+  .clip-av { position: absolute; bottom: 3px; right: 4px; font-size: 10px; }
+  .playhead { position: absolute; top: 6px; bottom: 6px; width: 2px; background: var(--beak); left: 8px;
+    pointer-events: none; box-shadow: 0 0 6px var(--beak); display: none; }
+  .tl-empty { color: var(--faint); font-size: 12.5px; display: flex; align-items: center; justify-content: center; width: 100%; }
+
+  /* inspector: script  ⇄  selected beat */
+  .insp-clip { display: none; }
+  .insp-clip.on { display: block; }
+  .insp-script.hide { display: none; }
+  .clip-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .clip-row { display: flex; gap: 16px; align-items: flex-start; }
+  @media (max-width: 560px) { .clip-row { flex-direction: column; } }
+  .clip-frame { width: 130px; flex: none; aspect-ratio: 9/16; border-radius: 10px; object-fit: cover; display: block; border: 1px solid var(--line); }
+  .clip-main { flex: 1; min-width: 0; }
+  .clip-cap { font-size: 15px; line-height: 1.5; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .clip-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .share-platforms { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .share-pl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .share-pl input { width: auto; }
+  .share-results { margin-top: 12px; display: grid; gap: 6px; }
+  .share-row { display: flex; align-items: center; gap: 8px; }
 </style>
 
 <a class="backlink" href="{% url 'videos:factory' %}">← Video Factory</a>
@@ -74,125 +131,56 @@
   {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
 </div>
 
-<div class="editor-grid">
-  <!-- main column: the post editor -->
+<div class="editor">
+  <!-- ============ LEFT: program monitor ============ -->
   <div>
-    {% if v.talking_points %}
-      <div class="block">
-        <div class="eyebrow">Talking points</div>
-        <div class="pre">{{ v.talking_points }}</div>
+    <div class="card monitor">
+      {% if v.avatar %}
+      <div class="prev-head">
+        {% if v.avatar.image %}<img src="{{ v.avatar.image.url }}" alt="">{% else %}<span class="av-none">◐</span>{% endif %}
+        <div><b>{{ v.avatar.name }}</b><span>presenting · cloned voice</span></div>
       </div>
-    {% endif %}
-
-    {% if not v.transcript_pt %}
-      <div class="block">
-        <div class="eyebrow">Your take — Portuguese</div>
-        <p class="small">Record your real opinion (or upload a memo); the AI adapts it into the script.</p>
-        <form method="post" action="{% url 'videos:upload_audio' v.pk %}" enctype="multipart/form-data">
-          {% csrf_token %}
-          <div class="rec">
-            <button type="button" class="btn btn-ghost rec-start">● Record</button>
-            <button type="button" class="btn btn-ghost rec-stop" disabled>■ Stop</button>
-            <span class="rec-timer small"></span><span class="rec-status small"></span>
-          </div>
-          <input type="file" name="audio" accept="audio/*" required style="margin:6px 0;">
-          <button class="btn btn-ghost" type="submit">Upload + transcribe</button>
-        </form>
-      </div>
-    {% else %}
-      <div class="block">
-        <div class="eyebrow">Your take — transcript</div>
-        <div class="pre">{{ v.transcript_pt }}</div>
-        {% if v.source_audio %}<p class="small" style="margin-top:8px;">▸ <a href="{{ v.source_audio.url }}" target="_blank">listen to your memo</a></p>{% endif %}
-      </div>
-    {% endif %}
-
-    <!-- the editable post -->
-    <form method="post" action="{% url 'videos:video_detail' v.pk %}" class="block">
-      {% csrf_token %}
-      <div class="eyebrow">Script &amp; details</div>
-      <div class="twocol">
-        <div><label>Title</label><input name="title" value="{{ v.title }}" placeholder="Internal title"></div>
-        <div><label>Niche</label><input name="niche" value="{{ v.niche }}" placeholder="niche"></div>
-      </div>
-      <div class="twocol">
-        <div><label>Avatar</label>
-          <select name="avatar">
-            <option value="">— none —</option>
-            {% for a in avatars %}<option value="{{ a.pk }}"{% if v.avatar_id == a.pk %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
-          </select>
+      {% endif %}
+      <div class="phone" id="phone">
+        <div class="generating" id="genOverlay" {% if v.gen_status != 'running' %}hidden{% endif %}>
+          <div class="gspin"></div>
+          <div class="glabel">Generating…</div>
+          <div class="gstep" id="genStep">{{ v.gen_step|default:"Starting…" }}</div>
+          <div class="gtimer" id="genTimer">0:00</div>
         </div>
-        <div><label>Product</label>
-          <select name="offer">
-            <option value="">— none —</option>
-            {% for o in offers %}<option value="{{ o.pk }}"{% if v.offer_id == o.pk %} selected{% endif %}>{{ o.name }}</option>{% endfor %}
-          </select>
+        <img id="prevImg" alt="" hidden>
+        <div class="ph-empty" id="prevEmpty">
+          {% if segments %}Press play, or click a frame on the timeline.
+          {% else %}
+            <form method="post" action="{% url 'videos:generate_short' v.pk %}">{% csrf_token %}<button class="btn gen-cta" type="submit"{% if v.gen_status == 'running' %} disabled{% endif %}>✨ Generate short</button></form>
+            <span class="gen-cta-sub">Script → voice → beats → video</span>
+          {% endif %}
         </div>
+        <div class="cap" id="prevCap"></div>
+        <div class="beatnum" id="prevBeat" hidden></div>
+        {% if segments %}<button class="playbtn" id="prevPlay"><span>▶</span></button>{% endif %}
       </div>
-      <label>Script</label>
-      <textarea class="script" name="script" placeholder="The voiceover script. Generate it from your take, or write it here.">{{ v.script }}</textarea>
-      <label>Caption (post text + hashtags)</label>
-      <textarea name="caption" style="min-height:70px;">{{ v.caption }}</textarea>
-      <div style="margin-top:14px;"><button class="btn" type="submit">Save</button></div>
-    </form>
-
-    {% if segments %}
-      <div class="block">
-        <div class="eyebrow">Slides · {{ segments|length }} beat{{ segments|length|pluralize }} synced to your pauses</div>
-        <div class="slides">
-          {% for s in segments %}
-            <div class="slide">
-              {% if s.uses_avatar %}<div class="slide-tag">◐ avatar</div>{% endif %}
-              {% if s.image %}<img src="{{ s.image.url }}" alt="beat {{ s.order|add:1 }}">{% else %}<div class="noimg">no image</div>{% endif %}
-              <div class="slide-cap">{{ s.text }}</div>
-              <div class="slide-actions">
-                <form method="post" action="{% url 'videos:regen_slide' v.pk s.pk %}">{% csrf_token %}<button class="linklike" type="submit">↻ redraw</button></form>
-                <form method="post" action="{% url 'videos:regen_slide' v.pk s.pk %}">{% csrf_token %}<input type="hidden" name="toggle_avatar" value="1"><button class="linklike" type="submit">{% if s.uses_avatar %}– avatar{% else %}+ avatar{% endif %}</button></form>
-              </div>
-            </div>
-          {% endfor %}
+      {% if segments %}
+        <div class="transport">
+          <button type="button" class="btn btn-ghost" id="prevToggle" style="padding:6px 12px;">▶</button>
+          <input type="range" class="scrub" id="prevScrub" min="0" max="1000" value="0">
+          <span class="tnum" id="prevTime">0:00</span>
         </div>
-      </div>
-    {% endif %}
-  </div>
+      {% endif %}
+      <label class="cap-toggle">
+        <input type="checkbox" name="captions" id="capToggle" form="detailsForm" {% if v.captions %}checked{% endif %}>
+        Burn captions into the video
+      </label>
 
-  <!-- side column: pipeline + assets -->
-  <div class="side">
-    <div class="block">
-      <div class="eyebrow">Make the short</div>
-      <div class="actions">
-        <form method="post" action="{% url 'videos:generate_short' v.pk %}">{% csrf_token %}<button class="btn" type="submit"> Generate short</button></form>
-      </div>
-      <div id="gen-progress" class="gen-progress" data-status="{{ v.gen_status }}"
-           {% if v.gen_status != 'running' and v.gen_status != 'error' %}hidden{% endif %}>
-        <span class="gen-dot"></span><span class="gen-msg">{{ v.gen_step|default:"Working…" }}</span>
-      </div>
-      <p class="small" style="margin-top:8px;">Script → your voice → pause-synced slides → video, in one go. Watch it build.</p>
-      <details class="gen-steps">
-        <summary>Run steps manually</summary>
-        <div class="actions" style="margin-top:8px;">
-          <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit"> Generate script</button></form>
-          <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit"> Generate voice</button></form>
-          <form method="post" action="{% url 'videos:gen_scenes' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit"> Generate slides</button></form>
-          <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit"> Render video</button></form>
-        </div>
-      </details>
-      <div class="actions" style="margin-top:10px;">
-        {% if v.status == 'rendered' %}<form method="post" action="{% url 'videos:approve' v.pk %}">{% csrf_token %}<button class="btn" type="submit"> Approve</button></form>{% endif %}
-        {% if v.status == 'approved' %}<form method="post" action="{% url 'videos:posted' v.pk %}">{% csrf_token %}<button class="btn" type="submit"> Mark posted</button></form>{% endif %}
-      </div>
-    </div>
-
-    {% if v.video_url %}
-      <div class="block asset">
-        <div class="eyebrow">Final video</div>
-        <video src="{{ v.video_url }}" controls></video>
+      <div class="actions" style="margin-top:14px;">
+        <form method="post" action="{% url 'videos:generate_short' v.pk %}">{% csrf_token %}<button class="btn" type="submit"{% if v.gen_status == 'running' %} disabled{% endif %}>{% if v.gen_status == 'running' %}Generating…{% elif v.video_url %}Re-generate short{% else %}Generate short{% endif %}</button></form>
       </div>
 
-      <div class="block">
-        <div class="eyebrow">Share to social</div>
+      {% if v.video_url %}
+      <div class="card ship">
+        <div class="eyebrow">Share to social — ready to post</div>
         {% if not config.share %}
-          <p class="small">Set <code>UPLOAD_POST_API_KEY</code> and <code>UPLOAD_POST_USER</code> in your .env, and connect your accounts in the Upload-Post dashboard.</p>
+          <p class="small">Set <code>UPLOAD_POST_API_KEY</code> / <code>UPLOAD_POST_USER</code> and connect accounts in Upload-Post.</p>
         {% else %}
           <form method="post" action="{% url 'videos:share_video' v.pk %}" class="actions">
             {% csrf_token %}
@@ -203,21 +191,12 @@
                 <p class="small">No accounts yet — add them in <a href="/social/">Social Accounts</a>.</p>
               {% endfor %}
             </div>
-            <p class="small">Posts the rendered video with your saved title &amp; caption, publicly.</p>
-            {% if share_accounts %}<button class="btn" type="submit"> Share now</button>{% endif %}
+            {% if share_accounts %}<button class="btn" type="submit">Post to social now</button>{% endif %}
           </form>
-          {% if v.share_status == 'pending' %}
-            <div class="share-state small">⏳ Upload in progress…
-              <form method="post" action="{% url 'videos:share_status' v.pk %}" style="display:inline;">
-                {% csrf_token %}<button class="linklike" type="submit">refresh status</button>
-              </form>
-            </div>
-          {% endif %}
           {% if v.share_results %}
             <div class="share-results">
               {% for plat, res in v.share_results.items %}
-                <div class="share-row">
-                  <span class="chip">{{ plat }}</span>
+                <div class="share-row"><span class="chip">{{ plat }}</span>
                   {% if res.url %}<a href="{{ res.url }}" target="_blank">view post ↗</a>
                   {% elif res.success %}<span class="small ok">posted ✓</span>
                   {% else %}<span class="small bad">{{ res.error|default:"failed" }}</span>{% endif %}
@@ -227,75 +206,214 @@
           {% endif %}
         {% endif %}
       </div>
-    {% endif %}
+      {% endif %}
 
-    {% if v.voice_url %}
-      <div class="block asset">
-        <div class="eyebrow">Voiceover</div>
-        <audio src="{{ v.voice_url }}" controls></audio>
-      </div>
-    {% endif %}
+      <details class="more">
+        <summary>Rendered video · voiceover · manual steps</summary>
+        {% if v.video_url %}<div class="asset" style="margin-bottom:10px;"><video src="{{ v.video_url }}" controls playsinline style="width:100%; border-radius:10px; display:block;"></video></div>{% endif %}
+        {% if v.voice_url %}<div class="asset"><audio src="{{ v.voice_url }}" controls></audio></div>{% endif %}
+        <div class="actions" style="margin-top:10px;">
+          <form method="post" action="{% url 'videos:gen_script' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Generate script</button></form>
+          <form method="post" action="{% url 'videos:gen_voice' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Generate voice</button></form>
+          <form method="post" action="{% url 'videos:gen_scenes' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Generate beats</button></form>
+          <form method="post" action="{% url 'videos:render' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Render video</button></form>
+          {% if v.status == 'rendered' %}<form method="post" action="{% url 'videos:approve' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Approve</button></form>{% endif %}
+          {% if v.status == 'approved' or v.status == 'posted' %}<form method="post" action="{% url 'videos:posted' v.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Mark posted</button></form>{% endif %}
+        </div>
+      </details>
+    </div>
+  </div>
 
-    {% if v.avatar and v.avatar.image %}
-      <div class="block asset">
-        <div class="eyebrow">Character</div>
-        <img src="{{ v.avatar.image.url }}" alt="{{ v.avatar.name }}">
+  <!-- ============ RIGHT: timeline (top) + inspector (below) ============ -->
+  <div class="workcol">
+    <div>
+      <div class="tl-lbl">
+        <span class="side-lbl">Timeline</span>
+        {% if segments %}<span class="small">click a frame → it loads in the preview &amp; opens below</span>{% endif %}
       </div>
-    {% endif %}
+      <div class="timeline" id="timeline">
+        {% for s in segments %}
+          <button type="button" class="clip" data-i="{{ forloop.counter0 }}" title="beat {{ forloop.counter }}: {{ s.text|truncatechars:60 }}">
+            {% if s.image %}<img src="{{ s.image.url }}" alt="">{% else %}<div class="noimg">no image</div>{% endif %}
+            <span class="clip-idx">{{ forloop.counter }}</span>
+            {% if s.uses_avatar %}<span class="clip-av">◐</span>{% endif %}
+          </button>
+        {% empty %}
+          <div class="tl-empty">Frames appear here after you generate — one per pause in the voiceover.</div>
+        {% endfor %}
+        <div class="playhead" id="playhead"></div>
+      </div>
+    </div>
+
+    <!-- inspector: SCRIPT by default -->
+    <div class="card insp-script" id="panelScript">
+      <form method="post" action="{% url 'videos:video_detail' v.pk %}" id="detailsForm">
+        {% csrf_token %}
+        <div class="cap-head">
+          <div class="eyebrow" style="margin:0;">Script &amp; details</div>
+          <button type="submit" form="genScriptForm" class="aiwrite" title="Write a fresh script from the topic">✧ Generate script</button>
+        </div>
+        <label>Topic <span class="small" style="font-weight:400;">— what the video is about; ✧ Generate script writes from this</span></label>
+        <input name="tool_featured" value="{{ v.tool_featured|default:v.topic_idea }}" placeholder="e.g. 3 money habits that quietly make you broke">
+        <div class="twocol" style="margin-top:10px;">
+          <div><label>Title <span class="small" style="font-weight:400;">(internal)</span></label><input name="title" value="{{ v.title }}" placeholder="Internal title"></div>
+          <div><label>Niche</label><input name="niche" value="{{ v.niche }}" placeholder="niche"></div>
+        </div>
+        <div class="twocol">
+          <div><label>Avatar</label>
+            <select name="avatar">
+              <option value="">— none —</option>
+              {% for a in avatars %}<option value="{{ a.pk }}"{% if v.avatar_id == a.pk %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div><label>Product</label>
+            <select name="offer">
+              <option value="">— none —</option>
+              {% for o in offers %}<option value="{{ o.pk }}"{% if v.offer_id == o.pk %} selected{% endif %}>{{ o.name }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <label>Script</label>
+        <textarea class="script" name="script" placeholder="The voiceover script. Write it here, or generate it from the topic.">{{ v.script }}</textarea>
+        <label>Caption (post text + hashtags)</label>
+        <textarea name="caption" style="min-height:56px;">{{ v.caption }}</textarea>
+        <div style="margin-top:14px;"><button class="btn" type="submit">Save</button></div>
+      </form>
+      <form method="post" action="{% url 'videos:gen_script' v.pk %}" id="genScriptForm" hidden>{% csrf_token %}</form>
+    </div>
+
+    <!-- inspector: SELECTED BEAT -->
+    <div class="card insp-clip" id="panelClip">
+      {% for s in segments %}
+        <div class="clip-body" data-i="{{ forloop.counter0 }}" hidden>
+          <div class="clip-hd">
+            <div class="eyebrow" style="margin:0;">Beat {{ forloop.counter }} of {{ segments|length }}{% if s.uses_avatar %} · ◐ avatar in frame{% endif %}</div>
+            <button type="button" class="linklike back-to-script">‹ back to script</button>
+          </div>
+          <div class="clip-row">
+            {% if s.image %}<img class="clip-frame" src="{{ s.image.url }}" alt="beat {{ forloop.counter }}">{% endif %}
+            <div class="clip-main">
+              <div class="clip-cap">“{{ s.text }}”</div>
+              <div class="clip-btns">
+                <form method="post" action="{% url 'videos:regen_slide' v.pk s.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">↻ Redraw image</button></form>
+                <form method="post" action="{% url 'videos:regen_slide' v.pk s.pk %}">{% csrf_token %}<input type="hidden" name="toggle_avatar" value="1"><button class="btn btn-ghost" type="submit">{% if s.uses_avatar %}– Remove avatar{% else %}+ Put avatar in{% endif %}</button></form>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 
 <script>
+var PREVIEW = {
+  audio: "{{ v.voice_url|escapejs }}",
+  segs: [{% for s in segments %}{ img: "{% if s.image %}{{ s.image.url|escapejs }}{% endif %}", text: "{{ s.text|escapejs }}", start: {{ s.start|stringformat:'.3f' }}, end: {{ s.end|stringformat:'.3f' }} }{% if not forloop.last %},{% endif %}{% endfor %}]
+};
+</script>
+<script>
 (function () {
-  var box = document.getElementById('gen-progress');
-  if (!box) return;
-  var statusUrl = "{% url 'videos:short_status' v.pk %}";
-  var msg = box.querySelector('.gen-msg');
-  function poll() {
-    fetch(statusUrl, { headers: { 'X-Requested-With': 'fetch' } })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        box.dataset.status = d.status || '';
-        if (d.status === 'running') { box.hidden = false; msg.textContent = d.step || 'Working…'; setTimeout(poll, 2000); }
-        else if (d.status === 'done') { box.hidden = false; msg.textContent = 'Done ✓ — loading…'; location.reload(); }
-        else if (d.status === 'error') { box.hidden = false; msg.textContent = ' ' + (d.step || 'failed'); }
-      })
-      .catch(function () { setTimeout(poll, 3000); });
-  }
-  if (box.dataset.status === 'running') poll();
-})();
+  var $ = function (id) { return document.getElementById(id); };
+  function fmtT(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2); }
 
-document.querySelectorAll('.rec').forEach(function (group) {
-  var form = group.closest('form');
-  var fileInput = form.querySelector('input[type=file]');
-  var startBtn = group.querySelector('.rec-start');
-  var stopBtn = group.querySelector('.rec-stop');
-  var timer = group.querySelector('.rec-timer');
-  var status = group.querySelector('.rec-status');
-  var recorder, chunks, t0, tick;
-  startBtn.addEventListener('click', function () {
-    if (!navigator.mediaDevices || !window.MediaRecorder) { status.textContent = 'recording not supported'; return; }
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      recorder = new MediaRecorder(stream); chunks = [];
-      recorder.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
-      recorder.onstop = function () {
-        var type = recorder.mimeType || 'audio/webm';
-        var ext = type.indexOf('ogg') > -1 ? 'ogg' : 'webm';
-        var file = new File([new Blob(chunks, { type: type })], 'recording.' + ext, { type: type });
-        var dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
-        status.textContent = 'recorded (' + Math.round(file.size / 1024) + ' KB) — hit Upload';
-        stream.getTracks().forEach(function (tr) { tr.stop(); });
-      };
-      recorder.start(); t0 = Date.now();
-      tick = setInterval(function () { timer.textContent = Math.floor((Date.now() - t0) / 1000) + 's'; }, 250);
-      startBtn.disabled = true; stopBtn.disabled = false; startBtn.classList.add('recording');
-      status.textContent = 'recording…';
-    }).catch(function (err) { status.textContent = 'mic blocked: ' + err.message; });
-  });
-  stopBtn.addEventListener('click', function () {
-    if (recorder && recorder.state !== 'inactive') recorder.stop();
-    clearInterval(tick); startBtn.disabled = false; stopBtn.disabled = true; startBtn.classList.remove('recording');
-  });
-});
+  /* generating overlay: live step + elapsed counter */
+  var overlay = $('genOverlay');
+  if (overlay && "{{ v.gen_status }}" === "running") {
+    var statusUrl = "{% url 'videos:short_status' v.pk %}";
+    var genStep = $('genStep'), genTimer = $('genTimer');
+    overlay.hidden = false;
+    var t0 = Date.now();
+    setInterval(function () { genTimer.textContent = fmtT((Date.now() - t0) / 1000); }, 500);
+    (function poll() {
+      fetch(statusUrl, { headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.status === 'running') { if (d.step) genStep.textContent = d.step; setTimeout(poll, 1500); }
+          else if (d.status === 'done') { genStep.textContent = 'Done ✓ — loading…'; location.reload(); }
+          else if (d.status === 'error') { overlay.classList.add('err'); genStep.textContent = d.step || 'Generation failed'; }
+        })
+        .catch(function () { setTimeout(poll, 3000); });
+    })();
+  }
+
+  var segs = PREVIEW.segs || [];
+  var clips = Array.prototype.slice.call(document.querySelectorAll('.clip'));
+  var n = segs.length;
+  if (!n) return;
+
+  var lastStart = segs[n - 1].start;
+  var totalDur = Math.max(segs[n - 1].end, lastStart + 1.2);
+  function windowOf(i) { var s = segs[i].start, e = (i + 1 < n) ? segs[i + 1].start : totalDur; return Math.max(0.3, e - s); }
+  clips.forEach(function (c) { c.style.flexGrow = windowOf(+c.dataset.i); });
+
+  var playhead = $('playhead'), timeline = $('timeline');
+  function movePlayhead(t) {
+    if (!playhead || !timeline) return;
+    playhead.style.display = 'block';
+    var pad = 8, inner = timeline.clientWidth - pad * 2;
+    playhead.style.left = (pad + Math.max(0, Math.min(1, t / totalDur)) * inner) + 'px';
+  }
+  function highlight(idx) { clips.forEach(function (c) { c.classList.toggle('active', +c.dataset.i === idx); }); }
+  function segAt(t) { var idx = 0; for (var i = 0; i < n; i++) { if (t >= segs[i].start) idx = i; else break; } return idx; }
+
+  /* inspector swap: script ⇄ selected beat */
+  var panelScript = $('panelScript'), panelClip = $('panelClip');
+  var bodies = panelClip ? panelClip.querySelectorAll('.clip-body') : [];
+  function openClip(i) {
+    if (panelScript) panelScript.classList.add('hide');
+    if (panelClip) panelClip.classList.add('on');
+    bodies.forEach(function (b) { b.hidden = String(b.dataset.i) !== String(i); });
+    highlight(i);
+  }
+  function backToScript() {
+    if (panelScript) panelScript.classList.remove('hide');
+    if (panelClip) panelClip.classList.remove('on');
+    highlight(-1);
+  }
+  panelClip && panelClip.querySelectorAll('.back-to-script').forEach(function (b) { b.addEventListener('click', backToScript); });
+
+  /* live phone preview (pre-render) */
+  var img = $('prevImg');
+  var haveLive = img && segs.filter(function (s) { return s.img; }).length;
+  var capToggle = $('capToggle');
+  function fmtCaps() { return capToggle && capToggle.checked; }
+
+  if (haveLive) {
+    var empty = $('prevEmpty'), cap = $('prevCap'), beat = $('prevBeat');
+    var scrub = $('prevScrub'), playBtn = $('prevPlay'), toggleBtn = $('prevToggle'), tnum = $('prevTime');
+    var audio = PREVIEW.audio ? new Audio(PREVIEW.audio) : null; if (audio) audio.preload = 'metadata';
+    var playing = false, rafId = null, t0 = 0, curIdx = -1;
+    function paint(t) {
+      var idx = segAt(t);
+      if (idx !== curIdx) { curIdx = idx; if (segs[idx].img) { img.src = segs[idx].img; img.hidden = false; if (empty) empty.style.display = 'none'; } highlight(idx); }
+      cap.textContent = segs[idx].text || ''; cap.classList.toggle('off', !fmtCaps());
+      beat.hidden = false; beat.textContent = (idx + 1) + ' / ' + n;
+      movePlayhead(t); if (tnum) tnum.textContent = fmtT(t) + ' / ' + fmtT(totalDur);
+      if (scrub && !scrub._drag) scrub.value = Math.round((t / totalDur) * 1000);
+    }
+    function nowT() { return audio ? audio.currentTime : (performance.now() - t0) / 1000; }
+    function tick() { var t = nowT(); if (t >= totalDur) { stop(true); return; } paint(t); rafId = requestAnimationFrame(tick); }
+    function setBtn() { if (toggleBtn) toggleBtn.textContent = playing ? '❚❚' : '▶'; if (playBtn) playBtn.hidden = playing; }
+    function start() { playing = true; setBtn(); if (audio) audio.play().catch(function(){}); else t0 = performance.now() - nowT() * 1000; rafId = requestAnimationFrame(tick); }
+    function pause() { playing = false; setBtn(); if (audio) audio.pause(); if (rafId) cancelAnimationFrame(rafId); }
+    function stop(reset) { pause(); if (reset) { if (audio) audio.currentTime = 0; curIdx = -1; paint(0); if (scrub) scrub.value = 0; } }
+    function seek(t) { if (audio) audio.currentTime = t; else t0 = performance.now() - t * 1000; curIdx = -1; paint(t); }
+    if (playBtn) playBtn.addEventListener('click', function () { playing ? pause() : start(); });
+    if (toggleBtn) toggleBtn.addEventListener('click', function () { playing ? pause() : start(); });
+    if (audio) audio.addEventListener('ended', function () { stop(true); });
+    if (capToggle) capToggle.addEventListener('change', function () { cap.classList.toggle('off', !fmtCaps()); });
+    if (scrub) {
+      scrub.addEventListener('mousedown', function () { scrub._drag = true; });
+      scrub.addEventListener('input', function () { seek((parseInt(scrub.value, 10) / 1000) * totalDur); });
+      ['mouseup', 'touchend'].forEach(function (ev) { scrub.addEventListener(ev, function () { scrub._drag = false; }); });
+    }
+    clips.forEach(function (c) { c.addEventListener('click', function () { var i = +c.dataset.i; pause(); seek(segs[i].start); openClip(i); }); });
+    paint(0);
+  } else {
+    /* beats exist but no images yet — clicking still opens the beat editor */
+    clips.forEach(function (c) { c.addEventListener('click', function () { openClip(+c.dataset.i); }); });
+  }
+})();
 </script>
 {% endblock %}

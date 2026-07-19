@@ -25,6 +25,69 @@ class RenderError(Exception):
     pass
 
 
+def _fmt_ts(t: float) -> str:
+    """Seconds → ASS timestamp H:MM:SS.cs (centiseconds)."""
+    t = max(0.0, t)
+    h = int(t // 3600)
+    m = int((t % 3600) // 60)
+    s = int(t % 60)
+    cs = int(round((t - int(t)) * 100))
+    if cs == 100:  # rounding spill
+        cs = 0
+        s += 1
+    return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
+
+
+def _ass_escape(text: str) -> str:
+    """Make a phrase safe inside an ASS Dialogue line: no braces (override blocks),
+    real newlines become \\N, and runs of whitespace collapse."""
+    text = " ".join((text or "").split())
+    return text.replace("\\", "\\\\").replace("{", "(").replace("}", ")")
+
+
+def _build_captions(segs, audio_dur: float, dest: Path) -> None:
+    """Write an ASS subtitle file: one punchy, centred caption per beat, on screen
+    from that beat's start until the next beat starts (so it tracks the image + voice).
+
+    TikTok-style: big bold white text with a heavy black outline, sat in the lower
+    third, sized against a 1080x1920 canvas so it looks the same on every clip.
+    """
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        f"PlayResX: {WIDTH}\n"
+        f"PlayResY: {HEIGHT}\n"
+        "WrapStyle: 0\n"
+        "ScaledBorderAndShadow: yes\n\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+        "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
+        "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, "
+        "MarginL, MarginR, MarginV, Encoding\n"
+        # White fill, black outline, faint shadow, bold, bottom-centre lifted into
+        # the lower third (MarginV). Alignment 2 = bottom-centre.
+        "Style: Cap,Arial,90,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,-1,0,0,0,"
+        "100,100,0,0,1,7,3,2,90,90,360,1\n\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, "
+        "Effect, Text\n"
+    )
+    n = len(segs)
+    lines = [header]
+    for i, s in enumerate(segs):
+        text = _ass_escape(s.text)
+        if not text:
+            continue
+        start = s.start
+        end = segs[i + 1].start if i + 1 < n else max(audio_dur, s.end)
+        if end <= start:
+            end = start + 0.4
+        lines.append(
+            f"Dialogue: 0,{_fmt_ts(start)},{_fmt_ts(end)},Cap,,0,0,0,,{text}\n"
+        )
+    dest.write_text("".join(lines), encoding="utf-8")
+
+
 def is_configured() -> bool:
     return shutil.which("ffmpeg") is not None
 
@@ -119,14 +182,23 @@ def render_short(video, filename: str = "") -> str:
         lines.append(f"file '{norm_paths[-1].as_posix()}'")  # concat needs the last repeated
         listfile.write_text("\n".join(lines))
 
+        # Optional burned-in captions, one phrase per beat, synced to the slides.
+        vf = f"fps={FPS}"
+        if getattr(video, "captions", True):
+            ass = tmp / "captions.ass"
+            _build_captions(segs, audio_dur, ass)
+            # Relative filename (cwd=tmp) sidesteps ffmpeg's filter path escaping.
+            vf += ",subtitles=captions.ass"
+        vf += ",format=yuv420p"
+
         out = tmp / "out.mp4"
         proc = subprocess.run(
             [ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(listfile),
              "-i", str(audio),
-             "-vf", f"fps={FPS},format=yuv420p",
+             "-vf", vf,
              "-c:v", "libx264", "-preset", "veryfast",
              "-c:a", "aac", "-b:a", "128k", "-shortest", str(out)],
-            capture_output=True, text=True,
+            capture_output=True, text=True, cwd=str(tmp),
         )
         if proc.returncode != 0 or not out.exists():
             raise RenderError(f"ffmpeg failed: {proc.stderr[-500:]}")
