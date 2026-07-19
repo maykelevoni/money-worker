@@ -14,7 +14,9 @@ COPY . .
 
 # Build static files into the image (served by WhiteNoise).
 # DEBUG=False so the production (hashed/compressed) static backend is used.
-RUN DEBUG=False SECRET_KEY=build-only python manage.py collectstatic --noinput
+# SECRET_KEY/ALLOWED_HOSTS are throwaway build-time values just to satisfy the
+# prod config guard — collectstatic serves no requests, so they're never used.
+RUN DEBUG=False SECRET_KEY=build-only ALLOWED_HOSTS=localhost python manage.py collectstatic --noinput
 
 # Run as a non-root user. Pre-create the mount points (media, static-site
 # builds) so a bind/named volume mounted there inherits appuser ownership and
