@@ -1,0 +1,47 @@
+name: Deploy to VPS
+
+# Auto-deploy on every push to main (and a manual "Run workflow" button).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps          # never run two deploys at once
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 187.124.86.181 >> ~/.ssh/known_hosts
+
+      - name: Ensure rsync on VPS
+        run: ssh root@187.124.86.181 'command -v rsync >/dev/null || (apt-get update && apt-get install -y rsync)'
+
+      # Ship the code to the server. The server never needs GitHub creds, so
+      # this keeps working when the repo is private. .env is excluded so the
+      # server's production secrets are preserved.
+      - name: Sync code to VPS
+        run: |
+          rsync -az --delete \
+            --exclude='.git' --exclude='.env' --exclude='media' \
+            ./ root@187.124.86.181:/docker/money-worker/src/
+
+      - name: Build & restart containers
+        run: |
+          ssh root@187.124.86.181 '
+            cd /docker/money-worker &&
+            rm -rf Caddyfile &&
+            cp -rf src/. . &&
+            docker compose build web &&
+            docker compose up -d &&
+            docker compose ps
+          '
