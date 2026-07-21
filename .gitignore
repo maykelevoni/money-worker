@@ -34,3 +34,6 @@ media/*
 
 # static site exports
 builds/
+
+# Generated production env (never commit)
+.env.prod

@@ -42,3 +42,32 @@ def generate_portrait(avatar, reference_paths=None) -> str:
     avatar.image.name = rel
     avatar.save(update_fields=["image"])
     return f"{settings.MEDIA_URL}{rel}"
+
+
+def generate_full_body(avatar) -> str:
+    """Turn the avatar's portrait into a full-body, front-facing image and save it to
+    `avatar.body_image`. Used for Motion Clips, which need to see the whole body to map
+    a dancer's skeleton onto the character. Identity is preserved via nano-banana/edit
+    (the same identity-keeping edit used elsewhere), so the body's face matches the head.
+
+    Returns the saved image's URL. Storage-agnostic (works with local disk or R2).
+    """
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+
+    if not is_configured():
+        raise NotConfigured("Set FAL_API_KEY in your .env (needed to generate the body)")
+    if not avatar.image:
+        raise ValueError("Generate the avatar's portrait first, then add a full body.")
+
+    prompt = (
+        f"{avatar.appearance}. Full-body shot of this exact same character from head to "
+        "feet, standing upright and facing the camera, arms relaxed at the sides, both "
+        "feet visible, the whole body centered in frame with headroom, on a plain seamless "
+        "studio background. Keep the same face, hair, and outfit."
+    )
+    data = images.edit_scene_bytes(prompt, [avatar.image], aspect_ratio="9:16")
+    name = default_storage.save(f"character/body_{avatar.pk}.png", ContentFile(data))
+    avatar.body_image.name = name
+    avatar.save(update_fields=["body_image"])
+    return default_storage.url(name)

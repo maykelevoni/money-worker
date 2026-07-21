@@ -24,6 +24,9 @@ urlpatterns = [
     path("video/<int:pk>/voice/", views.gen_voice, name="gen_voice"),
     path("video/<int:pk>/generate/", views.generate_short, name="generate_short"),
     path("video/<int:pk>/status/", views.short_status, name="short_status"),
+    # Motion clips
+    path("video/<int:pk>/motion/upload/", views.upload_motion_ref, name="upload_motion_ref"),
+    path("video/<int:pk>/motion/generate/", views.generate_motion, name="generate_motion"),
     path("video/<int:pk>/scenes/", views.gen_scenes, name="gen_scenes"),
     path("video/<int:pk>/slide/<int:seg_id>/regen/", views.regen_slide, name="regen_slide"),
     path("video/<int:pk>/render/", views.render_video_view, name="render"),
@@ -35,5 +38,6 @@ urlpatterns = [
     path("avatars/", views.avatar_list, name="avatars"),
     path("avatars/create/", views.avatar_create, name="avatar_create"),
     path("avatars/<int:pk>/regenerate/", views.avatar_regenerate, name="avatar_regenerate"),
+    path("avatars/<int:pk>/full-body/", views.avatar_full_body, name="avatar_full_body"),
     path("avatars/<int:pk>/voice/", views.avatar_voice, name="avatar_voice"),
 ]

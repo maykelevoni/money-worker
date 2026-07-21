@@ -22,6 +22,9 @@
   .av-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
   .av-name { font-weight: 700; font-size: 15px; }
   .av-card .chip { cursor: help; }
+  .av-body-img { display: grid; gap: 6px; padding-top: 9px; border-top: 1px solid var(--line-soft); }
+  .av-body-img .small { font-size: 11.5px; } .av-body-img .ok { color: var(--ok); } .av-body-img .muted { color: var(--faint); }
+  .av-bodythumb { width: 100%; max-height: 160px; object-fit: contain; background: var(--surface-2); border-radius: 8px; }
   .av-voice { display: grid; gap: 6px; padding-top: 9px; border-top: 1px solid var(--line-soft); }
   .av-voice .small { font-size: 11.5px; }
   .av-voice .ok { color: var(--ok); }
@@ -51,6 +54,20 @@
           {% csrf_token %}
           <button class="btn btn-ghost" style="width:100%;">↻ Regenerate</button>
         </form>
+        <div class="av-body-img">
+          {% if a.body_image %}
+            <span class="small ok">Full body ready — usable in Motion Clips</span>
+            <img src="{{ a.body_image.url }}" alt="{{ a.name }} full body" class="av-bodythumb">
+          {% else %}
+            <span class="small muted">No full body yet — needed to make this avatar dance.</span>
+          {% endif %}
+          <form method="post" action="{% url 'videos:avatar_full_body' a.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost" type="submit"{% if not a.image %} disabled{% endif %}>
+              {% if a.body_image %}↻ Regenerate full body{% else %}＋ Generate full body{% endif %}
+            </button>
+          </form>
+        </div>
         <div class="av-voice">
           {% if a.voice_ref %}<span class="small ok">Voice set</span>
           {% else %}<span class="small muted">No voice yet — upload a sample to clone it.</span>{% endif %}

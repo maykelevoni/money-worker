@@ -16,6 +16,7 @@ from apps.social.models import SocialAccount
 from .models import Avatar, TopicIdea, Video, VideoSegment
 from .services import (
     avatars,
+    motion,
     openrouter,
     render as render_svc,
     research,
@@ -74,19 +75,30 @@ def factory(request):
 @require_POST
 def create(request):
     """Start a video from a subject directly → land on its page."""
+    kind = request.POST.get("kind", Video.Kind.SCRIPT_SHORT)
+    if kind not in Video.Kind.values:
+        kind = Video.Kind.SCRIPT_SHORT
+    is_motion = kind == Video.Kind.MOTION_CLIP
     tool = request.POST.get("tool_featured", "").strip()
-    if not tool:
+    # A motion clip needs no subject/topic (there's no script) — just a title.
+    if not tool and not is_motion:
         messages.error(request, "Enter a subject/topic for the video.")
         return redirect("videos:factory")
     video = Video.objects.create(
         workspace=request.workspace,
+        kind=kind,
         tool_featured=tool,
+        title=request.POST.get("title", "").strip(),
         niche=request.POST.get("niche", "").strip(),
         avatar_id=request.POST.get("avatar") or None,
         offer_id=request.POST.get("offer") or None,
         status=Video.Status.DRAFT,
     )
-    messages.success(request, f"Draft created for “{tool}”.")
+    messages.success(
+        request,
+        "Motion clip created — upload a reference video to animate your avatar."
+        if is_motion else f"Draft created for “{tool}”.",
+    )
     return redirect("videos:video_detail", pk=video.pk)
 
 
@@ -316,10 +328,34 @@ def archive_idea(request, pk):
 
 @login_required
 def video_detail(request, pk):
-    """One video's full page: script, assets, actions — like a post editor."""
+    """One video's full page: script, assets, actions — like a post editor.
+
+    Motion clips have a different shape (no script/timeline — just a character + a
+    reference video), so they get their own simpler screen.
+    """
     video = get_object_or_404(
         Video.objects.select_related("offer", "avatar"), pk=pk, workspace=request.workspace
     )
+
+    if video.kind == Video.Kind.MOTION_CLIP:
+        if request.method == "POST":
+            video.title = request.POST.get("title", video.title).strip()
+            video.caption = request.POST.get("caption", video.caption)
+            video.niche = request.POST.get("niche", video.niche).strip()
+            video.avatar_id = request.POST.get("avatar") or None
+            video.offer_id = request.POST.get("offer") or None
+            video.save()
+            messages.success(request, "Saved.")
+            return redirect("videos:video_detail", pk=video.pk)
+        return render(request, "videos/video_motion.html", {
+            "v": video,
+            "config": _config(),
+            "share_accounts": SocialAccount.objects.for_workspace(request.workspace).filter(
+                is_active=True, platform__in=uploadpost.KIND_CHANNELS["video"]
+            ),
+            **_pickers(request),
+        })
+
     if request.method == "POST":
         video.title = request.POST.get("title", video.title).strip()
         video.tool_featured = request.POST.get("tool_featured", video.tool_featured).strip()
@@ -450,6 +486,62 @@ def short_status(request, pk):
         "step": video.gen_step,
         "video_url": video.video_url,
     })
+
+
+# ============================ Motion Clips ============================
+
+@login_required
+@require_POST
+def upload_motion_ref(request, pk):
+    """Save the reference video whose movement gets mapped onto the avatar."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    clip = request.FILES.get("motion_ref")
+    if not clip:
+        messages.error(request, "Choose a reference video to upload.")
+        return _back(pk)
+    if not (clip.content_type or "").startswith("video/"):
+        messages.error(request, "That doesn't look like a video file.")
+        return _back(pk)
+    video.motion_ref = clip
+    video.save(update_fields=["motion_ref"])
+    messages.success(request, "Reference video uploaded — now generate the clip.")
+    return _back(pk)
+
+
+@login_required
+@require_POST
+def generate_motion(request, pk):
+    """Animate the avatar with the uploaded reference motion (runs in the background)."""
+    video = get_object_or_404(Video, pk=pk, workspace=request.workspace)
+    if not motion.is_configured():
+        messages.error(request, "Set FAL_API_KEY to generate motion clips.")
+        return _back(pk)
+    if not video.motion_ref:
+        messages.error(request, "Upload a reference video first.")
+        return _back(pk)
+    if motion._character_image(video) is None:
+        messages.error(request, "Pick an avatar with an image (or give it a full body) first.")
+        return _back(pk)
+    motion.start_motion(video)
+    messages.success(request, "Animating your avatar… watch the progress below.")
+    return _back(pk)
+
+
+@login_required
+@require_POST
+def avatar_full_body(request, pk):
+    """Generate a full-body version of the avatar's portrait (for Motion Clips)."""
+    avatar = get_object_or_404(Avatar, pk=pk, workspace=request.workspace)
+    try:
+        avatars.generate_full_body(avatar)
+    except avatars.NotConfigured as e:
+        messages.error(request, str(e))
+        return redirect("videos:avatars")
+    except Exception as e:
+        messages.error(request, f"Full-body generation failed: {e}")
+        return redirect("videos:avatars")
+    messages.success(request, f"Full body created for “{avatar.name}”.")
+    return redirect("videos:avatars")
 
 
 @login_required

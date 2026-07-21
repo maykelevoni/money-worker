@@ -35,6 +35,12 @@ class Avatar(WorkspaceOwned):
         blank=True,
         help_text="A short, clean clip of the target voice — the F5-TTS cloning reference",
     )
+    body_image = models.FileField(
+        upload_to="character/",
+        blank=True,
+        help_text="Optional full-body image, used for Motion Clips (dance). "
+                  "Generated from the portrait or uploaded.",
+    )
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -137,6 +143,16 @@ class Video(WorkspaceOwned):
         APPROVED = "approved", "Approved"
         POSTED = "posted", "Posted"
 
+    class Kind(models.TextChoices):
+        SCRIPT_SHORT = "script", "Script short"
+        MOTION_CLIP = "motion", "Motion clip"
+
+    # What kind of video this is — the slideshow pipeline (default) or a motion
+    # clip where the avatar performs an uploaded reference video's movement.
+    kind = models.CharField(
+        max_length=12, choices=Kind.choices, default=Kind.SCRIPT_SHORT
+    )
+
     niche = models.CharField(
         max_length=200,
         blank=True,
@@ -185,6 +201,14 @@ class Video(WorkspaceOwned):
     hook = models.CharField(max_length=300, blank=True)
     script = models.TextField(blank=True)
     caption = models.TextField(blank=True, help_text="Post caption + hashtags")
+
+    # Motion Clip input: the reference video whose movement is transferred onto
+    # the avatar (uploaded by the user). Only used when kind == MOTION_CLIP.
+    motion_ref = models.FileField(
+        upload_to="motion_refs/",
+        blank=True,
+        help_text="Reference video whose movement is mapped onto the avatar (Motion clip)",
+    )
 
     voice_url = models.URLField(blank=True)
     video_url = models.URLField(blank=True, help_text="Rendered video (fal.ai output)")
