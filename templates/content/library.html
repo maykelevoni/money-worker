@@ -1,107 +1,162 @@
 {% extends "base.html" %}
-{% block title %}Content · Hub{% endblock %}
+{% block title %}Library{% endblock %}
 
 {% block content %}
 <style>
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; }
-  .stat .num { font-family: var(--mono); font-size: 26px; font-weight: 600; line-height: 1; }
-  .stat .lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 8px; }
-  .page-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .vlist { display: grid; gap: 10px; }
-  .vitem { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 11px; overflow: hidden; transition: border-color .12s; }
-  .vitem:hover { border-color: #39414f; }
-  .vrow { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 13px 16px;
-    text-decoration: none; color: var(--text); }
-  .vrow .thumb { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; background: var(--surface-2);
-    flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: var(--faint);
-    border: 1px solid var(--line); }
-  .vrow .thumb .kindtag { font-family: var(--mono); font-size: 10px; letter-spacing: .05em; }
-  .vrow .body { flex: 1; min-width: 0; }
-  .vrow .vt { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .vrow .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-  .vrow .arrow { color: var(--faint); font-size: 18px; }
-  .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
-    padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
-  .s-draft{color:var(--faint);border-color:var(--line);background:var(--surface-2);}
-  .s-scheduled{color:#8aa6ff;border-color:rgba(138,166,255,.3);background:rgba(138,166,255,.08);}
-  .s-publishing{color:var(--beak-2);border-color:rgba(255,126,46,.35);background:var(--beak-soft);}
-  .s-posted{color:var(--ok);border-color:rgba(67,214,160,.35);background:rgba(67,214,160,.1);}
-  .s-failed{color:#ff8a8a;border-color:rgba(255,77,77,.28);background:rgba(255,77,77,.08);}
-  .vdel { background: transparent; border: none; border-left: 1px solid var(--line); color: var(--faint);
-    padding: 0 16px; font-size: 15px; cursor: pointer; transition: color .12s, background .12s; }
-  .vdel:hover { color: var(--beak); background: var(--beak-soft); }
+  .statline { display: flex; gap: 20px; margin-bottom: 18px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+  .statline b { color: var(--text); font-family: var(--mono); }
+
+  .libbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 5px; }
+  .tabs button { font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--muted);
+    background: none; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on { background: var(--beak); color: #12151b; }
+  .libbar .spacer { margin-left: auto; }
+  .libbar select, .libbar input[type=search] { width: auto; min-width: 130px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+  .item { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; transition: border-color .12s, transform .12s; }
+  .item:hover { border-color: #39414f; transform: translateY(-2px); }
+  .itemlink { display: block; text-decoration: none; color: var(--text); }
+  .prev { aspect-ratio: 1; position: relative; overflow: hidden; background: var(--surface-2); }
+  .prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .prev.text { display: flex; padding: 18px; font-size: 15px; line-height: 1.45; color: var(--text);
+    background: linear-gradient(150deg, var(--surface-2), var(--surface)); overflow: hidden; }
+  .prev.video::after { content: "▶"; position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; color: #fff; font-size: 26px; text-shadow: 0 2px 8px rgba(0,0,0,.6); pointer-events: none; }
+  .prev.empty { display: flex; align-items: center; justify-content: center; color: var(--faint); font-family: var(--mono); font-size: 11px; }
+  .prev .kindtag { position: absolute; top: 8px; left: 8px; font-family: var(--mono); font-size: 9px;
+    letter-spacing: .08em; text-transform: uppercase; background: rgba(0,0,0,.55); color: #fff;
+    padding: 3px 7px; border-radius: 6px; z-index: 2; }
+  .ibody { padding: 11px 12px; }
+  .ititle { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .imeta { display: flex; align-items: center; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+  .imeta .chip { font-size: 10.5px; color: var(--muted); border: 0; background: none; padding: 0; }
+  .pill { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px;
+    padding: 3px 7px; border-radius: 6px; border: 1px solid; }
+  .s-draft { color: var(--faint); border-color: var(--line); background: var(--surface-2); }
+  .s-scheduled { color: #8aa6ff; border-color: rgba(138,166,255,.3); background: rgba(138,166,255,.08); }
+  .s-publishing, .s-scripted, .s-voiced { color: var(--beak-2); border-color: rgba(255,126,46,.35); background: var(--beak-soft); }
+  .s-rendered, .s-approved { color: var(--beak-2); border-color: rgba(255,126,46,.35); background: var(--beak-soft); }
+  .s-posted { color: var(--ok); border-color: rgba(67,214,160,.35); background: rgba(67,214,160,.1); }
+  .s-failed { color: #ff8a8a; border-color: rgba(255,77,77,.28); background: rgba(255,77,77,.08); }
+
+  /* text posts — a tweet-style list, not gallery cards */
+  .side-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 12px; }
+  .tweets { display: grid; gap: 10px; max-width: 640px; }
+  .tweet { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    transition: border-color .12s; }
+  .tweet:hover { border-color: #39414f; }
+  .tweet .itemlink { padding: 14px 16px; }
+  .tw-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+  .tw-av { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); display: inline-flex;
+    align-items: center; justify-content: center; color: var(--beak-2); font-size: 13px; flex: none; }
+  .tw-name { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .tw-head .pill { margin-left: auto; }
+  .tw-body { font-size: 14.5px; line-height: 1.5; color: var(--text); white-space: pre-wrap;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .tw-empty { color: var(--faint); font-style: italic; }
+  .tw-del { top: 12px; right: 12px; }
+
+  .idel { position: absolute; top: 8px; right: 8px; z-index: 3; width: 26px; height: 26px; border-radius: 7px;
+    background: rgba(0,0,0,.55); border: 0; color: #fff; font-size: 13px; cursor: pointer; opacity: 0;
+    transition: opacity .12s, background .12s; backdrop-filter: blur(2px); }
+  .item:hover .idel { opacity: 1; }
+  .idel:hover { background: var(--eyes); }
+
   .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center;
     justify-content: center; padding: 20px; background: rgba(5,7,10,.66); }
   .modal-backdrop[hidden] { display: none; }
-  .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-    padding: 22px; max-width: 430px; width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px;
+    max-width: 430px; width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
   .modal h2 { margin-bottom: 10px; } .modal-body { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
   .modal-body b { color: var(--text); } .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
   .btn-danger { background: var(--eyes); color: #fff; } .btn-danger:hover { filter: brightness(1.08); }
-  .libfilter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
-  .libfilter input[type=search] { flex: 1; min-width: 200px; }
-  .libfilter select { min-width: 130px; width: auto; }
-  .libfilter .clear { color: var(--muted); font-size: 13px; text-decoration: none; padding: 0 4px; }
-  .libfilter .clear:hover { color: var(--text); }
 </style>
 
-{% include "_pagehead.html" with eyebrow="Studio" title="Library" subtitle="Everything you publish in one place — videos, images, articles and social posts. Create one, then push it to your channels." action_url="/content/new/" action_label="+ Create new" %}
+{% include "_pagehead.html" with eyebrow="Create" title="Library" subtitle="Everything you've made — posts and videos — in one place. See it at a glance, then publish." action_url="/content/new/" action_label="+ New content" %}
 
 {% if not config.share %}
   <div class="messages"><span class="chip bad">Upload-Post not configured — set UPLOAD_POST_API_KEY to publish</span></div>
 {% endif %}
 
-<div class="stats">
-  <div class="stat"><div class="num">{{ stats.total }}</div><div class="lbl">Total</div></div>
-  <div class="stat"><div class="num">{{ stats.drafts }}</div><div class="lbl">Drafts</div></div>
-  <div class="stat"><div class="num">{{ stats.scheduled }}</div><div class="lbl">Scheduled</div></div>
-  <div class="stat"><div class="num">{{ stats.posted }}</div><div class="lbl">Posted</div></div>
+<div class="statline">
+  <span><b>{{ stats.total }}</b> total</span>
+  <span><b>{{ stats.drafts }}</b> drafts</span>
+  <span><b>{{ stats.scheduled }}</b> scheduled</span>
+  <span><b>{{ stats.posted }}</b> posted</span>
 </div>
 
-<form method="get" class="libfilter">
-  <input type="search" name="q" value="{{ filters.q }}" placeholder="Search title or caption…">
-  <select name="kind" onchange="this.form.submit()">
-    <option value="">All types</option>
-    {% for val, label in kinds %}<option value="{{ val }}"{% if filters.kind == val %} selected{% endif %}>{{ label }}</option>{% endfor %}
-  </select>
+<form method="get" class="libbar">
+  <div class="tabs">
+    {% for val, label in type_tabs %}
+      <button type="submit" name="kind" value="{{ val }}" class="{% if filters.kind == val %}on{% endif %}">{{ label }}</button>
+    {% endfor %}
+  </div>
+  <span class="spacer"></span>
   <select name="status" onchange="this.form.submit()">
     <option value="">Any status</option>
     {% for val, label in statuses %}<option value="{{ val }}"{% if filters.status == val %} selected{% endif %}>{{ label }}</option>{% endfor %}
   </select>
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="Search…">
   <button class="btn btn-ghost" type="submit">Search</button>
-  {% if is_filtered %}<a class="clear" href="{% url 'content:library' %}">Clear</a>{% endif %}
 </form>
 
-<div class="vlist">
-  {% for p in posts %}
-    <div class="vitem">
-      <a class="vrow" href="{% url 'content:post_detail' p.pk %}">
-        <span class="thumb">
-          {% if p.kind == 'image' and p.media_src %}<img src="{{ p.media_src }}" class="thumb" alt="">
-          {% elif p.kind == 'article' %}<span class="kindtag">ART</span>
-          {% elif p.kind == 'video' %}<span class="kindtag">VID</span>
-          {% elif p.kind == 'image' %}<span class="kindtag">IMG</span>
-          {% else %}<span class="kindtag">TXT</span>{% endif %}
-        </span>
-        <div class="body">
-          <div class="vt">{{ p }}</div>
-          <div class="meta">
-            <span class="chip">{{ p.get_kind_display }}</span>
-            {% for label in p.channel_labels %}<span class="chip">{{ label }}</span>{% endfor %}
+{% if visual_items %}
+<div class="grid">
+  {% for it in visual_items %}
+    <div class="item">
+      <a class="itemlink" href="{% if it.is_video %}{% url 'videos:video_detail' it.pk %}{% else %}{% url 'content:post_detail' it.pk %}{% endif %}">
+        {% if it.image %}
+          <div class="prev{% if it.is_video %} video{% endif %}"><img src="{{ it.image }}" alt=""><span class="kindtag">{{ it.tab }}</span></div>
+        {% else %}
+          <div class="prev empty{% if it.is_video %} video{% endif %}"><span class="kindtag">{{ it.tab }}</span>no preview yet</div>
+        {% endif %}
+        <div class="ibody">
+          <div class="ititle">{{ it.title }}</div>
+          <div class="imeta">
+            <span class="pill s-{{ it.status }}">{{ it.status_label }}</span>
+            <span class="chip">{{ it.kind_label }}</span>
           </div>
         </div>
-        <span class="pill s-{{ p.status }}">{{ p.get_status_display }}</span>
-        <span class="arrow">›</span>
       </a>
-      <button class="vdel" type="button" title="Delete"
-              data-del-url="{% url 'content:delete_post' p.pk %}" data-del-title="{{ p }}">✕</button>
+      <button class="idel" type="button" title="Delete"
+        data-del-url="{% if it.is_video %}{% url 'videos:delete_video' it.pk %}{% else %}{% url 'content:delete_post' it.pk %}{% endif %}"
+        data-del-title="{{ it.title }}">✕</button>
     </div>
-  {% empty %}
-    <div class="card" style="color:var(--muted);">{% if is_filtered %}No content matches those filters — <a href="{% url 'content:library' %}">clear them</a> to see everything.{% else %}No content yet — hit “Create new” to make your first piece.{% endif %}</div>
   {% endfor %}
 </div>
+{% endif %}
+
+{% if text_items %}
+<div class="side-lbl" {% if visual_items %}style="margin-top:28px;"{% endif %}>Text posts</div>
+<div class="tweets">
+  {% for it in text_items %}
+    <div class="tweet">
+      <a class="itemlink" href="{% url 'content:post_detail' it.pk %}">
+        <div class="tw-head">
+          <span class="tw-av">◐</span>
+          <span class="tw-name">{{ it.kind_label }}</span>
+          <span class="pill s-{{ it.status }}">{{ it.status_label }}</span>
+        </div>
+        <div class="tw-body">{% if it.text %}{{ it.text|truncatechars:220 }}{% else %}<span class="tw-empty">Empty draft — open to write it.</span>{% endif %}</div>
+      </a>
+      <button class="idel tw-del" type="button" title="Delete"
+        data-del-url="{% url 'content:delete_post' it.pk %}" data-del-title="{{ it.title }}">✕</button>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not has_any %}
+  <div class="card" style="color:var(--muted);">
+    {% if is_filtered %}Nothing matches those filters — <a href="{% url 'content:library' %}">clear them</a> to see everything.
+    {% else %}No content yet — hit “New content” to make your first piece.{% endif %}
+  </div>
+{% endif %}
 
 <div class="modal-backdrop" id="delModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delHeading">
@@ -123,7 +178,7 @@
   function open(b) { form.action = b.dataset.delUrl; name.textContent = b.dataset.delTitle; opener = b;
     modal.hidden = false; cancel.focus(); document.addEventListener('keydown', onKey); }
   function close() { modal.hidden = true; document.removeEventListener('keydown', onKey); if (opener) opener.focus(); }
-  document.querySelectorAll('.vdel').forEach(function (b) { b.addEventListener('click', function () { open(b); }); });
+  document.querySelectorAll('.idel').forEach(function (b) { b.addEventListener('click', function () { open(b); }); });
   cancel.addEventListener('click', close);
   modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
 })();

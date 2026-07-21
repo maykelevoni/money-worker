@@ -74,6 +74,7 @@
     .grp .menu a { display: block; padding: 8px 11px; border-radius: 7px; color: var(--muted);
       text-decoration: none; font-size: 13.5px; white-space: nowrap; }
     .grp .menu a:hover { background: var(--surface); color: var(--text); }
+    .grp .menu .menu-sep { height: 1px; background: var(--line); margin: 6px 4px; }
     /* not-yet-built menu items */
     .grp .menu .soon { display: flex; align-items: center; justify-content: space-between;
       gap: 10px; padding: 8px 11px; border-radius: 7px; color: var(--faint);
@@ -201,16 +202,15 @@
       <nav id="nav" class="links">
         <a href="/" class="navlink {% if request.path == '/' %}active{% endif %}">Home</a>
 
-        <a href="/factory/research/" class="navlink {% if '/factory/research' in request.path %}active{% endif %}">Ideas</a>
-
-        <div class="grp {% if '/content/' in request.path or request.path == '/factory/' or '/factory/create' in request.path or '/factory/video' in request.path or '/factory/avatars' in request.path %}active{% endif %}">
-          <a href="/content/studio/" class="lbl">Create ▾</a>
+        <div class="grp {% if '/content/' in request.path or '/factory/' in request.path %}active{% endif %}">
+          <a href="/content/new/" class="lbl">Create ▾</a>
           <div class="menu">
-            <a href="/content/studio/">Make a post</a>
-            <a href="/factory/avatars/">Your influencers</a>
-            <a href="/factory/">Videos</a>
+            <a href="/content/new/">New content</a>
+            <a href="/factory/research/">Research</a>
+            <div class="menu-sep"></div>
             <a href="/content/">Library</a>
             <a href="/content/calendar/">Calendar</a>
+            <a href="/factory/avatars/">Influencers</a>
           </div>
         </div>
 

@@ -63,31 +63,89 @@ def _config():
 
 @login_required
 def library(request):
-    """The content hub — every post (video/image/article/text) in one place."""
-    all_posts = Post.objects.for_workspace(request.workspace)
-    counts = {row["status"]: row["n"] for row in all_posts.values("status").annotate(n=Count("id"))}
+    """Visual content hub — posts AND factory video shorts, one grid, filter by type."""
+    from apps.videos.models import Video
+
+    ws = request.workspace
+    posts = Post.objects.for_workspace(ws)
+    videos = Video.objects.for_workspace(ws)
 
     q = request.GET.get("q", "").strip()
-    kind = request.GET.get("kind", "")
+    kind = request.GET.get("kind", "")      # '' | text | image | video
     status = request.GET.get("status", "")
-    posts = all_posts
-    if q:
-        posts = posts.filter(Q(title__icontains=q) | Q(body__icontains=q))
-    if kind:
-        posts = posts.filter(kind=kind)
-    if status:
-        posts = posts.filter(status=status)
+
+    items = []
+
+    # --- Posts: text / image / article / uploaded video ---
+    if kind in ("", "text", "image", "video"):
+        pq = posts.prefetch_related("images")
+        if q:
+            pq = pq.filter(Q(title__icontains=q) | Q(body__icontains=q))
+        if kind == "text":
+            pq = pq.filter(kind__in=[Post.Kind.TEXT, Post.Kind.ARTICLE])
+        elif kind == "image":
+            pq = pq.filter(kind=Post.Kind.IMAGE)
+        elif kind == "video":
+            pq = pq.filter(kind=Post.Kind.VIDEO)
+        if status:
+            pq = pq.filter(status=status)
+        for p in pq:
+            is_image = p.kind == Post.Kind.IMAGE
+            image = p.media_src if is_image else ""
+            if is_image and not image:
+                pi = p.images.filter(is_selected=True).first() or p.images.first()
+                image = pi.image.url if pi else ""
+            tab = "video" if p.kind == Post.Kind.VIDEO else (
+                "text" if p.kind in (Post.Kind.TEXT, Post.Kind.ARTICLE) else "image")
+            items.append({
+                "pk": p.pk, "is_video": False, "title": str(p), "tab": tab,
+                "kind_label": p.get_kind_display(), "status": p.status,
+                "status_label": p.get_status_display(), "image": image,
+                "text": p.body if p.kind in (Post.Kind.TEXT, Post.Kind.ARTICLE) else "",
+                "created": p.created_at,
+            })
+
+    # --- Factory video shorts (Video model) ---
+    if kind in ("", "video"):
+        vq = videos.prefetch_related("segments")
+        if q:
+            vq = vq.filter(Q(title__icontains=q) | Q(topic_idea__icontains=q)
+                           | Q(tool_featured__icontains=q))
+        if status:
+            vq = vq.filter(status=status)
+        for v in vq:
+            seg = v.segments.first()
+            items.append({
+                "pk": v.pk, "is_video": True, "title": str(v), "tab": "video",
+                "kind_label": "Short video", "status": v.status,
+                "status_label": v.get_status_display(),
+                "image": seg.image.url if seg and seg.image else "",
+                "text": "", "created": v.created_at,
+            })
+
+    items.sort(key=lambda it: it["created"], reverse=True)
+
+    # Split by presentation: images/videos belong in the visual gallery; text &
+    # articles read better as a tweet-style list of their own.
+    visual_items = [it for it in items if it["tab"] in ("image", "video")]
+    text_items = [it for it in items if it["tab"] == "text"]
+
+    def _both(st):
+        return posts.filter(status=st).count() + videos.filter(status=st).count()
 
     return render(request, "content/library.html", {
-        "posts": posts,
+        "visual_items": visual_items,
+        "text_items": text_items,
+        "has_any": bool(items),
         "stats": {
-            "total": sum(counts.values()),
-            "drafts": counts.get("draft", 0),
-            "scheduled": counts.get("scheduled", 0),
-            "posted": counts.get("posted", 0),
+            "total": posts.count() + videos.count(),
+            "drafts": _both("draft"),
+            "scheduled": posts.filter(status="scheduled").count(),
+            "posted": _both("posted"),
         },
-        "kinds": Post.Kind.choices,
-        "statuses": Post.Status.choices,
+        "type_tabs": [("", "All"), ("text", "Text"), ("image", "Image"), ("video", "Video")],
+        "statuses": [("draft", "Draft"), ("scheduled", "Scheduled"),
+                     ("rendered", "Rendered"), ("posted", "Posted")],
         "filters": {"q": q, "kind": kind, "status": status},
         "is_filtered": bool(q or kind or status),
         "config": _config(),
