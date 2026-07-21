@@ -106,6 +106,19 @@
   .toast { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 9px 14px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.18); } .toast.err { border-color: #ff6b6b; }
   .ob-banner { background: var(--beak-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 12px; padding: 12px 16px; margin: 0 0 18px; font-size: 14px; line-height: 1.5; }
   .ob-banner em { font-style: normal; font-weight: 600; color: var(--accent); }
+
+  /* ---------- content-type switcher (one creator, tools adapt) ---------- */
+  .ctbar { display: flex; gap: 8px; margin: 0 0 18px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 14px; padding: 7px; }
+  .ctopt { flex: 1; font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--muted);
+    background: none; border: 0; border-radius: 10px; padding: 12px; cursor: pointer; text-align: center;
+    text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .ctopt:hover { color: var(--text); }
+  .ctopt.on { background: var(--beak); color: #12151b; }
+  .ct-ic { font-size: 15px; }
+  /* Image-only tools hide when the post isn't an image post. */
+  body:not([data-ct="image"]) .ct-image { display: none; }
+  body:not([data-ct="image"]) #pcImgWrap { display: none; }
 </style>
 
 {% if onboarding %}
@@ -117,6 +130,15 @@
 <form method="post" action="{% url 'content:compose' p.pk %}" id="wbform">
   {% csrf_token %}
 
+  {% if not onboarding %}
+  <div class="ctbar" role="tablist" aria-label="Content type">
+    <button type="button" class="ctopt" data-ct="text"><span class="ct-ic">✎</span> Text post</button>
+    <button type="button" class="ctopt" data-ct="image"><span class="ct-ic">▦</span> Image post</button>
+    <a class="ctopt ctlink" href="{% url 'videos:factory' %}"><span class="ct-ic">▶</span> Short video</a>
+  </div>
+  <input type="hidden" name="content_type" id="contentType" value="{% if p.kind == 'image' %}image{% else %}text{% endif %}">
+  {% endif %}
+
   <div id="phaseImage">
     <div class="composer">
       <!-- ==================== LEFT: the workshop ==================== -->
@@ -124,29 +146,26 @@
         <div class="side-lbl">Make it</div>
 
         <div class="card">
-          <div class="with-row">
-            <div class="with-col">
-              <div class="field-lbl">Featuring</div>
-              <div class="inf-select">
-                {% if default_avatar and default_avatar.image %}<img class="av" id="avThumb" src="{{ default_avatar.image.url }}" alt="">{% else %}<span class="av none" id="avThumb">—</span>{% endif %}
-                <select id="avatarSel" title="Who's in this image">
-                  <option value="">No influencer</option>
-                  {% for a in avatars %}<option value="{{ a.pk }}"{% if default_avatar and a.pk == default_avatar.pk %} selected{% endif %} data-img="{% if a.image %}{{ a.image.url }}{% endif %}" data-name="{{ a.name }}">{{ a.name }}</option>{% endfor %}
-                </select>
-              </div>
-            </div>
-            <div class="with-col">
-              <div class="field-lbl">Look</div>
-              <div class="pills" id="stylePills">
-                <button type="button" class="pill on" data-style="auto">Auto</button>
-                <button type="button" class="pill" data-style="realistic">Photo</button>
-                <button type="button" class="pill" data-style="render_3D">3D</button>
-                <button type="button" class="pill" data-style="anime">Anime</button>
-                <button type="button" class="pill" data-style="design">Art</button>
-              </div>
-              <input type="hidden" id="styleSel" value="auto">
-            </div>
+          <div class="field-lbl">Featuring</div>
+          <div class="inf-select">
+            {% if default_avatar and default_avatar.image %}<img class="av" id="avThumb" src="{{ default_avatar.image.url }}" alt="">{% else %}<span class="av none" id="avThumb">—</span>{% endif %}
+            <select id="avatarSel" title="Who's in this post">
+              <option value="">No influencer</option>
+              {% for a in avatars %}<option value="{{ a.pk }}"{% if default_avatar and a.pk == default_avatar.pk %} selected{% endif %} data-img="{% if a.image %}{{ a.image.url }}{% endif %}" data-name="{{ a.name }}">{{ a.name }}</option>{% endfor %}
+            </select>
           </div>
+        </div>
+
+        <div class="card ct-image">
+          <div class="field-lbl">Look</div>
+          <div class="pills" id="stylePills">
+            <button type="button" class="pill on" data-style="auto">Auto</button>
+            <button type="button" class="pill" data-style="realistic">Photo</button>
+            <button type="button" class="pill" data-style="render_3D">3D</button>
+            <button type="button" class="pill" data-style="anime">Anime</button>
+            <button type="button" class="pill" data-style="design">Art</button>
+          </div>
+          <input type="hidden" id="styleSel" value="auto">
 
           <div class="ideas" id="ideas">
             <span class="ideas-lbl">Try:</span>
@@ -174,7 +193,7 @@
           </details>
         </div>
 
-        <div class="card">
+        <div class="card ct-image">
           <h4>Your images</h4>
           <p class="tray-empty" style="margin:-4px 0 12px;">Tap an image to add it to your post — pick more than one for a carousel.</p>
           <div class="tray" id="tray">
@@ -436,8 +455,22 @@
       .then(function (r) { return r.json(); }).then(function (d) { if (!d.ok) { toast(d.error || 'Upload failed.', true); return; } addThumbs(d.images); applySelectionState(d.order); toast('Uploaded'); }).catch(function () { toast('Upload failed.', true); });
   });
 
+  /* ---------- content-type switcher (text ↔ image; video links out) ---------- */
+  (function () {
+    var bar = document.querySelector('.ctbar'); if (!bar) return;
+    var hidden = document.getElementById('contentType');
+    function setCT(ct) {
+      document.body.setAttribute('data-ct', ct);
+      if (hidden) hidden.value = ct;
+      bar.querySelectorAll('.ctopt[data-ct]').forEach(function (b) { b.classList.toggle('on', b.dataset.ct === ct); });
+      refreshPlats();
+    }
+    bar.querySelectorAll('.ctopt[data-ct]').forEach(function (b) { b.addEventListener('click', function () { setCT(b.dataset.ct); }); });
+    setCT(hidden && hidden.value === 'image' ? 'image' : 'text');
+  })();
+
   /* ---------- publish channel filtering ---------- */
-  function currentKind() { return document.querySelector('.thumb.sel') ? 'image' : 'text'; }
+  function currentKind() { return document.body.getAttribute('data-ct') === 'image' ? 'image' : 'text'; }
   function refreshPlats() {
     var allowed = KIND_CHANNELS[currentKind()] || [];
     document.querySelectorAll('.plat').forEach(function (chip) { var ok = allowed.indexOf(chip.dataset.plat) !== -1; chip.classList.toggle('off', !ok); if (!ok) { var i = chip.querySelector('input'); if (i) i.checked = false; } });

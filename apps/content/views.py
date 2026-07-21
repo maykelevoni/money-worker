@@ -237,9 +237,9 @@ def studio(request):
 def create(request):
     """New Post → open the workbench on a fresh (or reused-blank) draft.
 
-    Honours ?kind=text|image|article so the launcher can start the right kind
-    (an article stays an article; see compose()'s kind rules)."""
-    kinds = {"text": Post.Kind.TEXT, "image": Post.Kind.IMAGE, "article": Post.Kind.ARTICLE}
+    Honours ?kind=text|image so the launcher can start the right kind. (Article
+    creation was retired; existing articles still open, the kind stays dormant.)"""
+    kinds = {"text": Post.Kind.TEXT, "image": Post.Kind.IMAGE}
     chosen = kinds.get(request.GET.get("kind", ""))
     if chosen:
         post = Post.objects.create(
@@ -265,10 +265,15 @@ def compose(request, pk):
     """The studio: image gallery + content editor + AI prompt bar for one draft."""
     post = get_object_or_404(Post, pk=pk, workspace=request.workspace)
     if request.method == "POST":
-        # Kind is derived for text↔image posts (selected image → image, else
-        # text), but an article/video keeps the kind it was created with.
+        # Kind follows the on-page content-type switch when present (text/image);
+        # otherwise it's derived (selected image → image, else text). Article/video
+        # keep the kind they were created with.
         if post.kind not in (Post.Kind.ARTICLE, Post.Kind.VIDEO):
-            post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
+            ct = request.POST.get("content_type")
+            if ct in ("text", "image"):
+                post.kind = Post.Kind.IMAGE if ct == "image" else Post.Kind.TEXT
+            else:
+                post.kind = Post.Kind.IMAGE if post.images.filter(is_selected=True).exists() else Post.Kind.TEXT
         post.title = request.POST.get("title", "").strip()
         post.body = request.POST.get("body", "").strip()
         sched = request.POST.get("scheduled_at", "").strip()

@@ -67,6 +67,9 @@
     .grp .menu { position: absolute; top: calc(100% + 4px); left: 0; min-width: 184px;
       background: var(--ink-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
       display: none; z-index: 50; box-shadow: 0 12px 34px rgba(0,0,0,.45); }
+    /* Transparent bridge across the 4px gap so the menu doesn't close while the
+       cursor travels from the label down to it (the classic dropdown dead-zone). */
+    .grp .menu::before { content: ""; position: absolute; top: -6px; left: 0; right: 0; height: 6px; }
     .grp:hover .menu, .grp:focus-within .menu { display: block; }
     .grp .menu a { display: block; padding: 8px 11px; border-radius: 7px; color: var(--muted);
       text-decoration: none; font-size: 13.5px; white-space: nowrap; }
