@@ -67,7 +67,9 @@ def library(request):
     from apps.videos.models import Video
 
     ws = request.workspace
-    posts = Post.objects.for_workspace(ws)
+    # Articles are website/blog content (managed under Websites), not social
+    # posts — the retired blog type never belonged in this hub.
+    posts = Post.objects.for_workspace(ws).exclude(kind=Post.Kind.ARTICLE)
     videos = Video.objects.for_workspace(ws)
 
     q = request.GET.get("q", "").strip()
@@ -82,7 +84,7 @@ def library(request):
         if q:
             pq = pq.filter(Q(title__icontains=q) | Q(body__icontains=q))
         if kind == "text":
-            pq = pq.filter(kind__in=[Post.Kind.TEXT, Post.Kind.ARTICLE])
+            pq = pq.filter(kind=Post.Kind.TEXT)
         elif kind == "image":
             pq = pq.filter(kind=Post.Kind.IMAGE)
         elif kind == "video":
@@ -96,12 +98,12 @@ def library(request):
                 pi = p.images.filter(is_selected=True).first() or p.images.first()
                 image = pi.image.url if pi else ""
             tab = "video" if p.kind == Post.Kind.VIDEO else (
-                "text" if p.kind in (Post.Kind.TEXT, Post.Kind.ARTICLE) else "image")
+                "image" if p.kind == Post.Kind.IMAGE else "text")
             items.append({
                 "pk": p.pk, "is_video": False, "title": str(p), "tab": tab,
                 "kind_label": p.get_kind_display(), "status": p.status,
                 "status_label": p.get_status_display(), "image": image,
-                "text": p.body if p.kind in (Post.Kind.TEXT, Post.Kind.ARTICLE) else "",
+                "text": p.body if p.kind == Post.Kind.TEXT else "",
                 "created": p.created_at,
             })
 
