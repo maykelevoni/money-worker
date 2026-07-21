@@ -6,8 +6,9 @@
 <style>
   .backlink { color: var(--muted); text-decoration: none; font-size: 13px; }
   .backlink:hover { color: var(--text); }
-  .vhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 4px; }
-  .vhead h1 { flex: 1; min-width: 200px; font-size: 22px; }
+  .vhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 4px; }
+  .vhead-text { min-width: 0; }
+  .vhead h1 { margin: 0; font-size: 27px; letter-spacing: -.02em; }
   .metarow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .pill { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
     padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid; }
@@ -120,15 +121,24 @@
   .share-row { display: flex; align-items: center; gap: 8px; }
 </style>
 
-<a class="backlink" href="{% url 'videos:factory' %}">← Video Factory</a>
+<div class="ctbar" role="tablist" aria-label="Content type">
+  <a class="ctopt" href="{% url 'content:create' %}?kind=text"><span class="ct-ic">✎</span> Text post</a>
+  <a class="ctopt" href="{% url 'content:create' %}?kind=image"><span class="ct-ic">▦</span> Image post</a>
+  <span class="ctopt on"><span class="ct-ic">▶</span> Short video</span>
+</div>
+
 <div class="vhead">
-  <h1>{{ v.title|default:v.topic_idea|default:v.tool_featured|default:"Untitled video" }}</h1>
+  <div class="vhead-text">
+    <div class="eyebrow">Create · Short video</div>
+    <h1>{{ v.title|default:v.topic_idea|default:v.tool_featured|default:"Untitled video" }}</h1>
+  </div>
   <span class="pill s-{{ v.status }}">{{ v.get_status_display }}</span>
 </div>
 <div class="metarow">
   {% if v.avatar %}<span class="chip">◐ {{ v.avatar.name }}</span>{% endif %}
   {% if v.niche %}<span class="chip">{{ v.niche }}</span>{% endif %}
   {% if v.offer %}<span class="chip warn">▦ {{ v.offer.name }}</span>{% endif %}
+  <a class="backlink" href="{% url 'videos:factory' %}" style="margin-left:auto; align-self:center;">← All videos</a>
 </div>
 
 <div class="editor">

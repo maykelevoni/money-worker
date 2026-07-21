@@ -288,6 +288,23 @@ def compose(request, pk):
             ws.advance_onboarding(2)  # STEP_SHARE
             return redirect("onboarding:start")
 
+        # "Short video" on the type switcher: carry this draft's topic/caption/
+        # influencer into a new short and hand off to the video editor.
+        if request.POST.get("action") == "to_video":
+            from apps.videos.models import Video
+
+            video = Video.objects.create(
+                workspace=request.workspace,
+                kind=Video.Kind.SCRIPT_SHORT,
+                topic_idea=(post.title or post.body)[:300],
+                title=post.title[:300],
+                caption=post.body,
+                avatar_id=request.POST.get("avatar") or None,
+                status=Video.Status.DRAFT,
+            )
+            messages.success(request, "Started a short from your draft — pick up here.")
+            return redirect("videos:video_detail", pk=video.pk)
+
         if request.POST.get("action") == "publish":
             accounts = social_publish.accounts_for(
                 request.workspace, post.available_channels, request.POST.getlist("accounts")

@@ -131,6 +131,15 @@
     .btn:active { transform: translateY(1px); }
     .btn-ghost { background: var(--surface-2); color: var(--text); border-color: var(--line); }
     .btn-ghost:hover { border-color: #39414f; filter: none; }
+    /* ---------- content-type switcher (shared by every creator) ---------- */
+    .ctbar { display: flex; gap: 8px; margin: 0 0 18px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 14px; padding: 7px; }
+    .ctopt { flex: 1; font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--muted);
+      background: none; border: 0; border-radius: 10px; padding: 12px; cursor: pointer; text-align: center;
+      text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .ctopt:hover { color: var(--text); }
+    .ctopt.on { background: var(--beak); color: #12151b; }
+    .ct-ic { font-size: 15px; }
     input, select, textarea { width: 100%; background: var(--surface-2);
       border: 1px solid var(--line); color: var(--text); border-radius: 9px;
       padding: 9px 12px; font-size: 14px; font-family: var(--sans); }

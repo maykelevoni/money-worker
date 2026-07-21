@@ -107,15 +107,8 @@
   .ob-banner { background: var(--beak-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 12px; padding: 12px 16px; margin: 0 0 18px; font-size: 14px; line-height: 1.5; }
   .ob-banner em { font-style: normal; font-weight: 600; color: var(--accent); }
 
-  /* ---------- content-type switcher (one creator, tools adapt) ---------- */
-  .ctbar { display: flex; gap: 8px; margin: 0 0 18px; background: var(--surface);
-    border: 1px solid var(--line); border-radius: 14px; padding: 7px; }
-  .ctopt { flex: 1; font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--muted);
-    background: none; border: 0; border-radius: 10px; padding: 12px; cursor: pointer; text-align: center;
-    text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .ctopt:hover { color: var(--text); }
-  .ctopt.on { background: var(--beak); color: #12151b; }
-  .ct-ic { font-size: 15px; }
+  /* Content-type switcher styles are shared in base.html; here we only need the
+     show/hide rules for the image-only tools. */
   /* Image-only tools hide when the post isn't an image post. */
   body:not([data-ct="image"]) .ct-image { display: none; }
   body:not([data-ct="image"]) #pcImgWrap { display: none; }
@@ -134,7 +127,7 @@
   <div class="ctbar" role="tablist" aria-label="Content type">
     <button type="button" class="ctopt" data-ct="text"><span class="ct-ic">✎</span> Text post</button>
     <button type="button" class="ctopt" data-ct="image"><span class="ct-ic">▦</span> Image post</button>
-    <a class="ctopt ctlink" href="{% url 'videos:factory' %}"><span class="ct-ic">▶</span> Short video</a>
+    <button type="submit" name="action" value="to_video" class="ctopt ctlink" title="Start a short from this draft — your topic, caption &amp; influencer carry over"><span class="ct-ic">▶</span> Short video</button>
   </div>
   <input type="hidden" name="content_type" id="contentType" value="{% if p.kind == 'image' %}image{% else %}text{% endif %}">
   {% endif %}
@@ -149,7 +142,7 @@
           <div class="field-lbl">Featuring</div>
           <div class="inf-select">
             {% if default_avatar and default_avatar.image %}<img class="av" id="avThumb" src="{{ default_avatar.image.url }}" alt="">{% else %}<span class="av none" id="avThumb">—</span>{% endif %}
-            <select id="avatarSel" title="Who's in this post">
+            <select id="avatarSel" name="avatar" title="Who's in this post">
               <option value="">No influencer</option>
               {% for a in avatars %}<option value="{{ a.pk }}"{% if default_avatar and a.pk == default_avatar.pk %} selected{% endif %} data-img="{% if a.image %}{{ a.image.url }}{% endif %}" data-name="{{ a.name }}">{{ a.name }}</option>{% endfor %}
             </select>
