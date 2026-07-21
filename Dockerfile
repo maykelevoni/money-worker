@@ -3,12 +3,19 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# TikTok video search (Research) drives a headless Chromium via TikTokApi.
+# Install the browser + its OS libraries into a shared path (set above) so the
+# non-root appuser can launch it at runtime. Adds ~450MB to the image.
+RUN python -m playwright install --with-deps chromium \
+    && chmod -R a+rx /ms-playwright
 
 COPY . .
 

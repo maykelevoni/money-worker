@@ -277,6 +277,9 @@ FAL_API_KEY = os.getenv('FAL_API_KEY', '')  # images, speech-to-text, and F5-TTS
 # blocked more often; paste an `ms_token` cookie from tiktok.com for reliability.
 TIKTOK_MS_TOKEN = os.getenv('TIKTOK_MS_TOKEN', '')
 TIKTOK_BROWSER = os.getenv('TIKTOK_BROWSER', 'chromium')
+# Residential proxy for the scraper — required on the VPS (datacenter IPs get
+# blocked). Format: http://user:pass@host:port. Blank = connect directly.
+TIKTOK_PROXY = os.getenv('TIKTOK_PROXY', '')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', '')
 

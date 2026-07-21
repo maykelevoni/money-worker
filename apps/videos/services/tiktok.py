@@ -36,6 +36,13 @@ def _ms_tokens() -> list:
     return [tok] if tok else [None]
 
 
+def _proxies() -> list | None:
+    """Residential proxy for the browser session — needed on datacenter IPs (VPS),
+    which TikTok blocks hard. Format: http://user:pass@host:port. None = direct."""
+    proxy = (settings.TIKTOK_PROXY or "").strip()
+    return [proxy] if proxy else None
+
+
 def _to_int(value) -> int:
     try:
         return int(value)
@@ -84,6 +91,7 @@ async def _search_async(query: str, count: int) -> list[dict]:
     async with TikTokApi() as api:
         await api.create_sessions(
             ms_tokens=_ms_tokens(),
+            proxies=_proxies(),
             num_sessions=1,
             sleep_after=3,
             browser=settings.TIKTOK_BROWSER,
@@ -169,6 +177,7 @@ async def _download_async(url: str) -> bytes:
     async with TikTokApi() as api:
         await api.create_sessions(
             ms_tokens=_ms_tokens(),
+            proxies=_proxies(),
             num_sessions=1,
             sleep_after=3,
             browser=settings.TIKTOK_BROWSER,

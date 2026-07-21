@@ -36,6 +36,9 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-opus-4-8}
       FAL_API_KEY: ${FAL_API_KEY}
+      # --- TikTok viral-video search (Research) — token + residential proxy ---
+      TIKTOK_MS_TOKEN: ${TIKTOK_MS_TOKEN}
+      TIKTOK_PROXY: ${TIKTOK_PROXY}
       # --- Email + publishing ---
       RESEND_API_KEY: ${RESEND_API_KEY}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
