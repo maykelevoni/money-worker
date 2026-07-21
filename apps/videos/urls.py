@@ -8,14 +8,13 @@ urlpatterns = [
     # Videos phase (default Factory landing)
     path("", views.factory, name="factory"),
     path("create/", views.create, name="create"),
-    # Research phase
+    # Research phase — viral TikTok video search
     path("research/", views.research_page, name="research"),
     path("research/run/", views.research_run, name="research_run"),
-    path("topic/<int:pk>/", views.topic_detail, name="topic_detail"),
-    path("idea/<int:pk>/pick/", views.pick_idea, name="pick_idea"),
-    path("idea/<int:pk>/spawn/", views.spawn_post, name="spawn_post"),
-    path("idea/<int:pk>/archive/", views.archive_idea, name="archive_idea"),
-    path("idea/<int:pk>/delete/", views.delete_idea, name="delete_idea"),
+    path("research/status/", views.research_status, name="research_status"),
+    path("find/<int:pk>/idea/", views.find_idea, name="find_idea"),
+    path("find/<int:pk>/clone/", views.find_clone, name="find_clone"),
+    path("find/<int:pk>/delete/", views.delete_find, name="delete_find"),
     # Per-video page + its workflow actions
     path("video/<int:pk>/", views.video_detail, name="video_detail"),
     path("video/<int:pk>/delete/", views.delete_video, name="delete_video"),

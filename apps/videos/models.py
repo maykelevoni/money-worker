@@ -132,6 +132,106 @@ class TopicIdea(WorkspaceOwned):
         return self.headline
 
 
+def _compact(n) -> str:
+    """1234 → '1.2K', 1500000 → '1.5M'. Used across the video-find cards."""
+    if n is None:
+        return "—"
+    n = int(n)
+    for div, suf in ((1_000_000_000, "B"), (1_000_000, "M"), (1_000, "K")):
+        if n >= div:
+            return f"{n / div:.1f}{suf}".replace(".0", "")
+    return str(n)
+
+
+class VideoSearch(WorkspaceOwned):
+    """One run of the TikTok video search — the job + its live status.
+
+    Mirrors the Video.gen_status pattern: the page kicks a background scrape, then
+    polls this row until it flips to done/error. Its finds are the research results.
+    """
+
+    query = models.CharField(
+        max_length=200, blank=True, help_text="The search term (blank = trending feed)"
+    )
+    status = models.CharField(
+        max_length=12, default="running", help_text="running | done | error"
+    )
+    error = models.TextField(blank=True, help_text="Failure message when status=error")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.query or "trending"
+
+
+class VideoFind(WorkspaceOwned):
+    """A real TikTok video surfaced by search — its stats + provenance.
+
+    The research unit that replaced TopicIdea: instead of an estimated keyword, it's
+    an actual viral video you can watch, then either steal the idea from or clone the
+    movement of (onto your avatar, no face reused)."""
+
+    search = models.ForeignKey(
+        "videos.VideoSearch",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="finds",
+    )
+    tiktok_id = models.CharField(max_length=40, help_text="TikTok video id")
+    url = models.URLField(blank=True, help_text="Canonical tiktok.com video URL")
+    caption = models.TextField(blank=True, help_text="The video's caption / description")
+    author_name = models.CharField(max_length=200, blank=True)
+    author_handle = models.CharField(max_length=200, blank=True)
+    thumbnail_url = models.URLField(max_length=1000, blank=True)
+    duration = models.IntegerField(null=True, blank=True, help_text="Seconds")
+    music = models.CharField(max_length=300, blank=True)
+
+    views = models.BigIntegerField(default=0)
+    likes = models.BigIntegerField(default=0)
+    comments = models.BigIntegerField(default=0)
+    shares = models.BigIntegerField(default=0)
+    saves = models.BigIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-views", "-created_at"]
+
+    def __str__(self):
+        return f"@{self.author_handle}: {self.caption[:40]}"
+
+    @property
+    def embed_url(self) -> str:
+        """TikTok's iframe player URL — no external script needed to play in-app."""
+        return f"https://www.tiktok.com/embed/v2/{self.tiktok_id}" if self.tiktok_id else ""
+
+    @property
+    def views_display(self) -> str:
+        return _compact(self.views)
+
+    @property
+    def likes_display(self) -> str:
+        return _compact(self.likes)
+
+    @property
+    def comments_display(self) -> str:
+        return _compact(self.comments)
+
+    @property
+    def shares_display(self) -> str:
+        return _compact(self.shares)
+
+    @property
+    def engagement_pct(self):
+        """(likes+comments+shares) / views, as a percentage — the 'how hard it hit' read."""
+        if not self.views:
+            return None
+        return round((self.likes + self.comments + self.shares) / self.views * 100, 1)
+
+
 class Video(WorkspaceOwned):
     """A faceless short-form video moving through the factory pipeline."""
 
@@ -175,6 +275,16 @@ class Video(WorkspaceOwned):
         on_delete=models.SET_NULL,
         related_name="videos",
         help_text="The researched idea this video was spawned from",
+    )
+
+    # Where this came from, if spawned from a found TikTok video (Research search).
+    source_find = models.ForeignKey(
+        "videos.VideoFind",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="videos",
+        help_text="The viral TikTok video this was spawned from (idea or motion clone)",
     )
 
     tool_featured = models.CharField(

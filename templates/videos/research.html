@@ -1,162 +1,178 @@
 {% extends "base.html" %}
-{% block title %}Topic Explorer · Research{% endblock %}
+{% block title %}Viral Video Search · Research{% endblock %}
 {% block nav_factory %}active{% endblock %}
 
 {% block content %}
 <style>
-  /* Ubersuggest-style keyword research */
-  .kw-search { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  .vs-search { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
     padding: 18px 20px; margin-bottom: 18px; }
-  .kw-search .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
-  .kw-search .field-row > input { flex: 1; min-width: 200px; height: 44px; font-size: 15px; }
-  .kw-search .btn { flex: 0 0 auto; height: 44px; padding-left: 22px; padding-right: 22px; }
+  .vs-search .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .vs-search .field-row > input { flex: 1; min-width: 220px; height: 44px; font-size: 15px; }
+  .vs-search .btn { flex: 0 0 auto; height: 44px; padding-left: 22px; padding-right: 22px; }
 
   .ov { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 14px; margin-bottom: 18px; }
   .ov-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
   .ov-card .k { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  .ov-card .v { font-size: 30px; font-weight: 800; letter-spacing: -1px; margin-top: 8px;
-    font-variant-numeric: tabular-nums; }
+  .ov-card .v { font-size: 30px; font-weight: 800; letter-spacing: -1px; margin-top: 8px; font-variant-numeric: tabular-nums; }
   .ov-card .v small { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: 0; }
 
-  .filterbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .filterbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
   .filterbar label { color: var(--muted); font-size: 12px; }
   .filterbar select, .filterbar input { min-width: 92px; }
-  .filterbar .go { flex: 0 0 auto; }
 
-  .kwtable-wrap { border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
-  .kwtable { width: 100%; min-width: 720px; border-collapse: collapse; }
-  .kwtable thead th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted); font-weight: 600; padding: 11px 16px; background: var(--surface-2);
-    border-bottom: 1px solid var(--line); white-space: nowrap; }
-  .kwtable thead th.r { text-align: right; }
-  .kwtable tbody td { padding: 13px 16px; border-top: 1px solid var(--line-soft); font-size: 14px;
-    vertical-align: middle; }
-  .kwtable tbody tr { transition: background .1s; }
-  .kwtable tbody tr:hover { background: var(--surface-2); }
-  .kw { font-weight: 600; }
-  .kw a { color: var(--text); text-decoration: none; }
-  .kw a:hover { color: var(--beak-2); }
-  .kw small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; margin-top: 2px;
-    max-width: 52ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .used { color: var(--beak-2); font-size: 11px; font-weight: 600; margin-left: 6px; }
-  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .num .u { color: var(--faint); font-size: 11px; }
-  .dash { color: var(--faint); }
+  /* Running state */
+  .vs-running { display: flex; align-items: center; gap: 12px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px; padding: 20px; color: var(--muted); }
+  .spinner { width: 20px; height: 20px; border: 2.5px solid var(--line); border-top-color: var(--beak);
+    border-radius: 50%; animation: spin .8s linear infinite; flex: 0 0 auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .vs-error { background: rgba(255,77,77,.08); border: 1px solid var(--eyes); color: var(--eyes);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; font-size: 14px; }
 
-  .spark { display: inline-block; vertical-align: middle; }
-  .spark.up   { color: var(--ok); }
-  .spark.down { color: var(--eyes); }
-  .spark.flat { color: var(--faint); }
-  .tpct { font-size: 11px; font-variant-numeric: tabular-nums; margin-left: 6px; }
-  .tpct.up { color: var(--ok); } .tpct.down { color: var(--eyes); } .tpct.flat { color: var(--faint); }
-
-  .sd { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-    border-radius: 50%; font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums;
-    border: 2px solid; }
-  .sd.easy   { color: var(--ok);   border-color: var(--ok);   background: rgba(67,214,160,.10); }
-  .sd.medium { color: var(--loot); border-color: var(--loot); background: rgba(244,192,78,.10); }
-  .sd.hard   { color: var(--eyes); border-color: var(--eyes); background: rgba(255,77,77,.10); }
-  .sdwrap { display: flex; align-items: center; gap: 9px; }
-  .sdwrap .lbl { font-size: 11px; color: var(--muted); text-transform: capitalize; }
-
-  .intent { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 11px;
-    font-weight: 600; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
-  .open { color: var(--beak-2); font-size: 12px; white-space: nowrap; text-decoration: none; }
-  .empty { color: var(--muted); padding: 26px; text-align: center; }
-  .datanote { color: var(--faint); font-size: 12px; margin: 12px 2px 0; }
+  /* Result grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .vcard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column; }
+  .thumb { position: relative; aspect-ratio: 9/16; background: #000; cursor: pointer; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .thumb .play span { width: 52px; height: 52px; border-radius: 50%; background: rgba(0,0,0,.55);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px;
+    backdrop-filter: blur(2px); }
+  .thumb .views { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff;
+    font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 8px; font-variant-numeric: tabular-nums; }
+  .thumb iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .vbody { padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .author { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .cap { font-size: 13px; line-height: 1.4; color: var(--text); display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+  .stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums; border-top: 1px solid var(--line-soft); padding-top: 9px; }
+  .stats b { color: var(--text); font-weight: 700; }
+  .eng { margin-left: auto; color: var(--ok); font-weight: 700; }
+  .acts { display: flex; gap: 7px; margin-top: auto; }
+  .acts form { flex: 1; }
+  .acts .btn { width: 100%; padding: 8px 6px; font-size: 12.5px; }
+  .acts .del { flex: 0 0 auto; }
+  .acts .del button { background: none; border: 1px solid var(--line); color: var(--faint);
+    border-radius: 9px; padding: 8px 10px; cursor: pointer; font-size: 13px; }
+  .acts .del button:hover { color: var(--eyes); border-color: var(--eyes); }
+  .used { color: var(--beak-2); font-size: 11px; font-weight: 600; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; background: var(--surface);
+    border: 1px dashed var(--line); border-radius: 14px; }
+  .datanote { color: var(--faint); font-size: 12px; margin: 14px 2px 0; }
 </style>
 
-{% include "_pagehead.html" with eyebrow="Research" title="Keyword & Topic Explorer" subtitle="Type a keyword to dig in, or leave it blank for a fresh mix. Scan the metrics, then open one to turn it into content." %}
+{% include "_pagehead.html" with eyebrow="Research" title="Viral Video Search" subtitle="Search TikTok for videos that already went viral. Read their real stats, then steal the idea or clone the movement onto your avatar — no face reused." %}
 
-<div class="kw-search">
+{% if not tiktok_ready %}
+<div class="vs-error">TikTok search isn’t installed on this server yet (needs the <code>TikTokApi</code> package and a browser). Once installed, searches will work here.</div>
+{% endif %}
+
+<div class="vs-search">
   <form method="post" action="{% url 'videos:research_run' %}" class="field-row">
     {% csrf_token %}
-    <input type="text" name="keyword" placeholder="Enter a keyword or topic to research…  (blank = surprise me)">
-    <input type="text" name="niche" placeholder="Niche / context (optional)">
-    <button class="btn" type="submit">Get ideas</button>
+    <input type="text" name="keyword" placeholder="Search a topic, hook, or hashtag…  (blank = what’s trending now)">
+    <button class="btn" type="submit"{% if not tiktok_ready %} disabled{% endif %}>Search videos</button>
   </form>
 </div>
 
-{% if ideas %}
+{% if search and search.status == 'running' %}
+<div class="vs-running" id="vs-running">
+  <div class="spinner"></div>
+  <div>Searching TikTok for “{{ search.query|default:'trending' }}”… this takes a few seconds (it’s driving a real browser).</div>
+</div>
+<script>
+  (function () {
+    var poll = setInterval(function () {
+      fetch("{% url 'videos:research_status' %}", { headers: { "X-Requested-With": "fetch" } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.status === "done" || d.status === "error") {
+            clearInterval(poll);
+            location.reload();
+          }
+        })
+        .catch(function () {});
+    }, 2500);
+  })();
+</script>
+{% elif search and search.status == 'error' %}
+<div class="vs-error">Search failed: {{ search.error|default:"TikTok blocked the request. Add a fresh TIKTOK_MS_TOKEN and try again." }}</div>
+{% endif %}
+
+{% if overview %}
 <div class="ov">
-  <div class="ov-card"><div class="k">Topics found</div><div class="v">{{ overview.total }}</div></div>
-  <div class="ov-card"><div class="k">Avg. search volume</div><div class="v">{% if overview.avg_volume is not None %}{{ overview.avg_volume }}<small> /mo</small>{% else %}<span class="dash">—</span>{% endif %}</div></div>
-  <div class="ov-card"><div class="k">Avg. SEO difficulty</div><div class="v">{% if overview.avg_difficulty is not None %}{{ overview.avg_difficulty }}<small> /100</small>{% else %}<span class="dash">—</span>{% endif %}</div></div>
-  <div class="ov-card"><div class="k">Rising now</div><div class="v">{{ overview.rising }}<small> topics ↑</small></div></div>
+  <div class="ov-card"><div class="k">Videos found</div><div class="v">{{ overview.total }}</div></div>
+  <div class="ov-card"><div class="k">Top video</div><div class="v">{{ finds.0.views_display }}<small> views</small></div></div>
+  <div class="ov-card"><div class="k">Combined reach</div><div class="v">{{ overview.total_views|floatformat:0 }}<small> views</small></div></div>
+  <div class="ov-card"><div class="k">Avg. engagement</div><div class="v">{{ overview.avg_engagement }}<small>%</small></div></div>
 </div>
 {% endif %}
 
+{% if finds %}
 <form method="get" class="filterbar">
   <label>Sort
     <select name="sort" onchange="this.form.submit()">
-      <option value="volume"{% if filters.sort == 'volume' %} selected{% endif %}>Volume</option>
-      <option value="trend"{% if filters.sort == 'trend' %} selected{% endif %}>Momentum</option>
-      <option value="difficulty"{% if filters.sort == 'difficulty' %} selected{% endif %}>Easiest first</option>
+      <option value="views"{% if filters.sort == 'views' %} selected{% endif %}>Most views</option>
+      <option value="likes"{% if filters.sort == 'likes' %} selected{% endif %}>Most likes</option>
+      <option value="comments"{% if filters.sort == 'comments' %} selected{% endif %}>Most comments</option>
+      <option value="engagement"{% if filters.sort == 'engagement' %} selected{% endif %}>Highest engagement</option>
       <option value="newest"{% if filters.sort == 'newest' %} selected{% endif %}>Newest</option>
     </select>
   </label>
-  <label>Min volume <input type="number" name="min_volume" value="{{ filters.min_volume }}" placeholder="0" style="width:80px;"></label>
-  <label>Max diff <input type="number" name="max_diff" value="{{ filters.max_diff }}" placeholder="100" style="width:70px;"></label>
-  <label>Trend
-    <select name="trend" onchange="this.form.submit()">
-      <option value="">any</option>
-      <option value="up"{% if filters.trend == 'up' %} selected{% endif %}>↑ rising</option>
-      <option value="flat"{% if filters.trend == 'flat' %} selected{% endif %}>→ steady</option>
-      <option value="down"{% if filters.trend == 'down' %} selected{% endif %}>↓ cooling</option>
-    </select>
-  </label>
-  <label>Intent
-    <select name="intent" onchange="this.form.submit()">
-      <option value="">any</option>
-      {% for val, lbl in intents %}<option value="{{ val }}"{% if filters.intent == val %} selected{% endif %}>{{ lbl }}</option>{% endfor %}
-    </select>
-  </label>
-  <button class="btn btn-ghost go" type="submit">Apply</button>
+  <label>Min views <input type="number" name="min_views" value="{{ filters.min_views }}" placeholder="0" style="width:100px;"></label>
+  <button class="btn btn-ghost" type="submit">Apply</button>
 </form>
 
-<div class="kwtable-wrap">
-  <table class="kwtable">
-    <thead>
-      <tr>
-        <th>Keyword / topic</th>
-        <th class="r">Volume</th>
-        <th>Trend</th>
-        <th>SEO difficulty</th>
-        <th>Intent</th>
-        <th class="r"></th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for idea in ideas %}
-      <tr>
-        <td class="kw">
-          <a href="{% url 'videos:topic_detail' idea.pk %}">{{ idea.headline }}</a>
-          {% if idea.post_count or idea.video_count %}<span class="used">✓ {{ idea.post_count }}p · {{ idea.video_count }}v</span>{% endif %}
-          {% if idea.description %}<small>{{ idea.description }}</small>{% endif %}
-        </td>
-        <td class="num">{% if idea.search_volume is not None %}{{ idea.volume_display }} <span class="u">/mo</span>{% else %}<span class="dash">—</span>{% endif %}</td>
-        <td>
-          <svg class="spark {{ idea.trend_dir|default:'flat' }}" width="60" height="20" viewBox="0 0 60 20" fill="none" aria-hidden="true">
-            <polyline points="{{ idea.spark }}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          {% if idea.trend_dir == 'up' %}<span class="tpct up">{% if idea.trend_pct %}+{{ idea.trend_pct }}%{% else %}rising{% endif %}</span>
-          {% elif idea.trend_dir == 'down' %}<span class="tpct down">{% if idea.trend_pct %}{{ idea.trend_pct }}%{% else %}cooling{% endif %}</span>
-          {% else %}<span class="tpct flat">steady</span>{% endif %}
-        </td>
-        <td>
-          {% if idea.difficulty is not None %}
-            <div class="sdwrap"><span class="sd {{ idea.sd_band }}">{{ idea.difficulty }}</span><span class="lbl">{{ idea.sd_band }}</span></div>
-          {% else %}<span class="dash">—</span>{% endif %}
-        </td>
-        <td>{% if idea.intent %}<span class="intent">{{ idea.get_intent_display }}</span>{% else %}<span class="dash">—</span>{% endif %}</td>
-        <td class="num"><a class="open" href="{% url 'videos:topic_detail' idea.pk %}">Open →</a></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="6" class="empty">No topics yet — run a search above to explore what's worth making content about.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+<div class="grid">
+  {% for f in finds %}
+  <div class="vcard">
+    <div class="thumb" data-embed="{{ f.embed_url }}" onclick="playFind(this)">
+      {% if f.thumbnail_url %}<img src="{{ f.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}
+      <div class="play"><span>▶</span></div>
+      <div class="views">{{ f.views_display }} views</div>
+    </div>
+    <div class="vbody">
+      <div class="author">@{{ f.author_handle }}{% if f.video_count %} · <span class="used">✓ {{ f.video_count }} made</span>{% endif %}</div>
+      <div class="cap">{{ f.caption|default:"—" }}</div>
+      <div class="stats">
+        <span><b>{{ f.likes_display }}</b> likes</span>
+        <span><b>{{ f.comments_display }}</b> comments</span>
+        <span><b>{{ f.shares_display }}</b> shares</span>
+        {% if f.engagement_pct is not None %}<span class="eng">{{ f.engagement_pct }}%</span>{% endif %}
+      </div>
+      <div class="acts">
+        <form method="post" action="{% url 'videos:find_clone' f.pk %}">{% csrf_token %}
+          <button class="btn" type="submit" title="Download this video and map its movement onto your avatar">Clone movement</button>
+        </form>
+        <form method="post" action="{% url 'videos:find_idea' f.pk %}">{% csrf_token %}
+          <button class="btn btn-ghost" type="submit" title="Start a script short from this video's idea">Use as idea</button>
+        </form>
+        <span class="del"><form method="post" action="{% url 'videos:delete_find' f.pk %}">{% csrf_token %}
+          <button type="submit" title="Remove from results">✕</button>
+        </form></span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
-{% if ideas %}<p class="datanote">Volume, difficulty &amp; intent come from live search data when available; AI-suggested topics show <span class="dash">—</span> until it's fetched. The trend line shows momentum direction — open a topic to generate content from it either way.</p>{% endif %}
+<p class="datanote">Stats are TikTok’s real numbers at search time. <b>Clone movement</b> downloads the clip and animates your avatar with it (no face reused). <b>Use as idea</b> starts a script short from the concept. Video search is unofficial and can be blocked — a fresh <code>TIKTOK_MS_TOKEN</code> makes it more reliable.</p>
+
+{% elif search and search.status == 'done' %}
+<div class="empty">That search came back empty — TikTok likely blocked it. Add a fresh <code>TIKTOK_MS_TOKEN</code> and try again, or search a different term.</div>
+{% elif not search %}
+<div class="empty">No searches yet — search a topic above, or leave it blank to pull what’s trending on TikTok right now.</div>
+{% endif %}
+
+<script>
+  function playFind(el) {
+    var url = el.getAttribute("data-embed");
+    if (!url) { window.open(el.parentElement.querySelector(".author") ? url : "#"); return; }
+    el.innerHTML = '<iframe src="' + url + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+    el.style.cursor = "default";
+    el.onclick = null;
+  }
+</script>
 {% endblock %}

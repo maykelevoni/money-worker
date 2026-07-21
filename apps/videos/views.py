@@ -13,16 +13,15 @@ from apps.offers.models import Offer
 from apps.social import publish as social_publish
 from apps.social.models import SocialAccount
 
-from .models import Avatar, TopicIdea, Video, VideoSegment
+from .models import Avatar, Video, VideoFind, VideoSearch, VideoSegment
 from .services import (
     avatars,
     motion,
     openrouter,
     render as render_svc,
-    research,
     shorts,
     stt,
-    trends,
+    tiktok,
     uploadpost,
     voice,
 )
@@ -112,163 +111,118 @@ def delete_video(request, pk):
     return redirect("videos:factory")
 
 
-# ============================ Research · Topic Explorer ============================
+# ============================ Research · Viral video search ============================
 
-# Whitelisted sort keys → ORM ordering (desc where "more" is more interesting).
-_SORTS = {
-    "volume": "-search_volume",
-    "difficulty": "difficulty",
-    "trend": "-trend_pct",
+# Whitelisted sort keys → ORM ordering. "engagement" is a computed property, so it's
+# sorted in Python after the fetch.
+_FIND_SORTS = {
+    "views": "-views",
+    "likes": "-likes",
+    "comments": "-comments",
     "newest": "-created_at",
+    "engagement": None,
 }
 
 
 @login_required
 def research_page(request):
-    """Topic Explorer — researched topics with data, in one sortable/filterable list."""
-    ideas = (
-        TopicIdea.objects.for_workspace(request.workspace)
-        .filter(archived=False)
-        .annotate(post_count=Count("posts", distinct=True),
-                  video_count=Count("videos", distinct=True))
+    """Viral-video search — the results of the latest TikTok search, sortable/filterable."""
+    latest = (
+        VideoSearch.objects.for_workspace(request.workspace)
+        .order_by("-created_at")
+        .first()
     )
 
-    sort = request.GET.get("sort", "volume")
-    min_volume = request.GET.get("min_volume", "")
-    max_diff = request.GET.get("max_diff", "")
-    trend = request.GET.get("trend", "")
-    intent = request.GET.get("intent", "")
+    sort = request.GET.get("sort", "views")
+    min_views = request.GET.get("min_views", "")
 
-    if min_volume.isdigit():
-        ideas = ideas.filter(search_volume__gte=int(min_volume))
-    if max_diff.isdigit():
-        ideas = ideas.filter(difficulty__lte=int(max_diff))
-    if trend in {"up", "flat", "down"}:
-        ideas = ideas.filter(trend_dir=trend)
-    if intent:
-        ideas = ideas.filter(intent=intent)
-    ideas = list(ideas.order_by(_SORTS.get(sort, "-search_volume"), "-created_at"))
+    finds = []
+    if latest:
+        qs = latest.finds.annotate(video_count=Count("videos", distinct=True))
+        if min_views.isdigit():
+            qs = qs.filter(views__gte=int(min_views))
+        order = _FIND_SORTS.get(sort)
+        if order:
+            finds = list(qs.order_by(order, "-created_at"))
+        else:  # engagement — computed, sort in Python
+            finds = sorted(qs, key=lambda f: f.engagement_pct or 0, reverse=True)
 
-    # Enrich each row for the Ubersuggest-style table: an SEO-difficulty band
-    # (colour) and a small momentum sparkline derived from trend direction.
-    for idea in ideas:
-        d = idea.difficulty
-        idea.sd_band = None if d is None else ("easy" if d < 34 else "medium" if d < 67 else "hard")
-        idea.spark = _momentum_spark(idea)
-
-    vols = [i.search_volume for i in ideas if i.search_volume is not None]
-    diffs = [i.difficulty for i in ideas if i.difficulty is not None]
-    overview = {
-        "total": len(ideas),
-        "avg_volume": round(sum(vols) / len(vols)) if vols else None,
-        "avg_difficulty": round(sum(diffs) / len(diffs)) if diffs else None,
-        "rising": sum(1 for i in ideas if i.trend_dir == "up"),
-    }
+    overview = None
+    if finds:
+        views = [f.views for f in finds]
+        overview = {
+            "total": len(finds),
+            "top_views": max(views),
+            "total_views": sum(views),
+            "avg_engagement": round(
+                sum(f.engagement_pct or 0 for f in finds) / len(finds), 1
+            ),
+        }
 
     return render(request, "videos/research.html", {
-        "ideas": ideas,
+        "search": latest,
+        "finds": finds,
         "overview": overview,
         "config": _config(),
+        "tiktok_ready": tiktok.is_available(),
         "tab": "research",
-        "filters": {"sort": sort, "min_volume": min_volume, "max_diff": max_diff,
-                    "trend": trend, "intent": intent},
-        "intents": TopicIdea.Intent.choices,
+        "filters": {"sort": sort, "min_views": min_views},
         **_pickers(request),
     })
-
-
-def _momentum_spark(idea) -> str:
-    """A 12-point SVG polyline (viewBox 0 0 60 20) showing momentum direction.
-
-    Derived from trend_dir/trend_pct — it visualises direction, not real monthly
-    search history (which we don't store). Deterministic per topic so it's stable.
-    """
-    n = 12
-    slope = {"up": 1, "down": -1}.get(idea.trend_dir, 0)
-    amp = min(abs(idea.trend_pct or 0), 60) / 60.0
-    seed = (idea.pk * 2654435761) & 0x7FFFFFFF
-    pts = []
-    for i in range(n):
-        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-        jitter = (seed / 0x7FFFFFFF - 0.5) * 3.4
-        base = 10 - slope * (i - (n - 1) / 2) * (0.55 + amp * 0.9)
-        y = max(2.0, min(18.0, base + jitter))
-        x = i * (60 / (n - 1))
-        pts.append(f"{x:.1f},{y:.1f}")
-    return " ".join(pts)
 
 
 @login_required
 @require_POST
 def research_run(request):
-    """Explore topics around an optional seed/niche → save them with their data."""
-    niche = request.POST.get("niche", "").strip()
-    seed = request.POST.get("keyword", "").strip()
-    try:
-        topics = research.explore_topics(seed=seed, niche=niche, n=10)
-    except research.NotConfigured as e:
-        messages.error(request, str(e))
+    """Search TikTok for viral videos on a term (blank = trending) — runs in background."""
+    if not tiktok.is_available():
+        messages.error(request, "TikTok search isn't installed on the server yet.")
         return redirect("videos:research")
-    except Exception as e:
-        messages.error(request, f"Research failed: {e}")
-        return redirect("videos:research")
-    for t in topics:
-        TopicIdea.objects.create(
-            workspace=request.workspace,
-            headline=t["headline"],
-            seed=seed,
-            description=t.get("description", ""),
-            angle=t.get("angle", ""),
-            why_viral=t.get("why_viral", ""),
-            search_volume=t.get("search_volume"),
-            difficulty=t.get("difficulty"),
-            intent=t.get("intent", ""),
-            trend_dir=t.get("trend_dir", ""),
-            trend_pct=t.get("trend_pct"),
-            related=t.get("related", []),
-        )
-    messages.success(request, f"Explored {len(topics)} topics ")
+    query = request.POST.get("keyword", "").strip()[:200]
+    search = VideoSearch.objects.create(
+        workspace=request.workspace, query=query, status="running"
+    )
+    tiktok.start_search(search, count=24)
+    messages.success(request, "Searching TikTok… results appear below in a few seconds.")
     return redirect("videos:research")
 
 
 @login_required
-def topic_detail(request, pk):
-    """A researched topic in full — description, data, real Google Trends, create."""
-    idea = get_object_or_404(
-        TopicIdea.objects.annotate(post_count=Count("posts", distinct=True),
-                                   video_count=Count("videos", distinct=True)),
-        pk=pk, workspace=request.workspace,
+def research_status(request):
+    """Poll the latest search's status so the page knows when to refresh."""
+    latest = (
+        VideoSearch.objects.for_workspace(request.workspace)
+        .order_by("-created_at")
+        .first()
     )
-    live = trends.interest(idea.headline)  # best-effort; None if Trends unavailable
-    return render(request, "videos/topic_detail.html", {
-        "idea": idea,
-        "live": live,
-        "config": _config(),
-        "tab": "research",
-        **_pickers(request),
+    if not latest:
+        return JsonResponse({"status": "none"})
+    return JsonResponse({
+        "status": latest.status,
+        "error": latest.error,
+        "count": latest.finds.count() if latest.status == "done" else 0,
     })
 
 
 @login_required
 @require_POST
-def delete_idea(request, pk):
-    get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace).delete()
-    messages.success(request, "Idea deleted.")
+def delete_find(request, pk):
+    get_object_or_404(VideoFind, pk=pk, workspace=request.workspace).delete()
+    messages.success(request, "Removed from results.")
     return redirect("videos:research")
 
 
 @login_required
 @require_POST
-def pick_idea(request, pk):
-    """Turn an idea into a video → land on its page (talking points generated).
-
-    The idea stays in research (reusable) so it can also spawn Studio posts.
-    """
-    idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
+def find_idea(request, pk):
+    """Steal the idea: start a script short seeded from the found video's caption."""
+    find = get_object_or_404(VideoFind, pk=pk, workspace=request.workspace)
+    subject = find.caption[:300] or f"a video by @{find.author_handle}"
     video = Video.objects.create(
         workspace=request.workspace,
-        source_idea=idea,
-        topic_idea=idea.headline,
+        kind=Video.Kind.SCRIPT_SHORT,
+        source_find=find,
+        topic_idea=subject,
         niche=request.POST.get("niche", "").strip(),
         avatar_id=request.POST.get("avatar") or None,
         offer_id=request.POST.get("offer") or None,
@@ -276,52 +230,48 @@ def pick_idea(request, pk):
     )
     try:
         video.talking_points = openrouter.generate_talking_points(
-            idea.headline, idea.angle, niche=video.niche
+            subject, "", niche=video.niche
         )
         video.save(update_fields=["talking_points"])
     except Exception as e:
         messages.warning(request, f"Video created, but talking points failed: {e}")
-    messages.success(request, "Video created from idea ")
+    messages.success(request, "Short started from that video's idea.")
     return redirect("videos:video_detail", pk=video.pk)
 
 
 @login_required
 @require_POST
-def spawn_post(request, pk):
-    """Turn an idea into a Studio post (text / image / article) → open the workbench.
+def find_clone(request, pk):
+    """Clone the movement: download the found video and seed a Motion Clip with it.
 
-    Pre-seeds the draft from the idea and records provenance; the idea stays in
-    research so it can feed more formats.
+    The download drives the headless browser so it's slow (~10-30s) and blocks this
+    request. If it fails, the Motion Clip is still created — the user can upload a
+    reference video manually on the next page.
     """
-    from apps.content.models import Post
+    from django.core.files.base import ContentFile
 
-    idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
-    kinds = {Post.Kind.TEXT, Post.Kind.IMAGE, Post.Kind.ARTICLE}
-    kind = request.POST.get("kind")
-    if kind not in kinds:
-        messages.error(request, "Unknown content type.")
-        return redirect("videos:research")
-    post = Post.objects.create(
+    find = get_object_or_404(VideoFind, pk=pk, workspace=request.workspace)
+    video = Video.objects.create(
         workspace=request.workspace,
-        kind=kind,
-        status=Post.Status.DRAFT,
-        source_idea=idea,
-        title=idea.headline[:300],
-        body=idea.angle or idea.why_viral or "",
+        kind=Video.Kind.MOTION_CLIP,
+        source_find=find,
+        title=(find.caption[:120] or f"Motion from @{find.author_handle}"),
+        niche=request.POST.get("niche", "").strip(),
+        avatar_id=request.POST.get("avatar") or None,
+        offer_id=request.POST.get("offer") or None,
+        status=Video.Status.DRAFT,
     )
-    messages.success(request, f"{post.get_kind_display()} started from idea ")
-    return redirect("content:compose", pk=post.pk)
-
-
-@login_required
-@require_POST
-def archive_idea(request, pk):
-    """Clear a used idea out of the research list without deleting its content."""
-    idea = get_object_or_404(TopicIdea, pk=pk, workspace=request.workspace)
-    idea.archived = True
-    idea.save(update_fields=["archived"])
-    messages.success(request, "Idea archived.")
-    return redirect("videos:research")
+    try:
+        data = tiktok.download(find.url)
+        video.motion_ref.save(f"tiktok_{find.tiktok_id}.mp4", ContentFile(data), save=True)
+        messages.success(request, "Source video pulled in — now generate the motion clip.")
+    except Exception as e:
+        messages.warning(
+            request,
+            f"Motion clip created, but the source download failed ({e}). "
+            "Upload a reference video manually on this page.",
+        )
+    return redirect("videos:video_detail", pk=video.pk)
 
 
 # ============================ The per-video page ============================

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Avatar, TopicIdea, Video, VideoSegment
+from .models import Avatar, TopicIdea, Video, VideoFind, VideoSearch, VideoSegment
 
 
 @admin.register(Avatar)
@@ -30,3 +30,23 @@ class TopicIdeaAdmin(admin.ModelAdmin):
     list_display = ("headline", "selected", "created_at")
     list_filter = ("selected",)
     search_fields = ("headline",)
+
+
+class VideoFindInline(admin.TabularInline):
+    model = VideoFind
+    extra = 0
+    fields = ("author_handle", "caption", "views", "likes", "comments")
+    readonly_fields = fields
+
+
+@admin.register(VideoSearch)
+class VideoSearchAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "status", "created_at")
+    list_filter = ("status",)
+    inlines = [VideoFindInline]
+
+
+@admin.register(VideoFind)
+class VideoFindAdmin(admin.ModelAdmin):
+    list_display = ("author_handle", "caption", "views", "likes", "created_at")
+    search_fields = ("author_handle", "caption")

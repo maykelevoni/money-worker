@@ -11,3 +11,4 @@ gunicorn
 whitenoise
 pytrends>=4.9.2
 stripe>=9.0
+TikTokApi>=7.3  # real viral-video search for Research (drives a headless browser)
