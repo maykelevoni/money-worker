@@ -11,6 +11,7 @@ endpoint and really wants a valid `ms_token`; a blank query falls back to the
 trending feed, which is far more reliable and needs no token.
 """
 import asyncio
+from urllib.parse import urlparse
 
 from django.conf import settings
 
@@ -37,10 +38,20 @@ def _ms_tokens() -> list:
 
 
 def _proxies() -> list | None:
-    """Residential proxy for the browser session — needed on datacenter IPs (VPS),
-    which TikTok blocks hard. Format: http://user:pass@host:port. None = direct."""
-    proxy = (settings.TIKTOK_PROXY or "").strip()
-    return [proxy] if proxy else None
+    """Proxy for the browser session — needed on datacenter IPs (the VPS), which
+    TikTok blocks hard. Env format: http://user:pass@host:port. Parsed into the
+    Playwright dict TikTokApi expects. None = connect directly."""
+    raw = (settings.TIKTOK_PROXY or "").strip()
+    if not raw:
+        return None
+    p = urlparse(raw)
+    server = f"{p.scheme or 'http'}://{p.hostname}" + (f":{p.port}" if p.port else "")
+    proxy = {"server": server}
+    if p.username:
+        proxy["username"] = p.username
+    if p.password:
+        proxy["password"] = p.password
+    return [proxy]
 
 
 def _to_int(value) -> int:
