@@ -1,119 +1,369 @@
 {% extends "base.html" %}
 {% block title %}{% if page %}Edit{% else %}New{% endif %} Page · PostForge{% endblock %}
-{% block nav_capture %}active{% endblock %}
 
 {% block content %}
 <style>
-  .form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 22px; max-width: 640px; }
-  .form label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
-  .form input, .form textarea, .form select { width: 100%; }
-  .form textarea { min-height: 70px; resize: vertical; }
-  .hint { font-size: 12px; color: #5a6072; margin-top: 3px; }
-  .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
-  .check input { width: auto; }
-  .actions { margin-top: 20px; display: flex; gap: 10px; }
+  .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .5px;
+    font-size: 11px; font-weight: 600; }
+  h1 { margin: 4px 0 2px; }
+  .sub { margin-bottom: 18px; }
   a.link { color: var(--accent); text-decoration: none; }
+
+  /* segmented "what are you making" toggle */
+  .seg { display: inline-flex; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 18px; }
+  .seg-opt { position: relative; cursor: pointer; }
+  .seg-opt input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .seg-opt span { display: block; padding: 7px 16px; border-radius: 7px; font-size: 13.5px;
+    color: var(--muted); white-space: nowrap; }
+  .seg-opt input:checked + span { background: var(--accent); color: #1a1206; font-weight: 600; }
+
+  .split { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+  .editor { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; }
+  .step { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+    margin: 22px 0 8px; font-weight: 600; }
+  .step:first-child { margin-top: 0; }
+  .editor label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  .editor input, .editor textarea, .editor select { width: 100%; }
+  .editor textarea { min-height: 64px; resize: vertical; }
+  .hint { font-size: 12px; color: #5a6072; margin-top: 3px; }
+  .fld[hidden] { display: none; }
+
+  /* influencer picker */
+  .faces { display: flex; gap: 10px; flex-wrap: wrap; }
+  .face-opt { position: relative; cursor: pointer; width: 96px; }
+  .face-opt input { position: absolute; opacity: 0; }
+  .face-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center;
+    background: var(--panel2); transition: border-color .15s; }
+  .face-opt input:checked + .face-card { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .face-card img, .face-card .noimg { width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+    margin: 0 auto 6px; display: block; background: #2a2f3d; }
+  .face-card .nm { font-size: 12px; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .face-card.new { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--muted); min-height: 88px; }
+
+  /* connections toggles */
+  .conns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 520px) { .conns { grid-template-columns: 1fr; } }
+  .conn { display: flex; align-items: center; gap: 9px; border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 11px; cursor: pointer; background: var(--panel2); }
+  .conn input { width: auto; }
+  .conn .plt { font-size: 13.5px; }
+  .conn .hd { font-size: 12px; color: var(--muted); }
+  .link-add { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 8px; }
+
+  .existing-links { margin-top: 10px; }
   .link-row { display: flex; justify-content: space-between; align-items: center; gap: 10px;
-    padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
-  .link-row form { display: inline; }
-  .link-add { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; align-items: end; }
+    padding: 8px 11px; border: 1px solid var(--line); border-radius: 9px; margin-bottom: 6px; }
+  .link-row .hint { margin: 0; }
+
+  /* advanced */
+  details.adv { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 8px; }
+  details.adv summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 8px 0; list-style: none; }
+  details.adv summary::-webkit-details-marker { display: none; }
+  details.adv summary::before { content: "› "; }
+  details.adv[open] summary::before { content: "⌄ "; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  .check input { width: auto; }
+
+  .actions { margin-top: 20px; display: flex; gap: 10px; }
+
+  /* live preview */
+  .preview { position: sticky; top: 84px; }
+  .preview .plabel { font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--muted); margin-bottom: 10px; text-align: center; }
+  .phone { width: 300px; margin: 0 auto; background: #0f1116; border: 8px solid #23262e;
+    border-radius: 30px; padding: 22px 18px; min-height: 440px; }
+  .ph-face { width: 74px; height: 74px; border-radius: 50%; object-fit: cover; margin: 6px auto 12px;
+    display: block; background: #2a2f3d; }
+  .ph-name { text-align: center; font-weight: 700; font-size: 18px; color: #f2f3f7; }
+  .ph-bio { text-align: center; font-size: 13px; color: #9aa0ad; margin: 4px 0 16px; }
+  .ph-links { display: flex; flex-direction: column; gap: 9px; }
+  .ph-link { text-align: center; font-size: 13.5px; padding: 11px; border-radius: 10px;
+    background: #181b24; border: 1px solid #2a2f3d; color: #e6e8ee; }
+  .ph-link.buy { background: var(--accent); border-color: var(--accent); color: #1a1206; font-weight: 600; }
+  .ph-cta { margin-top: 14px; }
+  .ph-cta input { width: 100%; background: #181b24; border: 1px solid #2a2f3d; border-radius: 9px;
+    padding: 10px; color: #e6e8ee; font-size: 13px; }
+  .ph-btn { text-align: center; padding: 11px; border-radius: 10px; background: var(--accent);
+    color: #1a1206; font-weight: 600; font-size: 13.5px; margin-top: 9px; }
 </style>
 
-<div class="eyebrow">Assets</div>
+<div class="eyebrow">Pages</div>
 <h1>{% if page %}Edit page{% else %}New page{% endif %}</h1>
 <div class="sub"><a class="link" href="{% url 'capture_pages' %}">← back to all pages</a></div>
 
-<form class="form" method="post" enctype="multipart/form-data">
+<form class="" method="post" enctype="multipart/form-data" id="pageForm">
   {% csrf_token %}
 
-  <label>What is this page for?</label>
-  <select name="layout">
-    {% for value, label in layouts %}
-      <option value="{{ value }}" {% if page.layout == value or not page and value == 'capture' %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
-  <div class="hint">Capture = opt-in for a freebie · Sales = sell a product · Link hub = the bio link your videos point to</div>
-
-  <label>Title (internal)</label>
-  <input name="title" value="{{ page.title|default:'' }}" placeholder="e.g. Free SEO Checklist page" required>
-
-  <label>Slug (public URL)</label>
-  <input name="slug" value="{{ page.slug|default:'' }}" placeholder="leave blank to auto-generate from title">
-  <div class="hint">Public link will be /p/&lt;slug&gt;/</div>
-
-  <label>Headline</label>
-  <input name="headline" value="{{ page.headline|default:'' }}" placeholder="The big promise (or your name, for a link hub)" required>
-
-  <label>Subheadline (optional)</label>
-  <textarea name="subheadline" placeholder="Supporting line / short bio">{{ page.subheadline|default:'' }}</textarea>
-
-  <label>Avatar (link hubs only, optional)</label>
-  <input type="file" name="avatar" accept="image/*">
-  {% if page.avatar %}<div class="hint">Current: {{ page.avatar.name }}</div>{% endif %}
-
-  <label>Lead magnet (freebie — required for capture pages)</label>
-  <input name="lead_magnet" value="{{ page.lead_magnet|default:'' }}" placeholder="e.g. The 1-page launch checklist">
-
-  <label>Product to promote / sell (optional)</label>
-  <select name="offer">
-    <option value="">— none —</option>
-    {% for o in offers %}
-      <option value="{{ o.pk }}" {% if page.offer_id == o.pk %}selected{% endif %}>{{ o.name }}{% if o.is_sellable %} · sellable{% endif %}</option>
-    {% endfor %}
-  </select>
-  <div class="hint">A sellable product shows a real Buy button (Stripe checkout).</div>
-
-  <label>Add signups to list</label>
-  <select name="email_list">
-    <option value="">— default (All subscribers) —</option>
-    {% for l in lists %}
-      <option value="{{ l.pk }}" {% if page.email_list_id == l.pk %}selected{% endif %}>{{ l.name }}</option>
-    {% endfor %}
-  </select>
-
-  <label>Button text</label>
-  <input name="button_text" value="{{ page.button_text|default:'Send it to me →' }}">
-
-  <label>Success message (optional — shown after opt-in)</label>
-  <input name="success_message" value="{{ page.success_message|default:'' }}" placeholder="Defaults to 'Check your inbox for …'">
-
-  <label>Niche (optional, free-form)</label>
-  <input name="niche" value="{{ page.niche|default:'' }}" placeholder="e.g. fitness, finance, AI tools…">
-
-  <div class="check">
-    <input type="checkbox" name="is_active" id="is_active" {% if page.is_active or not page %}checked{% endif %}>
-    <label for="is_active" style="margin:0;">Live (publicly reachable)</label>
+  <div class="seg" role="tablist">
+    {% for value, label in layouts %}{% if value != 'sales' or page.layout == 'sales' %}
+    <label class="seg-opt">
+      <input type="radio" name="layout" value="{{ value }}"
+        {% if page.layout == value or not page and value == initial_layout %}checked{% endif %}>
+      <span>{% if value == 'bio' %}Bio page{% elif value == 'sales' %}Sales page{% else %}Capture page{% endif %}</span>
+    </label>
+    {% endif %}{% endfor %}
   </div>
 
-  <div class="actions">
-    <button class="btn" type="submit">{% if page %}Save changes{% else %}Create page{% endif %}</button>
-    <a class="btn btn-ghost" href="{% url 'capture_pages' %}">Cancel</a>
+  <div class="split">
+    <div class="editor">
+
+      <!-- BIO: influencer picker -->
+      <div class="fld" data-layouts="bio">
+        <div class="step">Who's this for?</div>
+        <div class="faces">
+          {% for inf in influencers %}
+          <label class="face-opt">
+            <input type="radio" name="influencer" value="{{ inf.pk }}"
+              data-name="{{ inf.name }}" data-img="{% if inf.image %}{{ inf.image.url }}{% endif %}"
+              {% if page.influencer_id == inf.pk %}checked{% endif %}>
+            <span class="face-card">
+              {% if inf.image %}<img src="{{ inf.image.url }}" alt="{{ inf.name }}">{% else %}<span class="noimg"></span>{% endif %}
+              <span class="nm">{{ inf.name }}</span>
+            </span>
+          </label>
+          {% empty %}
+          <div class="hint">No influencers yet — <a class="link" href="/factory/avatars/">create one</a> to front your page, or upload a photo under Advanced.</div>
+          {% endfor %}
+        </div>
+        <div class="hint">Pulls the face + name automatically. You can override the name below.</div>
+      </div>
+
+      <!-- headline / bio (all layouts) -->
+      <div class="fld" data-layouts="bio capture sales">
+        <div class="step" data-step-bio="Your name" data-step-other="Headline">Headline</div>
+        <input name="headline" id="f_headline" value="{{ page.headline|default:'' }}"
+          placeholder="The big promise (or your name, for a bio page)" required>
+      </div>
+      <div class="fld" data-layouts="bio capture sales">
+        <label>Short bio / subheadline <span class="hint" style="display:inline">(optional)</span></label>
+        <textarea name="subheadline" id="f_sub" placeholder="Supporting line / short bio">{{ page.subheadline|default:'' }}</textarea>
+      </div>
+
+      <!-- CAPTURE: what they opt in for -->
+      <div class="fld" data-layouts="capture">
+        <div class="step">What do they get?</div>
+        {% if freebies %}
+        <label>Freebie (lead magnet)</label>
+        <select name="freebie" id="f_freebie">
+          <option value="">— pick a freebie —</option>
+          {% for f in freebies %}
+          <option value="{{ f.pk }}" {% if page.freebie_id == f.pk %}selected{% endif %}
+            data-img="{% if f.image %}{{ f.image.url }}{% endif %}" data-name="{{ f.name }}">{{ f.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="hint">Delivered on its own download page after opt-in. <a class="link" href="/offers/">Manage freebies →</a></div>
+        {% else %}
+        <div class="hint">No freebies yet — <a class="link" href="/offers/">create a freebie product</a> (image + file), or just type one below.</div>
+        {% endif %}
+        <label style="margin-top:10px">Or a plain lead magnet <span class="hint" style="display:inline">(text only)</span></label>
+        <input name="lead_magnet" id="f_magnet" value="{{ page.lead_magnet|default:'' }}" placeholder="e.g. The 1-page launch checklist">
+      </div>
+
+      <!-- CAPTURE + SALES: product -->
+      <div class="fld" data-layouts="capture sales">
+        <label>Product to promote / sell <span class="hint" style="display:inline">(optional)</span></label>
+        <select name="offer">
+          <option value="">— none —</option>
+          {% for o in offers %}
+          <option value="{{ o.pk }}" {% if page.offer_id == o.pk %}selected{% endif %}>{{ o.name }}{% if o.is_sellable %} · sellable{% endif %}</option>
+          {% endfor %}
+        </select>
+        <div class="hint">A sellable product shows a real Buy button (Stripe checkout).</div>
+      </div>
+
+      <!-- CAPTURE: list + success -->
+      <div class="fld" data-layouts="capture">
+        <label>Add signups to list</label>
+        <select name="email_list">
+          <option value="">— default (All subscribers) —</option>
+          {% for l in lists %}
+          <option value="{{ l.pk }}" {% if page.email_list_id == l.pk %}selected{% endif %}>{{ l.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- CAPTURE + SALES: button text -->
+      <div class="fld" data-layouts="capture sales">
+        <label>Button text</label>
+        <input name="button_text" value="{{ page.button_text|default:'Send it to me →' }}">
+      </div>
+      <div class="fld" data-layouts="capture">
+        <label>Success message <span class="hint" style="display:inline">(optional, shown after opt-in)</span></label>
+        <input name="success_message" value="{{ page.success_message|default:'' }}" placeholder="Defaults to 'Check your inbox for …'">
+      </div>
+
+      <!-- BIO: links -->
+      <div class="fld" data-layouts="bio">
+        <div class="step">Links</div>
+        {% if connections %}
+        <div class="hint" style="margin-bottom:8px">Pull from your connections — tick the ones to show as buttons.</div>
+        <div class="conns">
+          {% for a in connections %}
+          <label class="conn">
+            <input type="checkbox" name="connect_{{ a.pk }}" data-label="{{ a.get_platform_display }}" data-url="{{ a.guess_url }}" checked>
+            <span><span class="plt">{{ a.get_platform_display }}</span> <span class="hd">{{ a.handle }}</span></span>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="hint">No connected accounts yet — <a class="link" href="/social/">connect your socials</a> and they'll auto-fill here. You can still add custom links below.</div>
+        {% endif %}
+
+        {% if page %}
+        <div class="existing-links">
+          {% for l in page.links.all %}
+          <div class="link-row">
+            <div><strong>{{ l.label }}</strong> <span class="hint">{{ l.url }}</span></div>
+            <form method="post" action="{% url 'page_link_delete' page.pk l.id %}" data-confirm="Remove this link?" style="display:inline">
+              {% csrf_token %}<button class="btn btn-ghost" type="submit">Remove</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <label style="margin-top:12px">Add a custom link <span class="hint" style="display:inline">(affiliate, another page…)</span></label>
+        <div class="link-add">
+          <input name="link_label" id="f_linklabel" placeholder="Label — e.g. Free kit">
+          <input name="link_url" id="f_linkurl" type="url" placeholder="https://…">
+        </div>
+      </div>
+
+      <!-- advanced -->
+      <details class="adv">
+        <summary>Advanced</summary>
+        <label>Title (internal name)</label>
+        <input name="title" value="{{ page.title|default:'' }}" placeholder="defaults to your headline">
+        <label>Public URL</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="hint" style="margin:0">/p/</span>
+          <input name="slug" value="{{ page.slug|default:'' }}" placeholder="leave blank to auto-generate">
+        </div>
+        <label>Niche <span class="hint" style="display:inline">(optional)</span></label>
+        <input name="niche" value="{{ page.niche|default:'' }}" placeholder="e.g. fitness, finance, AI tools…">
+        <div class="fld" data-layouts="bio">
+          <label>Photo (fallback if no influencer)</label>
+          <input type="file" name="avatar" accept="image/*">
+          {% if page.avatar %}<div class="hint">Current: {{ page.avatar.name }}</div>{% endif %}
+        </div>
+        <div class="check">
+          <input type="checkbox" name="is_active" id="is_active" {% if page.is_active or not page %}checked{% endif %}>
+          <label for="is_active" style="margin:0;">Live (publicly reachable)</label>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button class="btn" type="submit">{% if page %}Save changes{% else %}Publish page{% endif %}</button>
+        <a class="btn btn-ghost" href="{% url 'capture_pages' %}">Cancel</a>
+      </div>
+    </div>
+
+    <!-- LIVE PREVIEW -->
+    <div class="preview">
+      <div class="plabel">Live preview</div>
+      <div class="phone">
+        <!-- bio preview -->
+        <div id="pv_bio">
+          <img class="ph-face" id="pv_face" alt=""
+            {% if page.face %}src="{{ page.face.url }}"{% else %}style="display:none"{% endif %}>
+          <div class="ph-name" id="pv_name">{{ page.headline|default:"Your name" }}</div>
+          <div class="ph-bio" id="pv_sub">{{ page.subheadline|default:"" }}</div>
+          <div class="ph-links" id="pv_links"></div>
+        </div>
+        <!-- capture / sales preview -->
+        <div id="pv_optin" style="display:none">
+          <img class="ph-face" id="pv_cover" alt="" style="display:none;border-radius:12px;width:110px;height:110px">
+          <div class="ph-name" id="pv_name2" style="margin-top:20px">{{ page.headline|default:"The big promise" }}</div>
+          <div class="ph-bio" id="pv_sub2">{{ page.subheadline|default:"" }}</div>
+          <div class="ph-cta"><input disabled placeholder="you@email.com"></div>
+          <div class="ph-btn" id="pv_btn">{{ page.button_text|default:"Send it to me →" }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 </form>
 
-{% if page and page.layout == 'bio' %}
-<div class="form" style="margin-top:20px">
-  <h1 style="font-size:17px;margin:0 0 4px">Hub links</h1>
-  <div class="hint" style="margin-bottom:14px">The buttons on your link hub. Add your socials, other pages, affiliate links.</div>
+<script>
+(function () {
+  var form = document.getElementById('pageForm');
+  function layout() {
+    var r = form.querySelector('input[name="layout"]:checked');
+    return r ? r.value : 'capture';
+  }
 
-  {% for l in page.links.all %}
-    <div class="link-row">
-      <div><strong>{{ l.label }}</strong> <span class="hint">{{ l.url }}</span></div>
-      <form method="post" action="{% url 'page_link_delete' page.pk l.id %}" data-confirm="Remove this link?">
-        {% csrf_token %}<button class="btn btn-ghost" type="submit">Remove</button>
-      </form>
-    </div>
-  {% empty %}
-    <div class="hint">No links yet — add the first below.</div>
-  {% endfor %}
+  // show only the fields that matter for the chosen layout
+  function applyLayout() {
+    var lay = layout();
+    form.querySelectorAll('.fld[data-layouts]').forEach(function (el) {
+      var ok = el.getAttribute('data-layouts').split(' ').indexOf(lay) !== -1;
+      el.hidden = !ok;
+    });
+    // headline step label
+    var hs = form.querySelector('[data-step-bio]');
+    if (hs) hs.textContent = lay === 'bio' ? hs.getAttribute('data-step-bio') : hs.getAttribute('data-step-other');
+    render();
+  }
 
-  <form method="post" action="{% url 'page_link_add' page.pk %}" class="link-add" style="margin-top:14px">
-    {% csrf_token %}
-    <div><label style="font-size:12px;color:var(--muted)">Label</label><input name="label" placeholder="Instagram" required></div>
-    <div><label style="font-size:12px;color:var(--muted)">URL</label><input name="url" type="url" placeholder="https://…" required></div>
-    <button class="btn" type="submit">Add</button>
-  </form>
-</div>
-{% endif %}
+  // live preview
+  function val(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+  function render() {
+    var lay = layout();
+    var isBio = lay === 'bio';
+    document.getElementById('pv_bio').style.display = isBio ? '' : 'none';
+    document.getElementById('pv_optin').style.display = isBio ? 'none' : '';
+
+    if (isBio) {
+      var inf = form.querySelector('input[name="influencer"]:checked');
+      var face = document.getElementById('pv_face');
+      var img = inf ? inf.getAttribute('data-img') : '';
+      if (img) { face.src = img; face.style.display = ''; }
+      else if (!face.getAttribute('src')) { face.style.display = 'none'; }
+      var name = val('f_headline') || (inf ? inf.getAttribute('data-name') : '') || 'Your name';
+      document.getElementById('pv_name').textContent = name;
+      document.getElementById('pv_sub').textContent = val('f_sub');
+
+      var links = [];
+      form.querySelectorAll('input[name^="connect_"]:checked').forEach(function (c) {
+        links.push(c.getAttribute('data-label'));
+      });
+      {% if page %}{% for l in page.links.all %}links.push("{{ l.label|escapejs }}");{% endfor %}{% endif %}
+      var cl = val('f_linklabel'); if (cl) links.push(cl);
+      var box = document.getElementById('pv_links');
+      box.innerHTML = '';
+      links.filter(Boolean).forEach(function (t) {
+        var d = document.createElement('div'); d.className = 'ph-link'; d.textContent = t; box.appendChild(d);
+      });
+    } else {
+      document.getElementById('pv_name2').textContent = val('f_headline') || (lay === 'sales' ? 'Your product' : 'The big promise');
+      document.getElementById('pv_sub2').textContent = val('f_sub');
+      var bt = form.querySelector('input[name="button_text"]');
+      document.getElementById('pv_btn').textContent = bt ? bt.value : 'Send it to me →';
+      // cover image from the selected freebie (falls back to nothing)
+      var cover = document.getElementById('pv_cover');
+      var fsel = document.getElementById('f_freebie');
+      var img = fsel && fsel.value ? fsel.options[fsel.selectedIndex].getAttribute('data-img') : '';
+      if (img) { cover.src = img; cover.style.display = ''; } else { cover.style.display = 'none'; }
+    }
+  }
+
+  form.addEventListener('input', render);
+  form.addEventListener('change', function (e) {
+    if (e.target.name === 'layout') applyLayout(); else render();
+  });
+  // auto-fill headline from the influencer if it's empty
+  form.addEventListener('change', function (e) {
+    if (e.target.name === 'influencer') {
+      var h = document.getElementById('f_headline');
+      if (h && !h.value.trim()) h.value = e.target.getAttribute('data-name') || '';
+      render();
+    }
+  });
+  applyLayout();
+})();
+</script>
 {% endblock %}

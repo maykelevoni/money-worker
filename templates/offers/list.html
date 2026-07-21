@@ -34,28 +34,34 @@
 {% include "_pagehead.html" with eyebrow="Products" title="Products" subtitle="The products your funnel promotes — affiliate products or your own." %}
 
 <div class="panel">
-  <form method="post" action="{% url 'offers:create' %}" class="grid-form" id="product-form">
+  <form method="post" action="{% url 'offers:create' %}" class="grid-form" id="product-form" enctype="multipart/form-data">
     {% csrf_token %}
     <div>
       <label>Type</label>
       <select name="kind" id="kind-select" onchange="syncKind()">
+        <option value="freebie">Freebie (lead magnet)</option>
         <option value="affiliate">Affiliate product</option>
         <option value="own">My own product</option>
       </select>
     </div>
-    <div><label>Name *</label><input name="name" placeholder="e.g. Pictory AI" required></div>
-    <div><label>Vendor / brand</label><input name="vendor" placeholder="Pictory"></div>
+    <div><label>Name *</label><input name="name" placeholder="e.g. The 1-page launch checklist" required></div>
+    <div><label>Image</label><input type="file" name="image" accept="image/*"></div>
+    <div class="aff-field own-field"><label>Vendor / brand</label><input name="vendor" placeholder="Pictory"></div>
+
+    <!-- Freebie-only fields -->
+    <div class="free-field"><label>Freebie file</label><input type="file" name="freebie_file"></div>
+    <div class="free-field"><label>…or link to it</label><input name="freebie_url" placeholder="https://…notion / drive"></div>
 
     <!-- Affiliate-only fields -->
-    <div class="aff-field"><label>Affiliate URL</label><input name="affiliate_url" placeholder="https://…?ref=you"></div>
-    <div class="aff-field"><label>Commission</label><input name="commission" placeholder="30% recurring"></div>
-    <div class="aff-field"><label class="check"><input type="checkbox" name="is_recurring" style="width:auto"> Recurring</label></div>
+    <div class="aff-field" style="display:none"><label>Affiliate URL</label><input name="affiliate_url" placeholder="https://…?ref=you"></div>
+    <div class="aff-field" style="display:none"><label>Commission</label><input name="commission" placeholder="30% recurring"></div>
+    <div class="aff-field" style="display:none"><label class="check"><input type="checkbox" name="is_recurring" style="width:auto"> Recurring</label></div>
 
     <!-- Own-product-only fields -->
     <div class="own-field" style="display:none"><label>Price</label><input name="price" placeholder="$29/mo"></div>
     <div class="own-field" style="display:none"><label>Checkout URL</label><input name="checkout_url" placeholder="https://…/checkout"></div>
 
-    <div><label>Sales/landing URL</label><input name="landing_url" placeholder="https://…"></div>
+    <div class="aff-field own-field" style="display:none"><label>Sales/landing URL</label><input name="landing_url" placeholder="https://…"></div>
     <div><button class="btn" type="submit">+ Add product</button></div>
   </form>
 </div>
@@ -67,17 +73,27 @@
     {% for o in offers %}
       <tr>
         <td><strong>{{ o.name }}</strong>{% if o.vendor %}<br><span class="small">{{ o.vendor }}</span>{% endif %}</td>
-        <td>{% if o.kind == 'own' %}<span class="pill own">own</span>{% else %}<span class="pill aff">affiliate</span>{% endif %}</td>
+        <td>
+          {% if o.kind == 'own' %}<span class="pill own">own</span>
+          {% elif o.kind == 'freebie' %}<span class="pill rec">freebie</span>
+          {% else %}<span class="pill aff">affiliate</span>{% endif %}
+        </td>
         <td>
           {% if o.kind == 'own' %}
             {% if o.price %}{{ o.price }}{% else %}<span class="small">—</span>{% endif %}
+          {% elif o.kind == 'freebie' %}
+            <span class="small">lead magnet</span>
           {% else %}
             {% if o.commission %}{{ o.commission }}{% else %}<span class="small">—</span>{% endif %}
             {% if o.is_recurring %} <span class="pill rec">recurring</span>{% endif %}
           {% endif %}
         </td>
         <td>{% if o.is_active %}<span class="pill on">active</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
-        <td>{% if o.primary_url %}<a class="ext" href="{{ o.primary_url }}" target="_blank">open ↗</a>{% else %}<span class="small">—</span>{% endif %}</td>
+        <td>
+          {% if o.kind == 'freebie' %}<a class="ext" href="{{ o.get_download_page_url }}" target="_blank">download page ↗</a>
+          {% elif o.primary_url %}<a class="ext" href="{{ o.primary_url }}" target="_blank">open ↗</a>
+          {% else %}<span class="small">—</span>{% endif %}
+        </td>
         <td>
           <div class="actions">
             <a class="btn btn-ghost" href="{% url 'offers:manage' o.pk %}">{% if o.is_sellable %}Sell · content{% else %}Sell{% endif %}</a>
@@ -97,9 +113,10 @@
 
 <script>
   function syncKind() {
-    var own = document.getElementById('kind-select').value === 'own';
-    document.querySelectorAll('.own-field').forEach(function(e){ e.style.display = own ? '' : 'none'; });
-    document.querySelectorAll('.aff-field').forEach(function(e){ e.style.display = own ? 'none' : ''; });
+    var kind = document.getElementById('kind-select').value;
+    document.querySelectorAll('.free-field').forEach(function(e){ e.style.display = kind === 'freebie' ? '' : 'none'; });
+    document.querySelectorAll('.aff-field').forEach(function(e){ e.style.display = kind === 'affiliate' ? '' : 'none'; });
+    document.querySelectorAll('.own-field').forEach(function(e){ e.style.display = kind === 'own' ? '' : 'none'; });
   }
   syncKind();
 </script>

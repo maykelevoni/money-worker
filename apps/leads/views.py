@@ -2,15 +2,30 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from config.throttle import rate_limit
 
 from apps.offers.models import Offer
-from apps.videos.models import Video
+from apps.social.models import SocialAccount
+from apps.videos.models import Avatar, Video
 
 from .models import CapturePage, EmailList, Lead, PageLink
+
+
+# Build a public profile URL from a connected account's platform + handle.
+# Accounts store a handle (e.g. "@duckhack"), not a full URL, so we infer it.
+def _social_url(platform, handle):
+    h = handle.lstrip("@").strip()
+    return {
+        SocialAccount.Platform.YOUTUBE: f"https://youtube.com/@{h}",
+        SocialAccount.Platform.TIKTOK: f"https://tiktok.com/@{h}",
+        SocialAccount.Platform.INSTAGRAM: f"https://instagram.com/{h}",
+        SocialAccount.Platform.X: f"https://x.com/{h}",
+        SocialAccount.Platform.PINTEREST: f"https://pinterest.com/{h}",
+    }.get(platform, f"https://{h}")
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +47,7 @@ def _capture_email(request, page):
         workspace=page.workspace,
         email=email_addr,
         defaults={
-            "lead_magnet": page.lead_magnet,
+            "lead_magnet": page.freebie.name if page.freebie else page.lead_magnet,
             "source_video": source_video,
             "source_page": page,
             "stage": Lead.Stage.NEW,
@@ -60,6 +75,9 @@ def page(request, slug):
         lead = _capture_email(request, page)
         if lead is None:
             return redirect(page.get_absolute_url())
+        # A freebie has its own hosted download page — deliver it there.
+        if page.freebie:
+            return redirect(page.freebie.get_download_page_url())
         return render(
             request,
             "leads/thanks.html",
@@ -148,10 +166,32 @@ def lead_remove_list(request, pk, list_id):
 
 @login_required
 def capture_pages(request):
+    pages = CapturePage.objects.for_workspace(request.workspace).select_related("offer")
+    # ?layout=bio / ?layout=capture lets the "Pages" menu split into two clean
+    # destinations (Bio page vs Capture page) over the same underlying model.
+    layout = request.GET.get("layout")
+    is_bio = layout == CapturePage.Layout.BIO
+    if layout in CapturePage.Layout.values:
+        pages = pages.filter(layout=layout)
     return render(
         request,
         "leads/capture_pages.html",
-        {"pages": CapturePage.objects.for_workspace(request.workspace).select_related("offer")},
+        {
+            "pages": pages,
+            "layout": layout,
+            "is_bio": is_bio,
+            "heading": "Bio pages" if is_bio else "Capture pages",
+            "new_url": (
+                "/capture-pages/new/?layout=bio" if is_bio else "/capture-pages/new/?layout=capture"
+            ),
+            "new_label": "+ New bio page" if is_bio else "+ New capture page",
+            "subtitle": (
+                "Your link-in-bio hubs — one public link that points followers "
+                "everywhere you want them to go."
+                if is_bio else
+                "One landing page per product / lead magnet — each with its own public link."
+            ),
+        },
     )
 
 
@@ -161,8 +201,10 @@ def _save_page(request, page):
     if layout not in CapturePage.Layout.values:
         layout = CapturePage.Layout.CAPTURE
     page.layout = layout
-    page.title = request.POST.get("title", "").strip()
     page.headline = request.POST.get("headline", "").strip()
+    # Title is an internal label — default it to the headline so it's not a
+    # required field the user has to think about.
+    page.title = request.POST.get("title", "").strip() or page.headline
     page.subheadline = request.POST.get("subheadline", "").strip()
     page.lead_magnet = request.POST.get("lead_magnet", "").strip()
     page.button_text = request.POST.get("button_text", "").strip() or "Send it to me →"
@@ -170,40 +212,90 @@ def _save_page(request, page):
     page.niche = request.POST.get("niche", "").strip()
     page.is_active = bool(request.POST.get("is_active"))
     page.offer_id = request.POST.get("offer") or None
+    page.freebie_id = request.POST.get("freebie") or None
     page.email_list_id = request.POST.get("email_list") or None
     page.slug = request.POST.get("slug", "").strip() or slugify(page.title)
+    # Bio hubs front an influencer — their image/name is the face of the page.
+    influencer_id = request.POST.get("influencer") or None
+    if influencer_id and not Avatar.objects.for_workspace(
+        request.workspace
+    ).filter(pk=influencer_id).exists():
+        influencer_id = None
+    page.influencer_id = influencer_id
     if request.FILES.get("avatar"):
         page.avatar = request.FILES["avatar"]
 
     if not page.title or not page.headline:
         messages.error(request, "Title and headline are required.")
         return None
-    # A lead magnet is the whole point of a capture page; sales/bio don't need one.
-    if page.layout == CapturePage.Layout.CAPTURE and not page.lead_magnet:
-        messages.error(request, "An email-capture page needs a lead magnet.")
+    # A capture page needs something to give away — a freebie product or, as a
+    # fallback, a free-text lead magnet. Bio pages don't need one.
+    if page.layout == CapturePage.Layout.CAPTURE and not page.freebie_id and not page.lead_magnet:
+        messages.error(request, "A capture page needs a freebie (or a lead magnet).")
         return None
     try:
         page.save()
     except IntegrityError:
         messages.error(request, f"Slug “{page.slug}” is already taken — pick another.")
         return None
+    _sync_bio_links(request, page)
     messages.success(request, f"Capture page “{page.title}” saved.")
     return page
 
 
-def _form_context(request, page):
+def _sync_bio_links(request, page):
+    """Turn the bio form's connection toggles + inline custom link into buttons.
+
+    Idempotent by URL, so re-saving an edited page never duplicates links.
+    """
+    if page.layout != CapturePage.Layout.BIO:
+        return
+    existing = {link.url for link in page.links.all()}
+    order = page.links.count()
+    for acc in SocialAccount.objects.for_workspace(request.workspace):
+        if not request.POST.get(f"connect_{acc.pk}"):
+            continue
+        url = _social_url(acc.platform, acc.handle)
+        if url in existing:
+            continue
+        PageLink.objects.create(
+            workspace=request.workspace, page=page,
+            label=acc.get_platform_display(), url=url, order=order,
+        )
+        existing.add(url)
+        order += 1
+    label = request.POST.get("link_label", "").strip()
+    url = request.POST.get("link_url", "").strip()
+    if label and url and url not in existing:
+        PageLink.objects.create(
+            workspace=request.workspace, page=page,
+            label=label, url=url, order=order,
+        )
+
+
+def _form_context(request, page, initial_layout=None):
+    ws = request.workspace
+    connections = SocialAccount.objects.for_workspace(ws).filter(is_active=True)
+    # Pre-fill the URL each connection would add, for the live preview.
+    for acc in connections:
+        acc.guess_url = _social_url(acc.platform, acc.handle)
+    active_offers = Offer.objects.for_workspace(ws).filter(is_active=True)
     return {
         "page": page,
-        "offers": Offer.objects.for_workspace(request.workspace).filter(is_active=True),
-        "lists": EmailList.objects.for_workspace(request.workspace),
+        "initial_layout": initial_layout or CapturePage.Layout.CAPTURE,
+        # Paid products for the "sell" picker; freebies for the lead-magnet picker.
+        "offers": active_offers.exclude(kind=Offer.Kind.FREEBIE),
+        "freebies": active_offers.filter(kind=Offer.Kind.FREEBIE),
+        "lists": EmailList.objects.for_workspace(ws),
         "layouts": CapturePage.Layout.choices,
+        "influencers": Avatar.objects.for_workspace(ws),
+        "connections": connections,
     }
 
 
 def _after_save_redirect(page):
-    # Bio hubs need links added, so drop the creator into the editor to finish.
     if page.layout == CapturePage.Layout.BIO:
-        return redirect("capture_page_edit", pk=page.pk)
+        return redirect(f"{reverse('capture_pages')}?layout=bio")
     return redirect("capture_pages")
 
 
@@ -213,7 +305,14 @@ def capture_page_create(request):
         page = _save_page(request, CapturePage())
         if page is not None:
             return _after_save_redirect(page)
-    return render(request, "leads/capture_page_form.html", _form_context(request, None))
+    initial_layout = request.GET.get("layout")
+    if initial_layout not in CapturePage.Layout.values:
+        initial_layout = CapturePage.Layout.CAPTURE
+    return render(
+        request,
+        "leads/capture_page_form.html",
+        _form_context(request, None, initial_layout=initial_layout),
+    )
 
 
 @login_required

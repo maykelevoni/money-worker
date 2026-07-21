@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ offer.name }} — your free download</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #0f1116; color: #e6e8ee; display: flex; min-height: 100vh;
+      align-items: center; justify-content: center; padding: 24px; }
+    .card { width: 100%; max-width: 460px; text-align: center; background: #14171f;
+      border: 1px solid #232733; border-radius: 18px; padding: 40px 32px; }
+    .cover { width: 160px; max-width: 70%; border-radius: 12px; margin: 0 auto 22px;
+      display: block; border: 1px solid #232733; }
+    .kicker { color: #ff7e2e; text-transform: uppercase; letter-spacing: .6px;
+      font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    h1 { font-size: 24px; margin: 0 0 10px; }
+    p.sub { color: #9aa0ad; font-size: 15px; margin: 0 0 26px; }
+    .download { display: inline-block; background: #ff7e2e; color: #1a1206; font-weight: 700;
+      font-size: 16px; padding: 15px 40px; border-radius: 12px; text-decoration: none; }
+    .download:hover { filter: brightness(1.06); }
+    .none { color: #9aa0ad; font-size: 14px; }
+    .foot { margin-top: 22px; font-size: 12px; color: #5a6072; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    {% if offer.image %}<img class="cover" src="{{ offer.image.url }}" alt="{{ offer.name }}">{% endif %}
+    <div class="kicker">You're in — here's your freebie</div>
+    <h1>{{ offer.name }}</h1>
+    {% if offer.notes %}<p class="sub">{{ offer.notes }}</p>{% endif %}
+    {% if offer.asset_url %}
+      <a class="download" href="{{ offer.asset_url }}" target="_blank" rel="noopener"
+        {% if offer.freebie_file %}download{% endif %}>Download →</a>
+    {% else %}
+      <p class="none">This freebie isn't ready to download yet — check back shortly.</p>
+    {% endif %}
+    <div class="foot">A copy is also on its way to your inbox.</div>
+  </div>
+</body>
+</html>

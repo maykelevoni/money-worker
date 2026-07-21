@@ -1,6 +1,7 @@
 import secrets
 
 from django.db import models
+from django.urls import reverse
 
 from apps.accounts.models import WorkspaceOwned
 
@@ -22,6 +23,7 @@ class Offer(WorkspaceOwned):
     class Kind(models.TextChoices):
         AFFILIATE = "affiliate", "Affiliate product"
         OWN = "own", "My own product"
+        FREEBIE = "freebie", "Freebie (lead magnet)"
 
     class AccessType(models.TextChoices):
         # "none" keeps the legacy behaviour: the funnel just links out to
@@ -56,6 +58,16 @@ class Offer(WorkspaceOwned):
     landing_url = models.URLField(
         blank=True, help_text="Sales/landing page the funnel sends to"
     )
+
+    # Freebie (lead magnet) — handed over on its own hosted download page after
+    # someone opts in. Either an uploaded file, an external link, or both.
+    freebie_file = models.FileField(
+        upload_to="freebies/", blank=True,
+        help_text="The downloadable file served on the freebie's download page",
+    )
+    freebie_url = models.URLField(
+        blank=True, help_text="External link to the freebie (Notion, Drive…), if not a file"
+    )
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -87,6 +99,21 @@ class Offer(WorkspaceOwned):
         if not self.public_key:
             self.public_key = secrets.token_urlsafe(24)
         super().save(*args, **kwargs)
+
+    @property
+    def is_freebie(self):
+        return self.kind == self.Kind.FREEBIE
+
+    @property
+    def asset_url(self):
+        """The actual downloadable thing for a freebie — hosted file or link."""
+        if self.freebie_file:
+            return self.freebie_file.url
+        return self.freebie_url
+
+    def get_download_page_url(self):
+        """Public hosted page where the freebie is delivered after opt-in."""
+        return reverse("freebie_download", args=[self.public_key])
 
     @property
     def is_sellable(self):

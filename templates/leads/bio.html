@@ -34,7 +34,7 @@
 </head>
 <body>
   <div class="hub">
-    {% if page.avatar %}<img class="avatar" src="{{ page.avatar.url }}" alt="{{ page.headline }}">{% endif %}
+    {% if page.face %}<img class="avatar" src="{{ page.face.url }}" alt="{{ page.headline }}">{% endif %}
     <h1>{{ page.headline }}</h1>
     {% if page.subheadline %}<p class="bio">{{ page.subheadline }}</p>{% endif %}
     {% if messages %}{% for m in messages %}<div class="err">{{ m }}</div>{% endfor %}{% endif %}

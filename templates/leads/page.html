@@ -24,14 +24,17 @@
     .err { color: #ff7a90; font-size: 14px; margin-bottom: 12px; }
     .fine { color: #5a6072; font-size: 12px; margin-top: 16px; }
     .magnet { color: #6c8cff; font-weight: 600; }
+    .cover { width: 150px; max-width: 60%; border-radius: 12px; margin: 0 auto 4px;
+      display: block; border: 1px solid #2a2f3d; }
+    .buy-cover { width: 92px; border-radius: 8px; margin: 0 auto 10px; display: block; }
   </style>
 </head>
 <body>
   <div class="box">
-    <div class="emoji"></div>
+    {% if page.freebie.image %}<img class="cover" src="{{ page.freebie.image.url }}" alt="{{ page.freebie.name }}">{% endif %}
     <h1>{{ page.headline }}</h1>
     {% if page.subheadline %}<p class="lead">{{ page.subheadline }}</p>
-    {% else %}<p class="lead">Drop your email and I'll send <span class="magnet">{{ page.lead_magnet }}</span> straight to your inbox — free.</p>{% endif %}
+    {% else %}<p class="lead">Drop your email and I'll send <span class="magnet">{{ page.freebie.name|default:page.lead_magnet }}</span> straight to your inbox — free.</p>{% endif %}
     {% if messages %}{% for m in messages %}<div class="err">{{ m }}</div>{% endfor %}{% endif %}
     <form method="post">
       {% csrf_token %}
@@ -42,6 +45,7 @@
     <p class="fine">No spam. Unsubscribe anytime.</p>
     {% if page.offer.is_sellable %}
       <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)">
+        {% if page.offer.image %}<img class="buy-cover" src="{{ page.offer.image.url }}" alt="{{ page.offer.name }}">{% endif %}
         <p class="lead" style="margin-bottom:10px">Want it now? Get <strong>{{ page.offer.name }}</strong> — {{ page.offer.price_display }}.</p>
         <a href="{% url 'store:buy' page.offer.public_key %}"
            style="display:inline-block;background:#ff7e2e;color:#fff;padding:13px 24px;border-radius:10px;font-weight:600;text-decoration:none">Buy now</a>

@@ -205,21 +205,21 @@
         <div class="grp {% if '/content/' in request.path or '/factory/' in request.path %}active{% endif %}">
           <a href="/content/new/" class="lbl">Create ▾</a>
           <div class="menu">
+            <a href="/factory/avatars/">Influencer</a>
+            <div class="menu-sep"></div>
             <a href="/content/new/">New content</a>
             <a href="/factory/research/">Research</a>
             <div class="menu-sep"></div>
             <a href="/content/">Library</a>
             <a href="/content/calendar/">Calendar</a>
-            <a href="/factory/avatars/">Influencers</a>
           </div>
         </div>
 
-        <div class="grp {% if '/websites/' in request.path or '/social/' in request.path or '/capture-pages/' in request.path %}active{% endif %}">
-          <a href="/websites/" class="lbl">Publish ▾</a>
+        <div class="grp {% if '/capture-pages/' in request.path %}active{% endif %}">
+          <a href="/capture-pages/?layout=bio" class="lbl">Pages ▾</a>
           <div class="menu">
-            <a href="/social/">Social accounts</a>
-            <a href="/websites/">Websites</a>
-            <a href="/capture-pages/">Capture pages</a>
+            <a href="/capture-pages/?layout=bio">Bio page</a>
+            <a href="/capture-pages/?layout=capture">Capture page</a>
           </div>
         </div>
 
@@ -228,7 +228,7 @@
           <div class="menu">
             <a href="/leads/">Leads &amp; lists</a>
             <a href="/emails/">Email sequences</a>
-            <a href="/automations/">Automation</a>
+            <a href="/automations/">Auto-replies</a>
           </div>
         </div>
 
@@ -243,10 +243,14 @@
 
         <a href="/analytics/" class="navlink {% if '/analytics/' in request.path %}active{% endif %}">Analytics</a>
 
-        <div class="grp util" title="Settings">
-          <span class="lbl" tabindex="0" role="button" aria-label="Settings">Settings</span>
+        <div class="grp util {% if '/settings/' in request.path or '/social/' in request.path %}active{% endif %}" title="Settings">
+          <span class="lbl" tabindex="0" role="button" aria-label="Settings">Settings ▾</span>
           <div class="menu">
+            <a href="/settings/">Account &amp; plan</a>
+            <a href="/social/">Connections</a>
+            <a href="/settings/#workspace">Workspace</a>
             {% if user.is_authenticated %}
+            <div class="menu-sep"></div>
             <form method="post" action="{% url 'logout' %}" style="margin:0;">
               {% csrf_token %}
               <button type="submit" class="ext"

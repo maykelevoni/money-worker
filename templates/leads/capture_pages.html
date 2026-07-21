@@ -20,7 +20,7 @@
   @media (max-width: 820px) { table { min-width: 680px; } }
 </style>
 
-{% include "_pagehead.html" with eyebrow="Assets" title="Capture Pages" subtitle="One landing page per product / lead magnet — each with its own public link." action_url="/capture-pages/new/" action_label="+ New page" %}
+{% include "_pagehead.html" with eyebrow="Pages" title=heading subtitle=subtitle action_url=new_url action_label=new_label %}
 
 <div class="panel table-wrap">
   <table>
@@ -37,7 +37,7 @@
         <td><a class="link" href="{% url 'capture_page_edit' p.pk %}">Edit</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="7" class="small">No capture pages yet — create your first one to start collecting emails.</td></tr>
+      <tr><td colspan="7" class="small">{% if is_bio %}No bio pages yet — create one link hub to point all your videos at.{% else %}No capture pages yet — create your first one to start collecting emails.{% endif %}</td></tr>
     {% endfor %}
     </tbody>
   </table>

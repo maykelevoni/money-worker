@@ -24,6 +24,7 @@ from config.throttle import rate_limit
 
 from apps.dashboard import onboarding as ob
 from apps.leads import views as lead_views
+from apps.offers import views as offer_views
 from apps.sites import api_views as sites_api
 
 onboarding_patterns = ([
@@ -72,6 +73,7 @@ urlpatterns = [
     path('capture-pages/<int:pk>/links/add/', lead_views.page_link_add, name='page_link_add'),
     path('capture-pages/<int:pk>/links/<int:link_id>/delete/', lead_views.page_link_delete, name='page_link_delete'),
     path('p/<slug:slug>/', lead_views.page, name='capture_page'),  # public capture page
+    path('get/<str:key>/', offer_views.freebie_download, name='freebie_download'),  # public freebie delivery
     path('free/', lead_views.capture, name='capture'),  # legacy → first active page
 ]
 

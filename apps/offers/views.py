@@ -12,6 +12,13 @@ def offer_list(request):
                   {"offers": Offer.objects.for_workspace(request.workspace)})
 
 
+def freebie_download(request, key):
+    """Public delivery page for a freebie — shown after someone opts in.
+    Reached by its unguessable public_key; no workspace scoping (it's public)."""
+    offer = get_object_or_404(Offer, public_key=key, kind=Offer.Kind.FREEBIE)
+    return render(request, "offers/freebie_download.html", {"offer": offer})
+
+
 @login_required
 @require_POST
 def offer_create(request):
@@ -24,13 +31,16 @@ def offer_create(request):
         return redirect("offers:list")
 
     if kind == Offer.Kind.AFFILIATE:
-        link = request.POST.get("affiliate_url", "").strip()
-        if not link:
+        if not request.POST.get("affiliate_url", "").strip():
             messages.error(request, "An affiliate product needs an affiliate URL.")
             return redirect("offers:list")
+    elif kind == Offer.Kind.FREEBIE:
+        # A freebie is delivered on its download page — needs a file or a link.
+        if not request.POST.get("freebie_url", "").strip() and not request.FILES.get("freebie_file"):
+            messages.error(request, "A freebie needs a file to download or a link to it.")
+            return redirect("offers:list")
     else:  # own product
-        link = request.POST.get("checkout_url", "").strip()
-        if not link:
+        if not request.POST.get("checkout_url", "").strip():
             messages.error(request, "Your own product needs a checkout URL.")
             return redirect("offers:list")
 
@@ -39,12 +49,15 @@ def offer_create(request):
         name=name,
         kind=kind,
         vendor=request.POST.get("vendor", "").strip(),
+        image=request.FILES.get("image"),
         affiliate_url=request.POST.get("affiliate_url", "").strip(),
         commission=request.POST.get("commission", "").strip(),
         is_recurring=bool(request.POST.get("is_recurring")),
         price=request.POST.get("price", "").strip(),
         checkout_url=request.POST.get("checkout_url", "").strip(),
         landing_url=request.POST.get("landing_url", "").strip(),
+        freebie_file=request.FILES.get("freebie_file"),
+        freebie_url=request.POST.get("freebie_url", "").strip(),
     )
     messages.success(request, f"Added product “{name}”.")
     return redirect("offers:list")

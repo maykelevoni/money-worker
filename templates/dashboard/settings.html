@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Settings · PostForge{% endblock %}
+
+{% block content %}
+<style>
+  .set-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 760px) { .set-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; }
+  .card h2 { font-size: 15px; margin: 0 0 4px; }
+  .card .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 16px; }
+  .row { display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; gap: 12px; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { color: var(--muted); }
+  .row .v { text-align: right; }
+  a.link { color: var(--accent); text-decoration: none; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--panel2);
+    border: 1px solid var(--line); white-space: nowrap; }
+  .pill.live { color: var(--green); border-color: #1d5235; }
+  .pill.soon { color: var(--muted); }
+  .card .cta { margin-top: 16px; }
+  .btn-sm { display: inline-block; font-size: 13px; padding: 7px 13px; border-radius: 8px;
+    border: 1px solid var(--line); color: var(--fg); text-decoration: none; background: var(--panel2); }
+  .conns { list-style: none; padding: 0; margin: 0; }
+  .conns li { display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .conns li:last-child { border-bottom: 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+</style>
+
+{% include "_pagehead.html" with eyebrow="Settings" title="Account & plan" subtitle="Your profile, plan, connected accounts and workspace — all in one place." %}
+
+<div class="set-grid">
+
+  <div class="card" id="profile">
+    <h2>Profile</h2>
+    <p class="hint">The account you sign in with.</p>
+    <div class="row"><span class="k">Name</span><span class="v">{{ request.user.get_full_name|default:request.user.username }}</span></div>
+    <div class="row"><span class="k">Email</span><span class="v">{{ request.user.email|default:"—" }}</span></div>
+    <div class="row"><span class="k">Password</span><span class="v"><a class="link" href="/accounts/password_change/">Change ↗</a></span></div>
+  </div>
+
+  <div class="card" id="plan">
+    <h2>Plan &amp; credits</h2>
+    <p class="hint">Your PostForge subscription and generation credits.</p>
+    <div class="row"><span class="k">Plan</span><span class="v"><span class="pill soon">Coming soon</span></span></div>
+    <div class="row"><span class="k">Credits</span><span class="v"><span class="pill soon">Coming soon</span></span></div>
+    <div class="row"><span class="k">Billing</span><span class="v"><span class="pill soon">Coming soon</span></span></div>
+    <p class="muted" style="margin-top:14px;">Billing isn’t wired up yet — this is where plan &amp; credits will live.</p>
+  </div>
+
+  <div class="card" id="connections">
+    <h2>Connections</h2>
+    <p class="hint">Social accounts your videos post to. {{ connections_live }} active.</p>
+    {% if connections %}
+    <ul class="conns">
+      {% for a in connections %}
+      <li>
+        <span>{{ a.get_platform_display }} · <span class="muted">{{ a.handle }}</span></span>
+        {% if a.is_active %}<span class="pill live">active</span>{% else %}<span class="pill">off</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No accounts connected yet.</p>
+    {% endif %}
+    <div class="cta"><a class="btn-sm" href="/social/">Manage connections →</a></div>
+  </div>
+
+  <div class="card" id="workspace">
+    <h2>Workspace</h2>
+    <p class="hint">Your business space and who has access.</p>
+    <div class="row"><span class="k">Name</span><span class="v">{{ ws.name }}</span></div>
+    <div class="row"><span class="k">Influencers</span><span class="v">{{ avatars.count }}</span></div>
+    <div class="row"><span class="k">Members</span><span class="v">{{ members.count }}</span></div>
+    {% for m in members %}
+    <div class="row"><span class="k">{{ m.user.get_full_name|default:m.user.username }}</span><span class="v"><span class="pill">{{ m.get_role_display }}</span></span></div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

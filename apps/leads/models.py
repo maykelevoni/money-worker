@@ -60,7 +60,15 @@ class CapturePage(WorkspaceOwned):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="capture_pages",
-        help_text="Product this page promotes (optional)",
+        help_text="Paid product this page promotes / sells (optional)",
+    )
+    freebie = models.ForeignKey(
+        "offers.Offer",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="freebie_captures",
+        help_text="The freebie (lead magnet) visitors opt in for — delivered on its download page",
     )
     email_list = models.ForeignKey(
         "leads.EmailList",
@@ -75,7 +83,17 @@ class CapturePage(WorkspaceOwned):
         max_length=300, blank=True, help_text="Shown after they opt in (optional)"
     )
     niche = models.CharField(max_length=200, blank=True)
-    # Bio/link-hub only: the face at the top of the hub.
+    # Bio/link-hub: the influencer whose face + name front the hub. Preferred over
+    # `avatar` — keeps the page in sync if the influencer's image is regenerated.
+    influencer = models.ForeignKey(
+        "videos.Avatar",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="bio_pages",
+        help_text="Bio pages: the influencer who fronts this link hub",
+    )
+    # Fallback face for anyone without an influencer yet (or a custom upload).
     avatar = models.ImageField(upload_to="capture/avatars/", blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -95,6 +113,14 @@ class CapturePage(WorkspaceOwned):
             self.Layout.SALES: "leads/sales.html",
             self.Layout.BIO: "leads/bio.html",
         }.get(self.layout, "leads/page.html")
+
+    @property
+    def face(self):
+        """The image shown at the top of a bio hub: the influencer's, else the
+        uploaded fallback. Returns a file/ImageField-like or None."""
+        if self.influencer_id and getattr(self.influencer, "image", None):
+            return self.influencer.image
+        return self.avatar or None
 
 
 class PageLink(WorkspaceOwned):

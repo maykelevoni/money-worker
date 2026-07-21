@@ -7,4 +7,5 @@ app_name = "dashboard"
 urlpatterns = [
     path("", views.index, name="index"),
     path("analytics/", views.analytics, name="analytics"),
+    path("settings/", views.settings, name="settings"),
 ]

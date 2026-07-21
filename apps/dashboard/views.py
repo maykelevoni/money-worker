@@ -202,3 +202,25 @@ def analytics(request):
         "pipeline": pipeline,
     }
     return render(request, "dashboard/analytics.html", context)
+
+
+@login_required
+def settings(request):
+    """Account hub — profile, plan, connections and workspace in one place.
+
+    This is where 'Social accounts' now lives (as Connections) and where a
+    customer manages their own account, instead of the near-empty menu it was.
+    """
+    from apps.accounts.models import Membership
+    from apps.social.models import SocialAccount
+
+    ws = request.workspace
+    accounts = SocialAccount.objects.for_workspace(ws)
+    context = {
+        "ws": ws,
+        "members": Membership.objects.filter(workspace=ws).select_related("user"),
+        "connections": accounts,
+        "connections_live": accounts.filter(is_active=True).count(),
+        "avatars": Avatar.objects.for_workspace(ws),
+    }
+    return render(request, "dashboard/settings.html", context)
